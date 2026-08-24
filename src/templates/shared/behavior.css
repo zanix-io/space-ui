@@ -1,0 +1,136 @@
+/*
+ * Space-UI shared behavior CSS — theme-agnostic
+ * ----------------------------------------------
+ * Rescued from the legacy `react-components` library's Tachyons extension
+ * (`resources/public/styles/tachyons.css` — `.overlay`/`.hidden-overlay` + five `@keyframes`,
+ * originally used by Overlay/Modal/Toast/ProgressBar/Slider) — the content is ported, the
+ * mechanism is not: no BEM, no Tachyons, no runtime `useStyles` validator. Plain, prefixed,
+ * global CSS.
+ *
+ * Deliberately separate from `../theme/tokens.css`: this file describes structure/animation,
+ * never color identity — any theme preset (this default, a future dark one, a fully custom one)
+ * can reuse it unchanged, since it only ever references SEMANTIC `--space-*` tokens (never a
+ * primitive, never a literal). Not imported by any `@zanix/space-ui` runtime code — a project
+ * that has no use for these patterns yet can delete this file with zero effect on `Button`/
+ * `Icon`/`Link`/`SocialNetworks`, none of which reference anything here.
+ *
+ * Class/keyframe names are prefixed `space-ui-` — the same anti-collision job the legacy
+ * `useStyles` hook used to do at runtime (see the Styling Proposal §07), done here at authoring
+ * time instead: two plain, global class names this generic (`overlay`, `hidden-overlay`) would
+ * otherwise be a real risk of colliding with a consuming app's own CSS.
+ *
+ * `ProgressBar` is the first component in this package to actually render markup these rules key
+ * off of — via `[data-space-ui="progress-bar"]`, the same stable selector hook every other styled
+ * component here already exposes (see `docs/styling.md`), never a hardcoded class name the
+ * component itself would have to render. `Modal`/`Drawer` are the second and third: both render a
+ * real backdrop `<div>` (only when `showOverlay` is `true` — `false` renders no backdrop element
+ * at all, in either component, confirmed by reading both directly) carrying
+ * `data-space-ui="modal-backdrop"`/`"drawer-backdrop"` respectively.
+ *
+ * The rule below sets ONLY `background` — deliberately not `position`/`z-index`/sizing, unlike the
+ * legacy `.overlay` class this rescues. Both components already set `position: 'fixed'` and their
+ * own real `zIndex` (`MODAL_Z_INDEX.backdrop`/`DRAWER_Z_INDEX.backdrop`, both `999`) as real inline
+ * `style`, which an external stylesheet rule can never override regardless of selector specificity
+ * — porting `--space-z-overlay` (`2147483646`, a wildly different number) into this rule would be
+ * actively misleading, implying a value that could never actually apply. `inset: 0` (also inline)
+ * already achieves full-viewport coverage on a `position: fixed` element identically to explicit
+ * `height`/`width: 100%`, so those are redundant here too, not just the mismatched z-index.
+ *
+ * The legacy `.hidden-overlay` variant (originally a positioned-but-undimmed backdrop) is
+ * deliberately NOT ported: no current component ever renders an invisible backdrop element for
+ * that shape. `Modal`/`Drawer`'s own `showOverlay={false}` renders nothing at all rather than an
+ * invisible one (confirmed above); `Popover`/`Combobox` (which also need outside-click dismissal
+ * with no visible backdrop) use `useCloseOnOutside`'s own `document`-level listener instead of a
+ * catch-all element, the same choice `Modal`/`Drawer` independently made. Nothing in this
+ * package's current architecture has a rendered state this variant would ever style.
+ */
+
+[data-space-ui='modal-backdrop'],
+[data-space-ui='drawer-backdrop'] {
+  background: var(--space-color-scrim);
+}
+
+@keyframes space-ui-fade-in {
+  0% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+@keyframes space-ui-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes space-ui-progress-bar {
+  from {
+    width: 100%;
+  }
+  to {
+    width: 0%;
+  }
+}
+
+@keyframes space-ui-infinite-progress {
+  0% {
+    left: -100%;
+    width: 30%;
+  }
+  50% {
+    left: 50%;
+    width: 50%;
+  }
+  100% {
+    left: 100%;
+    width: 30%;
+  }
+}
+
+/* `ProgressBar`'s track (`[data-space-ui="progress-bar"]`) and fill (its one direct child).
+ * `ProgressBar` itself sets no `animation`/color of any kind — only structural sizing (`height`)
+ * and the plain data (`data-timeout`, `--space-ui-progress-duration`) these rules react to. */
+[data-space-ui='progress-bar'] {
+  width: 100%;
+  position: relative;
+  overflow: hidden;
+  background: var(--space-color-border);
+}
+
+[data-space-ui='progress-bar'] > div {
+  height: 100%;
+  width: 100%;
+  position: absolute;
+  left: 0;
+  top: 0;
+  background: var(--space-color-primary);
+  animation: space-ui-infinite-progress 2s ease-in-out infinite;
+}
+
+/* A `timeout` was given — a one-shot drain over that exact duration instead of the looping sweep
+ * above. `--space-ui-progress-duration` is the only per-instance value `ProgressBar` itself ever
+ * sets; the keyframe name stays owned by this file, never assumed or hardcoded by the component. */
+[data-space-ui='progress-bar'] > div[data-timeout] {
+  animation: space-ui-progress-bar var(--space-ui-progress-duration, 0ms) linear forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-space-ui='progress-bar'] > div {
+    animation: none;
+  }
+}
+
+@keyframes space-ui-scroll-left-full {
+  0% {
+    transform: translateX(100%);
+  }
+
+  100% {
+    transform: translateX(-100%);
+  }
+}

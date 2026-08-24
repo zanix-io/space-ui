@@ -79,3 +79,22 @@ Deno.test('SocialNetworks (preact): a className is forwarded onto the list eleme
 
   assertStringIncludes(html, 'class="ui-social"')
 })
+
+Deno.test('SocialNetworks (preact): rel is overridable — e.g. for rel="me" verification', () => {
+  const result = SocialNetworks({ links: [{ ...xLink, rel: 'me noopener noreferrer' }] })
+  assert(result)
+  const html = render(result)
+
+  assertStringIncludes(html, 'rel="me noopener noreferrer"')
+  assertEquals(html.includes('rel="noopener noreferrer"'), false)
+})
+
+Deno.test('SocialNetworks (preact): an image logo forwards loading when given', () => {
+  const result = SocialNetworks({
+    links: [{ ...xLink, icon: { img: '/assets/logos/x.png', loading: 'lazy' } }],
+  })
+  assert(result)
+  const html = render(result)
+
+  assertStringIncludes(html, 'loading="lazy"')
+})

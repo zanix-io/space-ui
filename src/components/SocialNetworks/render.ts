@@ -12,6 +12,15 @@ function isLogo(icon: SocialNetworksProps['links'][number]['icon']): icon is Soc
  * renderer is active). Composes `Icon`'s own shared factory directly (`createIcon(h)`) rather than
  * going through a bound `Icon` export, so this stays a single, self-contained renderer-agnostic
  * unit — no dependency on which entrypoint (`.`/`./preact`) happened to already bind `Icon`.
+ *
+ * The rendered `<ul>` carries `data-space-ui="social-networks"` — a stable, semver-protected
+ * identity hook an *optional* stylesheet (this package's own scaffolded template, or a consumer's
+ * own CSS) can select against, without resorting to a bare `ul` element selector that would also
+ * match unrelated markup elsewhere on the page. Inert on its own: no CSS ships with this package,
+ * and nothing here reads or reacts to this attribute. Not part of this component's documented prop
+ * API — `className` remains the primarily supported styling path. Scoped to the list only, same as
+ * `className` already is — the individual `<li>`/`<a>` per link get no hook of their own in this
+ * first version.
  */
 export function createSocialNetworks<E>(
   h: CreateElement<E>,
@@ -25,12 +34,13 @@ export function createSocialNetworks<E>(
 
     return h(
       'ul',
-      { className },
+      { className, 'data-space-ui': 'social-networks' },
       ...links.map((link) => {
         const mark = isLogo(link.icon)
           ? h('img', {
             src: link.icon.img,
             alt: link.icon.alt ?? `${link.name} logo`,
+            loading: link.icon.loading,
           })
           : Icon({ href: link.icon.href, name: link.icon.name, viewBox: link.icon.viewBox })
 
@@ -42,7 +52,7 @@ export function createSocialNetworks<E>(
             {
               href: link.url,
               target: '_blank',
-              rel: 'noopener noreferrer',
+              rel: link.rel ?? 'noopener noreferrer',
               title: link.tooltip ?? `${link.name} logo`,
               'aria-label': link.label ?? `Go to ${link.name}`,
             },

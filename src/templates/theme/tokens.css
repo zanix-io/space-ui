@@ -1,0 +1,45 @@
+/*
+ * Space-UI default theme — starter tokens
+ * ----------------------------------------
+ * Scaffolded by `zanix new space --template themed` (once wired — see the Styling Proposal's
+ * Fase 3, still blocked on `@zanix/space-ui` publishing to JSR) as a plain file the new project
+ * owns outright: no import, no version pin, edit/extend/delete freely. Not imported by any
+ * `@zanix/space-ui` runtime code — nothing in this package breaks if this file never existed.
+ *
+ * Two levels, exactly as `@zanix/space`'s own `docs/theming.md` documents for any app's tokens:
+ *   - primitives: raw scale values, never referenced directly by a component or by
+ *     `../shared/behavior.css` — implementation detail of this starter palette only.
+ *   - semantics:  named roles that reference a primitive — the only level anything else may
+ *     consume (a component, or a host app overriding this file's cascade).
+ *
+ * Every custom property is prefixed `--space-*`, per the same convention — never a bare name,
+ * never a name colliding with a third-party prefix (e.g. Tailwind's `--tw-*`).
+ *
+ * A host app overrides any of these by redeclaring the SEMANTIC name in its own stylesheet loaded
+ * after this one — the normal `globalCss` cascade `docs/theming.md` already documents, no special
+ * mechanism. It never needs to know these primitives exist.
+ */
+
+:root {
+  /* ---- primitives ---- */
+  --space-blue-500: #2f6fed;
+  --space-blue-600: #2557c4;
+  --space-gray-50: #f7f8fa;
+  --space-gray-100: #eceef2;
+  --space-gray-600: #5b6472;
+  --space-gray-900: #16181d;
+  --space-black: #000000;
+
+  /* ---- semantics — the only level a component or `../shared/behavior.css` may reference ---- */
+  --space-color-primary: var(--space-blue-500);
+  --space-color-primary-strong: var(--space-blue-600);
+  --space-color-surface: var(--space-gray-50);
+  --space-color-border: var(--space-gray-100);
+  --space-color-ink: var(--space-gray-900);
+  --space-color-ink-muted: var(--space-gray-600);
+
+  /* One-off constants, not a multi-step scale — no primitive layer to derive them from, so they're
+     declared directly as semantics. Consumed by `../shared/behavior.css`'s `.space-ui-overlay`. */
+  --space-color-scrim: color-mix(in srgb, var(--space-black) 50%, transparent);
+  --space-z-overlay: 2147483646;
+}

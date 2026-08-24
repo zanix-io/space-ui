@@ -38,6 +38,18 @@ Deno.test('Link (preact): an explicit label is applied as aria-label', () => {
   assertStringIncludes(html, 'aria-label="Learn more about Zanix"')
 })
 
+Deno.test('Link (preact): an explicit title is forwarded onto the anchor element', () => {
+  const html = render(Link({ href: '/about', title: 'A tooltip', children: 'About' }))
+
+  assertStringIncludes(html, 'title="A tooltip"')
+})
+
+Deno.test('Link (preact): without a title, no title attribute is rendered', () => {
+  const html = render(Link({ href: '/about', children: 'About' }))
+
+  assertEquals(html.includes('title='), false)
+})
+
 Deno.test('Link (preact): a className is forwarded onto the anchor element', () => {
   const html = render(Link({ href: '/about', className: 'ui-link', children: 'About' }))
 
@@ -68,4 +80,22 @@ Deno.test('Link (preact): onClick is wired onto the element', () => {
   const props = vnode.props as unknown as { onClick: typeof onClick }
 
   assertEquals(props.onClick, onClick)
+})
+
+Deno.test('Link (preact): aria-current reaches the real DOM verbatim', () => {
+  const html = render(Link({ href: '/pricing', 'aria-current': 'page', children: 'Pricing' }))
+
+  assertStringIncludes(html, 'aria-current="page"')
+})
+
+Deno.test('Link (preact): aria-current={true} renders the literal "true" string', () => {
+  const html = render(Link({ href: '/pricing', 'aria-current': true, children: 'Pricing' }))
+
+  assertStringIncludes(html, 'aria-current="true"')
+})
+
+Deno.test('Link (preact): without aria-current, no such attribute is rendered', () => {
+  const html = render(Link({ href: '/pricing', children: 'Pricing' }))
+
+  assertEquals(html.includes('aria-current'), false)
 })

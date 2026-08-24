@@ -4,7 +4,7 @@ import { createFormatter } from './formatter.ts'
 import type { Formatter, Messages } from './formatter.ts'
 
 export { createFormatter } from './formatter.ts'
-export type { FormatMessageValues, Formatter, Messages } from './formatter.ts'
+export type { FormatMessageValues, Formatter, Messages, RichTextTagFn } from './formatter.ts'
 
 const IntlContext = createContext<Formatter | null>(null)
 
@@ -19,6 +19,7 @@ export interface IntlProviderProps {
    * at the call site if it contains precompiled AST values (see {@linkcode Messages}'s own doc for
    * why that cast is expected). */
   messages: Messages
+  /** The subtree that gets `useIntl()` access to the formatter built from `locale`/`messages`. */
   children?: ReactNode
 }
 

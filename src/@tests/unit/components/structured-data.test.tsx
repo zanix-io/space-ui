@@ -47,3 +47,31 @@ Deno.test('StructuredData: defaults @context to schema.org when data omits it', 
     }</script>`,
   )
 })
+
+Deno.test(
+  'StructuredData: a data value containing a literal </script> never breaks out of the tag',
+  () => {
+    // Reproduces a real bug: JSON.stringify never escapes "/", so this string would otherwise
+    // close the <script> tag early and let a following <script> actually execute. See render.ts's
+    // own doc for the full reasoning.
+    const data = {
+      '@type': 'Organization',
+      name: 'Zanix',
+      description: 'A team.</script><script>window.pwned = true</script>',
+    } as const
+
+    const html = renderToStaticMarkup(<StructuredData<Organization> data={data} />)
+
+    // The ENTIRE response is exactly one script tag — no second, injected <script> anywhere.
+    assertEquals(html.match(/<script/g)?.length, 1)
+    assertEquals(html.match(/<\/script>/g)?.length, 1)
+
+    const inner = html.slice(
+      html.indexOf('>') + 1,
+      html.lastIndexOf('</script>'),
+    )
+    // The escaped payload still round-trips to the exact original string via JSON.parse — this is
+    // an encoding change for safety, never a change to the actual data.
+    assertEquals(JSON.parse(inner).description, data.description)
+  },
+)

@@ -11,6 +11,12 @@ import type { IconProps } from './types.ts'
  * element (see {@linkcode CreateElement}) — this pattern only holds for markup this simple; a
  * component with real per-renderer hook usage needs a full second implementation instead (see
  * `@zanix/space`'s own `render-page-react.tsx`/`render-page-preact.ts` split for that case).
+ *
+ * Carries `data-space-ui="icon"` — a stable, semver-protected identity hook for consumer-side
+ * theming. Inert on its own: no CSS ships with this package, and nothing here reads or reacts to
+ * this attribute — it exists only so a consumer's own stylesheet has something of `space-ui`'s to
+ * target without resorting to a bare `svg` element selector. Not part of this component's
+ * documented prop API — `className` remains the primarily supported styling path.
  */
 export function createIcon<E>(h: CreateElement<E>): (props: IconProps) => E {
   return function Icon(
@@ -26,6 +32,7 @@ export function createIcon<E>(h: CreateElement<E>): (props: IconProps) => E {
         height: size,
         viewBox,
         className,
+        'data-space-ui': 'icon',
         role: decorative ? undefined : 'img',
         'aria-hidden': decorative ? true : undefined,
         'aria-label': decorative ? undefined : label,

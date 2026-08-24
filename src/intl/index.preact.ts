@@ -5,7 +5,7 @@ import { createFormatter } from './formatter.ts'
 import type { Formatter, Messages } from './formatter.ts'
 
 export { createFormatter } from './formatter.ts'
-export type { FormatMessageValues, Formatter, Messages } from './formatter.ts'
+export type { FormatMessageValues, Formatter, Messages, RichTextTagFn } from './formatter.ts'
 
 const IntlContext = createContext<Formatter | null>(null)
 
@@ -13,8 +13,11 @@ const IntlContext = createContext<Formatter | null>(null)
  * `IntlProviderProps` except for `children`'s type — see `index.ts`'s own doc for the full field
  * descriptions, not repeated here. */
 export interface IntlProviderProps {
+  /** See `index.ts`'s own `IntlProviderProps.locale` doc — identical field, identical contract. */
   locale: string
+  /** See `index.ts`'s own `IntlProviderProps.messages` doc — identical field, identical contract. */
   messages: Messages
+  /** The subtree that gets `useIntl()` access to the formatter built from `locale`/`messages`. */
   children?: ComponentChildren
 }
 

@@ -1,10 +1,11 @@
 import { assert } from '@std/assert'
 
 /**
- * Structural guard rails for this package's own renderer boundary, now that `intl/` adds a real
- * npm dependency (`@formatjs/intl`) to both entrypoints. Verified via `deno info --json`'s actual
- * resolved module graph — TRANSITIVE reachability, not a grep over `deno.jsonc`'s own `imports`
- * map, which would miss a package pulled in indirectly through some other dependency.
+ * Structural guard rails for this package's own renderer boundary, now that `intl/` and
+ * `RichText/markdown.ts` each add a real npm dependency (`@formatjs/intl`, `markdown-to-jsx`) to
+ * both entrypoints. Verified via `deno info --json`'s actual resolved module graph — TRANSITIVE
+ * reachability, not a grep over `deno.jsonc`'s own `imports` map, which would miss a package
+ * pulled in indirectly through some other dependency.
  *
  * `code` vs `type` edges are checked separately throughout: a `type` edge is erased at compile
  * time and never bundled or evaluated (see `formatter.ts`'s own doc for why
@@ -120,11 +121,28 @@ Deno.test(
 )
 
 Deno.test(
-  'mod.ts and mod-preact.ts: both reach @formatjs/intl as a real code dependency — the one ' +
-    'formatting dependency this package owns',
+  'mod.ts and mod-preact.ts: both reach @formatjs/intl as a real code dependency',
   async () => {
     const [react, preact] = await Promise.all([moduleGraph('mod.ts'), moduleGraph('mod-preact.ts')])
     assert(includesPackage(react.code, '@formatjs/intl'))
     assert(includesPackage(preact.code, '@formatjs/intl'))
+  },
+)
+
+Deno.test(
+  'mod.ts and mod-preact.ts: both reach markdown-to-jsx, but never through preact/compat',
+  async () => {
+    // `RichText/markdown.ts` only ever imports `markdown-to-jsx`'s own `/markdown` subpath — a
+    // pure markdown→AST parser with zero React import at runtime (confirmed directly against its
+    // real built JS, see `markdown.ts`'s own doc) — walked by hand via `h`/`createElement`
+    // instead of that package's own JSX renderer. This is the empirical proof that choice actually
+    // holds: markdown-to-jsx is reachable in both entrypoints, yet `preact/compat` still isn't,
+    // and `mod-preact.ts` still never reaches `react` either (already covered above) — a naive
+    // integration using markdown-to-jsx's own `/react` renderer would have broken exactly this.
+    const [react, preact] = await Promise.all([moduleGraph('mod.ts'), moduleGraph('mod-preact.ts')])
+    assert(includesPackage(react.code, 'markdown-to-jsx'))
+    assert(includesPackage(preact.code, 'markdown-to-jsx'))
+    assert(!includesPackage(preact.code, 'preact/compat'), 'preact/compat must never be reachable')
+    assert(!includesPackage(preact.type, 'preact/compat'), 'preact/compat must never be reachable')
   },
 )

@@ -88,3 +88,30 @@ Deno.test('SocialNetworks: a className is forwarded onto the list element', () =
 
   assertStringIncludes(html, 'class="ui-social"')
 })
+
+Deno.test('SocialNetworks: rel is overridable — e.g. for rel="me" identity verification', () => {
+  const html = renderToStaticMarkup(
+    <SocialNetworks links={[{ ...xLink, rel: 'me noopener noreferrer' }]} />,
+  )
+
+  assertStringIncludes(html, 'rel="me noopener noreferrer"')
+  assertEquals(html.includes('rel="noopener noreferrer"'), false)
+})
+
+Deno.test('SocialNetworks: an image logo forwards loading when given', () => {
+  const html = renderToStaticMarkup(
+    <SocialNetworks
+      links={[{ ...xLink, icon: { img: '/assets/logos/x.png', loading: 'lazy' } }]}
+    />,
+  )
+
+  assertStringIncludes(html, 'loading="lazy"')
+})
+
+Deno.test('SocialNetworks: an image logo with no loading given renders no such attribute', () => {
+  const html = renderToStaticMarkup(
+    <SocialNetworks links={[{ ...xLink, icon: { img: '/assets/logos/x.png' } }]} />,
+  )
+
+  assertEquals(html.includes('loading='), false)
+})

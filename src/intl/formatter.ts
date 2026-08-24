@@ -29,12 +29,24 @@ export type Messages = Record<string, string | MessageFormatElement[]>
 /**
  * The interpolation/plural/select values {@linkcode Formatter.formatMessage} accepts for one
  * message — primitives only. This contract deliberately never supports ICU rich-text tags
- * (`<b>...</b>` resolving to a renderer-specific element) — see `formatMessage`'s own doc for why.
+ * (`<b>...</b>` resolving to a renderer-specific element) directly — {@linkcode Formatter.formatRichText}
+ * is the dedicated, separate contract for that instead, so this one stays exactly what its name says.
  */
 export type FormatMessageValues = Record<
   string,
   string | number | boolean | Date | null | undefined
 >
+
+/**
+ * A handler for one ICU rich-text tag (`<b>...</b>`) — called with that tag's own parsed children
+ * (a mix of literal string runs and, for a nested tag, whatever `T` that nested tag's own handler
+ * already returned), returning the renderer-specific node for it. Structurally identical to
+ * `intl-messageformat`'s own `FormatXMLElementFn<T>` — redeclared locally rather than imported so
+ * this module doesn't need a direct dependency on that package for one type alias (already pulled
+ * in transitively via `@formatjs/intl`; `intl-messageformat`'s own runtime is never imported here,
+ * only this shape).
+ */
+export type RichTextTagFn<T> = (chunks: Array<string | T>) => T
 
 /**
  * The renderer-agnostic surface both the React and Preact bindings expose through context. Unlike
@@ -56,6 +68,36 @@ export interface Formatter {
    * this contract deliberately doesn't clone.
    */
   formatMessage(id: string, values?: FormatMessageValues): string
+
+  /**
+   * Like {@linkcode formatMessage}, but recognizes ICU rich-text tags (`<b>...</b>`) in the
+   * message and, for each tag name present in `tags`, calls the matching {@linkcode RichTextTagFn}
+   * with that tag's own parsed children — `@formatjs/intl`'s own native rich-text mechanism:
+   * `IntlShape.formatMessage` already has a generic overload accepting
+   * `Record<string, PrimitiveType | FormatXMLElementFn<T>>`
+   * and returning `string | T | Array<string | T>`), exposed here as its own contract rather than
+   * folded into `formatMessage` itself — `RichText` is this method's first real consumer, the same
+   * "build it once a real consumer needs it" reasoning `usePosition` was deferred under until
+   * `Popover` arrived.
+   *
+   * `tags` and `values` are merged into ONE record before the real call (`{...values, ...tags}` —
+   * a tag always wins on a same-named collision), exactly the single combined record
+   * `IntlShape.formatMessage` itself expects; splitting them into two parameters here is a pure
+   * call-site convenience (a large, mostly-static tag table vs. small, per-call interpolation
+   * values), not a different semantics from the one underlying call.
+   *
+   * Return shape: a message with no tags in it at all returns a plain `string`, identically to
+   * `formatMessage` —
+   * this holds even when `tags` itself is non-empty but the message just doesn't use any of them.
+   * A message that's ENTIRELY one single tag returns that tag's own `T` directly. Anything mixing
+   * literal text with one or more tags returns `Array<string | T>`, in document order — this is
+   * `@formatjs/intl`'s own real return type, not narrowed or altered here.
+   */
+  formatRichText<T>(
+    id: string,
+    tags: Record<string, RichTextTagFn<T>>,
+    values?: FormatMessageValues,
+  ): string | T | Array<string | T>
 }
 
 /**
@@ -67,10 +109,10 @@ export interface Formatter {
  * this module, and both call this exact function; nothing here is duplicated per renderer.
  *
  * Deliberately minimal, not a `react-intl` clone: no `formatDate`/`formatNumber`/`formatList`, no
- * rich-text tag support, no `defaultMessage`, no `formatData`/`formatContent` (the legacy
- * component's own recursive-object formatter — see `@zanix/space`'s CHANGELOG for why that stays
- * unported). Only what `formatMessage(id, values)` needs, because that is the entire contract this
- * package's own use case requires.
+ * `defaultMessage`, no `formatData`/`formatContent` (the legacy component's own recursive-object
+ * formatter — see `@zanix/space`'s CHANGELOG for why that stays unported). Rich-text tag support
+ * (`formatRichText`) WAS deliberately deferred here too, until `RichText` became its first real
+ * consumer — see that method's own doc.
  *
  * @example
  * ```ts
@@ -81,12 +123,31 @@ export interface Formatter {
  */
 export function createFormatter(locale: string, messages: Messages): Formatter {
   const cache = createIntlCache()
-  // See `Messages`'s own doc for why this cast is safe.
-  const intl = createIntl({ locale, messages: messages as IntlConfig['messages'] }, cache)
+  // `createIntl<unknown>`, not the bare `createIntl(...)` default: `IntlShape<T = string>`'s own
+  // default type parameter constrains `formatMessage`'s generic rich-text overload to
+  // `T extends string`, which would reject a real renderer-specific `T` (`ReactNode`, Preact's own
+  // node type) outright at the type level. Widening to `<unknown>` here doesn't alter the plain
+  // `formatMessage` path's own behavior at all — the same one `intl` instance serves both.
+  // See `Messages`'s own doc for why the `messages` cast below is safe.
+  const intl = createIntl<unknown>({ locale, messages: messages as IntlConfig['messages'] }, cache)
 
   return {
     formatMessage(id, values) {
       return intl.formatMessage({ id, defaultMessage: id }, values)
+    },
+    formatRichText<T>(
+      id: string,
+      tags: Record<string, RichTextTagFn<T>>,
+      values?: FormatMessageValues,
+    ) {
+      // No explicit type argument on the real call below — `IntlShape.formatMessage`'s own generic
+      // overload takes exactly 0 or 2 type parameters (`T` AND `TValue` together), never 1; letting
+      // both infer from `{...values, ...tags}`'s own shape avoids needing to name `TValue`
+      // (`RichTextTagFn<T>`'s own real upstream counterpart) at all.
+      return intl.formatMessage({ id, defaultMessage: id }, { ...values, ...tags }) as
+        | string
+        | T
+        | Array<string | T>
     },
   }
 }

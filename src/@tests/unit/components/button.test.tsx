@@ -76,6 +76,48 @@ Deno.test('Button: role="menuitem" needs no companion state — it compiles with
   assertEquals(html.includes('aria-selected'), false)
 })
 
+Deno.test('Button: aria-expanded/aria-controls reach the real DOM verbatim', () => {
+  const html = renderToStaticMarkup(
+    <Button onClick={() => {}} aria-expanded aria-controls='panel-1'>Toggle</Button>,
+  )
+
+  assertStringIncludes(html, 'aria-expanded="true"')
+  assertStringIncludes(html, 'aria-controls="panel-1"')
+})
+
+Deno.test('Button: aria-expanded={false} renders the literal "false" string, never omitted', () => {
+  const html = renderToStaticMarkup(
+    <Button onClick={() => {}} aria-expanded={false} aria-controls='panel-1'>Toggle</Button>,
+  )
+
+  assertStringIncludes(html, 'aria-expanded="false"')
+})
+
+Deno.test('Button: without aria-expanded/aria-controls, neither attribute is rendered', () => {
+  const html = renderToStaticMarkup(<Button onClick={() => {}}>Save</Button>)
+
+  assertEquals(html.includes('aria-expanded'), false)
+  assertEquals(html.includes('aria-controls'), false)
+})
+
+Deno.test('Button: aria-current reaches the real DOM verbatim', () => {
+  const html = renderToStaticMarkup(<Button onClick={() => {}} aria-current='step'>2</Button>)
+
+  assertStringIncludes(html, 'aria-current="step"')
+})
+
+Deno.test('Button: aria-current={true} renders the literal "true" string', () => {
+  const html = renderToStaticMarkup(<Button onClick={() => {}} aria-current>1</Button>)
+
+  assertStringIncludes(html, 'aria-current="true"')
+})
+
+Deno.test('Button: without aria-current, no such attribute is rendered', () => {
+  const html = renderToStaticMarkup(<Button onClick={() => {}}>1</Button>)
+
+  assertEquals(html.includes('aria-current'), false)
+})
+
 Deno.test(
   'Button: without a role override, no role attribute is rendered (native semantics apply)',
   () => {
@@ -107,3 +149,21 @@ Deno.test(
     assertStringIncludes(html, 'value="archive"')
   },
 )
+
+Deno.test('Button: tabIndex reaches the real DOM verbatim, for roving-tabindex widgets', () => {
+  const html = renderToStaticMarkup(<Button tabIndex={-1}>Item</Button>)
+
+  assertStringIncludes(html, 'tabindex="-1"')
+})
+
+Deno.test('Button: without tabIndex, no such attribute is rendered', () => {
+  const html = renderToStaticMarkup(<Button>Item</Button>)
+
+  assertEquals(html.includes('tabindex'), false)
+})
+
+Deno.test('Button: id reaches the real DOM verbatim, for cross-referencing from elsewhere', () => {
+  const html = renderToStaticMarkup(<Button id='tab-general'>General</Button>)
+
+  assertStringIncludes(html, 'id="tab-general"')
+})

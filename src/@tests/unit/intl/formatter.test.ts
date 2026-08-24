@@ -60,3 +60,65 @@ Deno.test(
     assertEquals(formatMessage('already/compiled', { count: 2 }), '2 items')
   },
 )
+
+// --- formatRichText ---------------------------------------------------------------------------
+// `RichText`'s own foundation — see `formatter.ts`'s own doc on `formatRichText` for the full
+// contract (the `createIntl<unknown>` widening this depends on, the tags/values merge, why the
+// return shape below is real `@formatjs/intl` behavior, not narrowed here).
+
+type FakeNode = { tag: string; children: Array<string | FakeNode> }
+
+function fakeTag(tag: string) {
+  return (chunks: Array<string | FakeNode>): FakeNode => ({ tag, children: chunks })
+}
+
+Deno.test('createFormatter: formatRichText — a message with no tags returns a plain string', () => {
+  const { formatRichText } = createFormatter('en', { plain: 'just text, no tags' })
+  const result = formatRichText('plain', { b: fakeTag('b') })
+  assertEquals(result, 'just text, no tags')
+})
+
+Deno.test(
+  'createFormatter: formatRichText — tags given but unused still returns a plain string',
+  () => {
+    const { formatRichText } = createFormatter('en', { plain: 'no tags used here' })
+    const result = formatRichText('plain', { b: fakeTag('b'), i: fakeTag('i') })
+    assertEquals(result, 'no tags used here')
+  },
+)
+
+Deno.test(
+  'createFormatter: formatRichText — a message that is entirely one tag returns that tag’s T directly',
+  () => {
+    const { formatRichText } = createFormatter('en', { bold: '<b>hello</b>' })
+    const result = formatRichText('bold', { b: fakeTag('b') })
+    assertEquals(result, { tag: 'b', children: ['hello'] })
+  },
+)
+
+Deno.test(
+  'createFormatter: formatRichText — text mixed with a tag returns Array<string | T>, in order',
+  () => {
+    const { formatRichText } = createFormatter('en', { mixed: 'before <b>middle</b> after' })
+    const result = formatRichText('mixed', { b: fakeTag('b') })
+    assertEquals(result, ['before ', { tag: 'b', children: ['middle'] }, ' after'])
+  },
+)
+
+Deno.test('createFormatter: formatRichText — nested tags nest the same way', () => {
+  const { formatRichText } = createFormatter('en', { nested: '<b>bold <i>and italic</i></b>' })
+  const result = formatRichText('nested', { b: fakeTag('b'), i: fakeTag('i') })
+  assertEquals(result, { tag: 'b', children: ['bold ', { tag: 'i', children: ['and italic'] }] })
+})
+
+Deno.test('createFormatter: formatRichText — ICU interpolation values work alongside tags', () => {
+  const { formatRichText } = createFormatter('en', { greet: 'Hello <b>{name}</b>!' })
+  const result = formatRichText('greet', { b: fakeTag('b') }, { name: 'Ada' })
+  assertEquals(result, ['Hello ', { tag: 'b', children: ['Ada'] }, '!'])
+})
+
+Deno.test('createFormatter: formatRichText — a tag wins over a same-named value', () => {
+  const { formatRichText } = createFormatter('en', { collide: '<b>x</b>' })
+  const result = formatRichText('collide', { b: fakeTag('b') }, { b: 'not a tag' })
+  assertEquals(result, { tag: 'b', children: ['x'] })
+})

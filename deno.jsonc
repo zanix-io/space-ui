@@ -1,0 +1,162 @@
+{
+  "name": "@zanix/space-ui",
+  "version": "0.1.0",
+  "zanix": {
+    "project": "library"
+  },
+  "compilerOptions": {
+    "strict": true,
+    "noImplicitAny": true,
+    "jsx": "react-jsx",
+    "jsxImportSource": "react"
+  },
+  "lint": {
+    "rules": {
+      "tags": [
+        "recommended",
+        "jsr",
+        "react",
+        "jsx"
+      ],
+      "include": [
+        "eqeqeq",
+        "default-param-last",
+        "camelcase",
+        "no-await-in-loop",
+        "no-const-assign",
+        "no-eval",
+        "no-non-null-asserted-optional-chain",
+        "no-non-null-assertion",
+        "no-self-compare",
+        "no-sync-fn-in-async-fn",
+        "no-throw-literal",
+        "no-useless-rename"
+      ]
+    },
+    "exclude": [
+      ".dist"
+    ],
+    "plugins": [
+      "jsr:@zanix/utils@^3.0.0/linter/deno-zanix-plugin"
+    ],
+    "report": "pretty"
+  },
+  "fmt": {
+    "exclude": [
+      ".dist"
+    ],
+    "proseWrap": "always",
+    "indentWidth": 2,
+    "singleQuote": true,
+    "lineWidth": 100,
+    "useTabs": false,
+    "semiColons": false
+  },
+  "imports": {
+    "components/": "./src/components/",
+    "typings/": "./src/typings/",
+    "intl/": "./src/intl/",
+    // Small internal mechanisms genuinely shared by more than one component's own implementation
+    // (never a public export of this package) — e.g. `close-on-outside.ts`, first written for
+    // `Menu`, moved here once `Modal` became a real second consumer. Never introduced ahead of a
+    // real second need.
+    "shared/": "./src/shared/",
+    // TEMP local path override — `Video` (`components/Video/`) is this package's first REAL
+    // runtime dependency on `@zanix/space` (the architecture already calls for this: `space-ui`
+    // depends downward on `space`, never the reverse — confirmed empirically that `space`'s own
+    // published entrypoints, `mod.ts`/`mod-react.ts`/`mod-preact.ts`, never resolve back to
+    // `space-ui` in their real `deno info --json` graph, so this is NOT circular). `@zanix/space`
+    // has no published JSR version yet (`jsr:@zanix/space@^0.1.0` resolves 404 — same blocker
+    // already documented for `@zanix/cli`'s own scaffold, P3-4), so this points directly at
+    // `@zanix/space`'s real source, same TEMP pattern `@zanix/cli`'s own `deno.jsonc` already
+    // uses for the same reason. Deliberately NOT `../space/mod.ts` (that package's own full
+    // barrel) — `@zanix/space` also declares a bare `typings/` import, and a locally-path-mapped
+    // module's bare specifiers resolve against the IMPORTING project's own map (THIS one), not the
+    // declaring one; importing the full barrel would silently try to resolve `@zanix/space`'s own
+    // `typings/*.ts` against `space-ui/src/typings/`, which doesn't have those files (same
+    // reasoning `@zanix/space`'s own deno.jsonc documents for its symmetric TEST-ONLY path into
+    // `@zanix/space-ui/intl`). Pointing directly at these two specific, self-contained files sidesteps
+    // that entirely — neither has a bare-specifier import of its own to collide with (`video-source.ts`
+    // only imports a relative `./content-type.ts`; `assets-manifest.ts` imports nothing at all).
+    // Revert both to a real `jsr:@zanix/space@^x.y.z` specifier once `@zanix/space` publishes —
+    // this package's own publish is blocked on that happening first.
+    "@zanix/space/video-source": "jsr:@zanix/space@^0.1.0/video-source",
+    "@zanix/space/assets-manifest": "jsr:@zanix/space@^0.1.0/assets-manifest",
+    "@zanix/helpers": "jsr:@zanix/utils@^3.1.2/helpers",
+    "@zanix/utils/logger": "jsr:@zanix/utils@^3.1.2/logger",
+    "@std/fmt": "jsr:@std/fmt@0.224",
+    "@std/path": "jsr:@std/path@0.224",
+    "react": "npm:react@^19.2.0",
+    "react-dom": "npm:react-dom@^19.2.0",
+    "@types/react": "npm:@types/react@^19.2.0",
+    "@types/react-dom": "npm:@types/react-dom@^19.2.0",
+    // Only ever fetched/evaluated by code under the "./preact" subpath — a consumer who only
+    // imports the default (React) entrypoint never pulls this in.
+    "preact": "npm:preact@^10.29.0",
+    "preact-render-to-string": "npm:preact-render-to-string@^6.5.0",
+    // Types only, zero runtime — `Thing`/`WithContext` are pure TS types (schema.org's own JSON-LD
+    // vocabulary), never a value imported at runtime.
+    "schema-dts": "npm:schema-dts@^1.1.5",
+    // The one real formatting dependency this package owns (see `src/intl/formatter.ts`'s own
+    // doc) — `@zanix/space` itself never depends on either of these, by design: ICU/AST is a
+    // presentation-layer concern, resolved here, not in the routing/rendering core.
+    "@formatjs/intl": "npm:@formatjs/intl@^4.1.19",
+    // Types only, zero runtime — `MessageFormatElement` is `intl`'s own AST node type, imported
+    // here only to type a precompiled catalog's values accurately (same reasoning as `schema-dts`
+    // above). The actual ICU parser (`parse()`) is never imported anywhere in this package —
+    // compiling ICU→AST is `@zanix/cli`'s own job, not this package's.
+    "@formatjs/icu-messageformat-parser": "npm:@formatjs/icu-messageformat-parser@^3.5.17",
+    // This package's second real runtime dependency (after `@zanix/space`). Only the `/markdown`
+    // subpath is ever imported (`RichText/markdown.ts`) — its own `parser()` is a pure
+    // markdown→AST function with zero React import at runtime (confirmed directly against its
+    // real `dist/markdown.js`, not assumed from the package's own React-flavored root entrypoint
+    // or its `.d.ts`'s purely-type-level `import * as React`), which is exactly why this package
+    // can render markdown through Preact without ever touching `preact/compat` — this package
+    // walks the AST itself via `h`, never markdown-to-jsx's own `./react` renderer.
+    "markdown-to-jsx/markdown": "npm:markdown-to-jsx@^9.10.2/markdown",
+    "@std/assert": "jsr:@std/assert@0.224",
+    // Test-only, never reachable from `mod.ts`/`mod-preact.ts` (confirmed by the same dependency-
+    // boundary test pattern `intl/dependency-boundary.test.ts` already uses). `Counter` is the
+    // first component whose contract lives inside `useEffect` — `renderToStaticMarkup`/
+    // `preact-render-to-string` never run those — so its tests mount into a real DOM instead of
+    // asserting static markup. See `src/@tests/unit/components/counter-test-utils.ts`'s own doc.
+    // `happy-dom`, not `jsdom` — same real-DOM bootstrap role, zero transitive dependencies
+    // (`jsdom` pulled in the now-deprecated `whatwg-encoding`/`glob@10` via `html-encoding-sniffer`).
+    "happy-dom": "npm:happy-dom@^20.11.2"
+  },
+  "exports": {
+    ".": "./mod.ts",
+    "./preact": "./mod-preact.ts"
+  },
+  "nodeModulesDir": "auto",
+  "publish": {
+    "exclude": [
+      ".github",
+      "src/@tests",
+      // Internal architecture/roadmap record for this repo's own maintainers and contributors —
+      // unlike `docs/styling.md`/`docs/icons.md` (genuinely consumer-facing: how to use/style what
+      // ships today), this discusses unbuilt future components, internal audit reasoning, and gaps
+      // in a sibling package (`@zanix/space`) that a consumer of THIS package has no need to see in
+      // their installed copy's own docs. Stays in the git repo (visible on GitHub, where
+      // contributors actually need it) but never ships inside the published JSR package.
+      "docs/architecture.md"
+    ]
+  },
+  "test": {
+    "include": [
+      "src/@tests/**/*.test.ts",
+      "src/@tests/**/*.test.tsx"
+    ]
+  },
+  "tasks": {
+    "test": "deno test -A",
+    // `src/@tests/functional/space-integration/` drives a real render pipeline from the sibling
+    // `@zanix/space` repo (i18n parity tests) — `deno test --coverage` instruments whatever actually
+    // runs, so a plain `deno coverage` report ends up mixing that entire external repo (and ITS OWN
+    // npm/JSR dependencies) into this package's own numbers. `--coverage-raw-data-only` skips the
+    // automatic (unfiltered) report `--coverage` alone would generate, and every report below is
+    // filtered to this package's own `space-ui/src/` — never `space/src/` (the sibling repo), which
+    // that include pattern can't match.
+    "test:coverage": "rm -rf coverage && deno test -A --coverage=coverage --coverage-raw-data-only && deno coverage coverage --include='space-ui/src/' && deno coverage coverage --include='space-ui/src/' --lcov --output=coverage/lcov.info && deno coverage coverage --include='space-ui/src/' --html"
+  }
+}

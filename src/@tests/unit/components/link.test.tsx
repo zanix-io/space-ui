@@ -39,6 +39,18 @@ Deno.test('Link: without a label, no aria-label is rendered', () => {
   assertEquals(html.includes('aria-label'), false)
 })
 
+Deno.test('Link: an explicit title is forwarded onto the anchor element', () => {
+  const html = renderToStaticMarkup(<Link href='/about' title='A tooltip'>About</Link>)
+
+  assertStringIncludes(html, 'title="A tooltip"')
+})
+
+Deno.test('Link: without a title, no title attribute is rendered', () => {
+  const html = renderToStaticMarkup(<Link href='/about'>About</Link>)
+
+  assertEquals(html.includes('title='), false)
+})
+
 Deno.test('Link: a className is forwarded onto the anchor element', () => {
   const html = renderToStaticMarkup(
     <Link href='/about' className='ui-link'>About</Link>,
@@ -72,3 +84,21 @@ Deno.test(
     assertEquals(props.onClick, onClick)
   },
 )
+
+Deno.test('Link: aria-current reaches the real DOM verbatim', () => {
+  const html = renderToStaticMarkup(<Link href='/pricing' aria-current='page'>Pricing</Link>)
+
+  assertStringIncludes(html, 'aria-current="page"')
+})
+
+Deno.test('Link: aria-current={true} renders the literal "true" string', () => {
+  const html = renderToStaticMarkup(<Link href='/pricing' aria-current>Pricing</Link>)
+
+  assertStringIncludes(html, 'aria-current="true"')
+})
+
+Deno.test('Link: without aria-current, no such attribute is rendered', () => {
+  const html = renderToStaticMarkup(<Link href='/pricing'>Pricing</Link>)
+
+  assertEquals(html.includes('aria-current'), false)
+})

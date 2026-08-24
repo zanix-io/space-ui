@@ -1,0 +1,107 @@
+/*
+ * Space-UI Card layout CSS — optional, never imported by any `@zanix/space-ui` runtime code
+ * ------------------------------------------------------------------------------------------
+ * `Card` itself renders one fixed structure regardless of viewport: a 2-column, 5-row `Grid`
+ * (`templateColumns="1fr 1fr"`, `templateRows="repeat(5, auto)"`, set once via `Grid`'s own props
+ * — `Grid`/`GridItem` are unmodified, see `Card/render.ts`'s own doc), with every `GridItem` left
+ * without any column/row placement of its own. Everything responsive lives here, entirely as
+ * `grid-template-areas` — the one grid property `Grid` never sets inline, so nothing here ever
+ * needs `!important` to win.
+ *
+ * Without this file loaded, `Card` still renders fully valid markup, in the correct DOM order
+ * (title, subtitle, content, footer, image) — just without the two-column desktop layout, since
+ * nothing else on the page can provide it. No JavaScript anywhere attempts to reproduce what this
+ * CSS would have done.
+ */
+
+/* Makes each GridItem transparent to the grid — its own box disappears, and its one child (one of
+ * Card's own `[data-space-ui="card-*"]` wrappers below) becomes the actual grid participant that
+ * `grid-area` applies to. Scoped strictly under `[data-space-ui="card"]` — a `GridItem` used
+ * anywhere else, outside a `Card`, never matches this selector and is entirely unaffected. */
+[data-space-ui='card'] [data-space-ui='grid-item'] {
+  display: contents;
+}
+
+[data-space-ui='card-title'] {
+  grid-area: title;
+}
+[data-space-ui='card-subtitle'] {
+  grid-area: subtitle;
+}
+[data-space-ui='card-content'] {
+  grid-area: content;
+}
+[data-space-ui='card-footer'] {
+  grid-area: footer;
+}
+[data-space-ui='card-image'] {
+  grid-area: image;
+}
+
+/* Default (no media query) — one visual column, DOM order: title, subtitle, content, footer,
+ * image last, always, regardless of `align`. An area with no matching element (e.g. no `title`
+ * given) simply collapses to zero height — `repeat(5, auto)` sizes an empty row to its own
+ * min-content, which is zero when nothing occupies it. */
+[data-space-ui='card'] > [data-space-ui='grid'] {
+  grid-template-areas:
+    'title    title'
+    'subtitle subtitle'
+    'content  content'
+    'footer   footer'
+    'image    image';
+}
+
+/* Side-by-side from 721px up — the same threshold the component this rescues used. `align="left"`
+ * (read from `data-align` on the `Card` root) puts the image in the first column; anything else,
+ * including omitted, keeps it in the second — matching that same default. The image spans exactly
+ * the four text rows; the fifth row stays empty (`.`) on both variants. */
+@media (min-width: 721px) {
+  [data-space-ui='card'] > [data-space-ui='grid'] {
+    grid-template-areas:
+      'title    image'
+      'subtitle image'
+      'content  image'
+      'footer   image'
+      '.        .';
+  }
+
+  [data-space-ui='card'][data-align='left'] > [data-space-ui='grid'] {
+    grid-template-areas:
+      'image title'
+      'image subtitle'
+      'image content'
+      'image footer'
+      '.     .';
+  }
+}
+
+/* Explicit `stacked` override (`Card`'s own `stacked` prop) — applies at every viewport,
+ * unconditionally, by definition, so these are never wrapped in a media query. The extra
+ * `[data-stacked="…"]` attribute selector gives them higher specificity than the rules above,
+ * so they win regardless of viewport width without needing `!important` either. */
+[data-space-ui='card'][data-stacked='true'] > [data-space-ui='grid'] {
+  grid-template-areas:
+    'title    title'
+    'subtitle subtitle'
+    'content  content'
+    'footer   footer'
+    'image    image';
+}
+
+[data-space-ui='card'][data-stacked='false'] > [data-space-ui='grid'] {
+  grid-template-areas:
+    'title    image'
+    'subtitle image'
+    'content  image'
+    'footer   image'
+    '.        .';
+}
+
+[data-space-ui='card'][data-stacked='false'][data-align='left'] > [data-space-ui='grid'] {
+  grid-template-areas:
+    'image title'
+    'image subtitle'
+    'image content'
+    'image footer'
+    '.     .';
+}
