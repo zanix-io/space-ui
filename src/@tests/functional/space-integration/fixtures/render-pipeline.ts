@@ -1,5 +1,5 @@
 // deno-coverage-ignore-file
-// deno-lint-ignore-file deno-zanix-plugin/no-znx-console
+
 // `console.error`/`console.log` are this fixture's only channel back to its own parent test
 // process (`__RESULT__` on stdout; FormatJS's own internal noise silenced on stderr) — there is no
 // `@zanix/logger` sink to read from across a real subprocess boundary, same reasoning `space`'s own
@@ -21,10 +21,7 @@ import { parse } from '@formatjs/icu-messageformat-parser'
 // own repo, so reaching its own sibling `intl/` module through the external package-style
 // specifier was pure indirection (it only ever resolved through the ephemeral import map below);
 // a real in-repo import needs no map entry for it at all.
-import {
-  IntlProvider as ReactIntlProvider,
-  useIntl as useReactIntl,
-} from '../../../../intl/index.ts'
+import { IntlProvider as ReactIntlProvider, useIntl as useReactIntl } from '../../../../intl/index.ts'
 import {
   IntlProvider as PreactIntlProvider,
   useIntl as usePreactIntl,

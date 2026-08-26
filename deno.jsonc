@@ -4,7 +4,17 @@
   "zanix": {
     "project": "library"
   },
-  "links": [],
+  // `render-pipeline.ts` only ever resolves correctly as a SUBPROCESS run with `@zanix/space`'s own
+  // `deno.jsonc` (`--config`) plus an ephemeral import map `space-import-map.ts` builds at test-run
+  // time (never a static file) — see that fixture's own header doc. It's never statically imported
+  // by anything in this repo (only referenced by path string, then handed to `Deno.Command`), has
+  // no `.test.ts` suffix so `deno test`'s own glob never discovers it either, and its real
+  // invocation already passes `--no-check`. Excluded here so `deno check`/the editor's live
+  // diagnostics stop reporting its `modules/`/`typings/`-prefixed specifiers as unresolved — they
+  // only ever resolve against `space`'s own config, never this package's.
+  "exclude": [
+    "src/@tests/functional/space-integration/fixtures/render-pipeline.ts"
+  ],
   "compilerOptions": {
     "strict": true,
     "noImplicitAny": true,
@@ -35,7 +45,8 @@
       ]
     },
     "exclude": [
-      ".dist"
+      ".dist",
+      "src/@tests/functional/space-integration/fixtures/render-pipeline.ts"
     ],
     "plugins": [
       "jsr:@zanix/utils@^4.0.0/linter/deno-zanix-plugin"
@@ -44,7 +55,8 @@
   },
   "fmt": {
     "exclude": [
-      ".dist"
+      ".dist",
+      "src/@tests/functional/space-integration/fixtures/render-pipeline.ts"
     ],
     "proseWrap": "always",
     "indentWidth": 2,
@@ -95,16 +107,20 @@
     // or its `.d.ts`'s purely-type-level `import * as React`), which is exactly why this package
     // can render markdown through Preact without ever touching `preact/compat` — this package
     // walks the AST itself via `h`, never markdown-to-jsx's own `./react` renderer.
-    "markdown-to-jsx/markdown": "npm:markdown-to-jsx@^9.10.2/markdown",
-    "@std/assert": "jsr:@std/assert@0.224",
-    // Test-only, never reachable from `mod.ts`/`mod-preact.ts` (confirmed by the same dependency-
-    // boundary test pattern `intl/dependency-boundary.test.ts` already uses). `Counter` is the
-    // first component whose contract lives inside `useEffect` — `renderToStaticMarkup`/
-    // `preact-render-to-string` never run those — so its tests mount into a real DOM instead of
-    // asserting static markup. See `src/@tests/unit/components/counter-test-utils.ts`'s own doc.
-    // `happy-dom`, not `jsdom` — same real-DOM bootstrap role, zero transitive dependencies
-    // (`jsdom` pulled in the now-deprecated `whatwg-encoding`/`glob@10` via `html-encoding-sniffer`).
-    "happy-dom": "npm:happy-dom@^20.11.2"
+    "markdown-to-jsx/markdown": "npm:markdown-to-jsx@^9.10.2/markdown"
+  },
+  "scopes": {
+    "./src/@tests/": {
+      // Test-only, never reachable from `mod.ts`/`mod-preact.ts` (confirmed by the same dependency-
+      // boundary test pattern `intl/dependency-boundary.test.ts` already uses). `Counter` is the
+      // first component whose contract lives inside `useEffect` — `renderToStaticMarkup`/
+      // `preact-render-to-string` never run those — so its tests mount into a real DOM instead of
+      // asserting static markup. See `src/@tests/unit/components/counter-test-utils.ts`'s own doc.
+      // `happy-dom`, not `jsdom` — same real-DOM bootstrap role, zero transitive dependencies
+      // (`jsdom` pulled in the now-deprecated `whatwg-encoding`/`glob@10` via `html-encoding-sniffer`).
+      "happy-dom": "npm:happy-dom@^20.11.2",
+      "@std/assert": "jsr:@std/assert@0.224"
+    }
   },
   "exports": {
     ".": "./mod.ts",
