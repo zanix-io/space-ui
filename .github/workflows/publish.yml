@@ -26,6 +26,11 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v5
 
+      - name: Setup Deno
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+
       - name: Publish to Deno
         # `needs.ci.result == 'success'` is explicit, not just relying on the default `needs:`
         # skip-on-failure behavior above — that default only holds as long as `publish` keeps its
