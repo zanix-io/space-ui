@@ -56,6 +56,22 @@ function includesPackage(specifiers: Set<string>, pkg: string): boolean {
   })
 }
 
+/**
+ * Whether `@zanix/space` (any subpath) is present among `specifiers` — the real regression test
+ * for the circular-resolution bug `runtime.ts`'s own `@module` doc describes: `.`/`./preact` must
+ * NEVER reach it, `./runtime`/`./runtime/preact` always must. Matches both the raw import-map
+ * form (`jsr:@zanix/space@...`) and its fully resolved form (`https://jsr.io/@zanix/space/...`,
+ * which also covers `@zanix/space`'s own internal files pulled in transitively, e.g.
+ * `video-source.ts`'s own `content-type.ts`) — never `@zanix/space-ui` (this package's own
+ * specifier) on a same-prefix collision.
+ */
+function includesZanixSpace(specifiers: Set<string>): boolean {
+  return [...specifiers].some((specifier) =>
+    /^jsr:@zanix\/space(@|\/|$)/.test(specifier) ||
+    /^https:\/\/jsr\.io\/@zanix\/space\//.test(specifier)
+  )
+}
+
 Deno.test('mod.ts (React entrypoint): reaches react as a real code dependency', async () => {
   const graph = await moduleGraph('mod.ts')
   assert(includesPackage(graph.code, 'react'), 'expected react as a code dependency of mod.ts')
@@ -130,19 +146,70 @@ Deno.test(
 )
 
 Deno.test(
-  'mod.ts and mod-preact.ts: both reach markdown-to-jsx, but never through preact/compat',
+  'runtime.ts and runtime-preact.ts: both reach markdown-to-jsx, but never through preact/compat',
   async () => {
     // `RichText/markdown.ts` only ever imports `markdown-to-jsx`'s own `/markdown` subpath — a
     // pure markdown→AST parser with zero React import at runtime (confirmed directly against its
     // real built JS, see `markdown.ts`'s own doc) — walked by hand via `h`/`createElement`
     // instead of that package's own JSX renderer. This is the empirical proof that choice actually
-    // holds: markdown-to-jsx is reachable in both entrypoints, yet `preact/compat` still isn't,
-    // and `mod-preact.ts` still never reaches `react` either (already covered above) — a naive
+    // holds: markdown-to-jsx is reachable in both `./runtime` entrypoints, yet `preact/compat`
+    // still isn't, and `runtime-preact.ts` still never reaches `react` either — a naive
     // integration using markdown-to-jsx's own `/react` renderer would have broken exactly this.
-    const [react, preact] = await Promise.all([moduleGraph('mod.ts'), moduleGraph('mod-preact.ts')])
+    // `RichText` (this package's only consumer of `markdown-to-jsx`) lives in `./runtime`/
+    // `./runtime/preact`, not the default `.`/`./preact` barrel — see `runtime.ts`'s own doc.
+    const [react, preact] = await Promise.all([
+      moduleGraph('src/runtime.ts'),
+      moduleGraph('src/runtime-preact.ts'),
+    ])
     assert(includesPackage(react.code, 'markdown-to-jsx'))
     assert(includesPackage(preact.code, 'markdown-to-jsx'))
     assert(!includesPackage(preact.code, 'preact/compat'), 'preact/compat must never be reachable')
     assert(!includesPackage(preact.type, 'preact/compat'), 'preact/compat must never be reachable')
+  },
+)
+
+Deno.test(
+  'mod.ts and mod-preact.ts: NEVER reach @zanix/space, at compile time or runtime',
+  async () => {
+    // The actual regression test for the circular-resolution bug fixed by splitting `Video`/
+    // `Image`/`RichText`/`ImgButton`/`Card`/`Menu` out into `./runtime`/`./runtime/preact` — see
+    // `src/runtime.ts`'s own `@module` doc for the full story. A barrel export forces resolution
+    // of everything it re-exports together, so if any of those six ever leaked back into this
+    // barrel, importing even one unrelated component (e.g. `Button`) would drag `@zanix/space`
+    // back into the graph — and since `@zanix/space`'s own build pipeline is what resolves a
+    // `@zanix/space-ui` import in a real `@zanix/space` app, that's a genuine circular resolution,
+    // not just an unwanted dependency.
+    const [react, preact] = await Promise.all([moduleGraph('mod.ts'), moduleGraph('mod-preact.ts')])
+    assert(!includesZanixSpace(react.code), '@zanix/space leaked into mod.ts as a code dependency')
+    assert(!includesZanixSpace(react.type), '@zanix/space leaked into mod.ts as a type dependency')
+    assert(
+      !includesZanixSpace(preact.code),
+      '@zanix/space leaked into mod-preact.ts as a code dependency',
+    )
+    assert(
+      !includesZanixSpace(preact.type),
+      '@zanix/space leaked into mod-preact.ts as a type dependency',
+    )
+  },
+)
+
+Deno.test(
+  'runtime.ts and runtime-preact.ts: both DO reach @zanix/space/assets-manifest as a real code ' +
+    'dependency',
+  async () => {
+    // The other half of the same regression test — confirms the split didn't just hide the
+    // dependency, it moved it to the entrypoint that's actually supposed to carry it.
+    const [react, preact] = await Promise.all([
+      moduleGraph('src/runtime.ts'),
+      moduleGraph('src/runtime-preact.ts'),
+    ])
+    assert(
+      includesZanixSpace(react.code),
+      'expected @zanix/space as a real code dependency of runtime.ts',
+    )
+    assert(
+      includesZanixSpace(preact.code),
+      'expected @zanix/space as a real code dependency of runtime-preact.ts',
+    )
   },
 )

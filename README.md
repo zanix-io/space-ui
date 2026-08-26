@@ -438,12 +438,16 @@ concern (or `@zanix/space`'s, once it has them). That keeps `@zanix/space-ui` ge
 versioned independently of the rendering engine it's meant to sit on top of — an app can use
 `@zanix/space` without ever installing this package.
 
-The exceptions are `Video` and `Image`: their `src`/`poster`/track `src`/`sources[].src` ARE
-resolved here, through `@zanix/space`'s own `resolveAssetHref` — a local file needs its real,
-possibly content-hashed build URL, and forcing every caller to resolve that themselves before
-handing it to `Video`/`Image` would just be `resolveAssetHref(x)` repeated at every call site.
-`Video` was this package's first real runtime dependency on `@zanix/space`; `Image` follows the
-identical pattern.
+The exceptions are `Video`, `Image`, `RichText`, `ImgButton`, `Card`, and `Menu`: `Video`/`Image`
+resolve `src`/`poster`/track `src`/`sources[].src` through `@zanix/space`'s own `resolveAssetHref`
+directly — a local file needs its real, possibly content-hashed build URL, and forcing every caller
+to resolve that themselves before handing it to `Video`/`Image` would just be `resolveAssetHref(x)`
+repeated at every call site; `RichText` resolves it directly too (for `resolveRichTextDocument`) and
+also composes `Image`/`Video` for its built-in tags; `ImgButton` and `Card` each compose `Image`;
+`Menu` composes both `Image` and `ImgButton`. Because of that real runtime dependency, all six are
+exported from a separate `./runtime`/`./runtime/preact` entrypoint instead of the default
+`.`/`./preact` barrel — see the [CHANGELOG](./CHANGELOG.md) for the exact import paths and why the
+split exists.
 
 **React and Preact both work, with no `preact/compat` shim.** A presentational component with no
 per-renderer hook usage has its real logic written once against `React.createElement`/`Preact.h`'s

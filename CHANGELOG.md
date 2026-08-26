@@ -5,7 +5,51 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/) and this project
 adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.2.0] - 2026-08-26
+
+### Changed
+
+- **BREAKING: `Video`, `Image`, `RichText`, `ImgButton`, `Card`, and `Menu` (plus `RichText`'s own
+  `resolveRichTextDocument`, `ResolveRichTextDocumentOptions`, and `extractRichTextProps`) are no
+  longer exported from the default `.`/`./preact` entrypoints — import them from the new
+  `./runtime`/`./runtime/preact` subpaths instead.** Each of these six has a real,
+  direct-or-composed runtime dependency on `@zanix/space` (its `resolveAssetHref`, from
+  `@zanix/space/assets-manifest`): `Video`/`Image`/`RichText` resolve it directly; `RichText` also
+  composes `Image` and `Video` internally for its built-in tags; `ImgButton` and `Card` each compose
+  `Image`; `Menu` composes both `Image` and `ImgButton`. Leaving them in the same barrel as the
+  other ~27 components (which have zero `@zanix/space` dependency) meant importing even ONE
+  unrelated component from `.` (e.g. `Button`) forced resolution of the entire barrel, including
+  these six — pulling `@zanix/space` back into the graph. Since `@zanix/space`'s own build pipeline
+  is what resolves a `@zanix/space-ui` import when building a `@zanix/space` app that uses this
+  package, that produced a genuine circular resolution (`@zanix/space`'s own build tooling needing
+  to resolve `@zanix/space` itself, one repo away) that hung `@deno/loader`'s native workspace
+  resolution in a real `zanix space build` (confirmed via an isolated minimal repro). No deprecation
+  window: `space-ui@0.1.0` was published this same release cycle with no confirmed external consumer
+  of any of these six components from the bare root — an ecosystem-wide audit (`cli`, `console`)
+  found only `createFormatter`, `Link`, `Button`, `Modal`, `Table`, `Field`, `Input`, and
+  `TableColumn` imported from `@zanix/space-ui` today, none of which move. `.`/`./preact` now never
+  reach `@zanix/space` at all (a permanent structural guard already enforces this — see
+  `src/@tests/unit/intl/dependency-boundary.test.ts`); `./runtime`/`./runtime/preact` do, by design.
+
+  | Was (root)                                                                                  | Now                                                                                                 |
+  | ------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
+  | `import { Video } from '@zanix/space-ui'`                                                   | `import { Video } from '@zanix/space-ui/runtime'`                                                   |
+  | `import { Image } from '@zanix/space-ui/preact'`                                            | `import { Image } from '@zanix/space-ui/runtime/preact'`                                            |
+  | `import { RichText, resolveRichTextDocument, extractRichTextProps } from '@zanix/space-ui'` | `import { RichText, resolveRichTextDocument, extractRichTextProps } from '@zanix/space-ui/runtime'` |
+  | `import { ImgButton, Card, Menu } from '@zanix/space-ui'`                                   | `import { ImgButton, Card, Menu } from '@zanix/space-ui/runtime'`                                   |
+
+### Added
+
+- **`theme/space-defaults.css`** (`src/templates/`, scaffold-only — never imported by this package's
+  own runtime, and never imported by `@zanix/space` either) — real, minimal styling for
+  `@zanix/space`'s own built-in `[data-space="not-found"]`/`[data-space="error"]` fallback views and
+  `--template welcome`'s `[data-space="welcome"]` landing page, wired up by `@zanix/cli`'s
+  `zanix new space --template themed`. References only semantic `--space-*` tokens from
+  `theme/tokens.css`, same discipline `shared/behavior.css` already follows. See
+  [`docs/styling.md`](./docs/styling.md). **Not yet fetched over JSR by `@zanix/cli`** — this file
+  postdates the currently published `0.1.0`, so `space-theme.ts` ships a byte-identical embedded
+  copy for now (`LOCAL_SPACE_DEFAULTS_CSS`); the NEXT publish that includes this file should switch
+  `cli` over to fetching it for real and delete that embedded copy.
 
 ## [0.1.0] - 2026-08-24
 

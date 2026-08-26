@@ -1,9 +1,10 @@
 {
   "name": "@zanix/space-ui",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "zanix": {
     "project": "library"
   },
+  "links": [],
   "compilerOptions": {
     "strict": true,
     "noImplicitAny": true,
@@ -37,7 +38,7 @@
       ".dist"
     ],
     "plugins": [
-      "jsr:@zanix/utils@^3.0.0/linter/deno-zanix-plugin"
+      "jsr:@zanix/utils@^4.0.0/linter/deno-zanix-plugin"
     ],
     "report": "pretty"
   },
@@ -61,29 +62,10 @@
     // `Menu`, moved here once `Modal` became a real second consumer. Never introduced ahead of a
     // real second need.
     "shared/": "./src/shared/",
-    // TEMP local path override — `Video` (`components/Video/`) is this package's first REAL
-    // runtime dependency on `@zanix/space` (the architecture already calls for this: `space-ui`
-    // depends downward on `space`, never the reverse — confirmed empirically that `space`'s own
-    // published entrypoints, `mod.ts`/`mod-react.ts`/`mod-preact.ts`, never resolve back to
-    // `space-ui` in their real `deno info --json` graph, so this is NOT circular). `@zanix/space`
-    // has no published JSR version yet (`jsr:@zanix/space@^0.1.0` resolves 404 — same blocker
-    // already documented for `@zanix/cli`'s own scaffold, P3-4), so this points directly at
-    // `@zanix/space`'s real source, same TEMP pattern `@zanix/cli`'s own `deno.jsonc` already
-    // uses for the same reason. Deliberately NOT `../space/mod.ts` (that package's own full
-    // barrel) — `@zanix/space` also declares a bare `typings/` import, and a locally-path-mapped
-    // module's bare specifiers resolve against the IMPORTING project's own map (THIS one), not the
-    // declaring one; importing the full barrel would silently try to resolve `@zanix/space`'s own
-    // `typings/*.ts` against `space-ui/src/typings/`, which doesn't have those files (same
-    // reasoning `@zanix/space`'s own deno.jsonc documents for its symmetric TEST-ONLY path into
-    // `@zanix/space-ui/intl`). Pointing directly at these two specific, self-contained files sidesteps
-    // that entirely — neither has a bare-specifier import of its own to collide with (`video-source.ts`
-    // only imports a relative `./content-type.ts`; `assets-manifest.ts` imports nothing at all).
-    // Revert both to a real `jsr:@zanix/space@^x.y.z` specifier once `@zanix/space` publishes —
-    // this package's own publish is blocked on that happening first.
-    "@zanix/space/video-source": "jsr:@zanix/space@^0.1.0/video-source",
-    "@zanix/space/assets-manifest": "jsr:@zanix/space@^0.1.0/assets-manifest",
-    "@zanix/helpers": "jsr:@zanix/utils@^3.1.2/helpers",
-    "@zanix/utils/logger": "jsr:@zanix/utils@^3.1.2/logger",
+    "@zanix/space/video-source": "jsr:@zanix/space@^0.2.0/video-source",
+    "@zanix/space/assets-manifest": "jsr:@zanix/space@^0.2.0/assets-manifest",
+    "@zanix/helpers": "jsr:@zanix/utils@^4.0.0/helpers",
+    "@zanix/utils/logger": "jsr:@zanix/utils@^4.0.0/logger",
     "@std/fmt": "jsr:@std/fmt@0.224",
     "@std/path": "jsr:@std/path@0.224",
     "react": "npm:react@^19.2.0",
@@ -126,7 +108,12 @@
   },
   "exports": {
     ".": "./mod.ts",
-    "./preact": "./mod-preact.ts"
+    "./preact": "./mod-preact.ts",
+    // The six components with a REAL runtime dependency on `@zanix/space` — split out of the
+    // barrel above entirely, never re-exported from there. See `src/runtime.ts`'s own `@module`
+    // doc for why.
+    "./runtime": "./src/runtime.ts",
+    "./runtime/preact": "./src/runtime-preact.ts"
   },
   "nodeModulesDir": "auto",
   "publish": {

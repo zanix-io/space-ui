@@ -3,10 +3,7 @@
 name: Publish
 
 on:
-  # Run on push or PRs to main branch
-  pull_request:
-    branches:
-      - master
+  # Run on push to main branch
   push:
     branches:
       - master
@@ -29,37 +26,10 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v5
 
-      # `src/@tests/functional/space-integration/`'s own i18n parity tests drive a real render
-      # pipeline from the sibling `@zanix/space` repo (see `space-import-map.ts`'s own doc) —
-      # `SPACE_ROOT` resolves it as a literal sibling directory (`../../../../../space/` from the
-      # fixture's own path), which locally just means having both repos checked out side by side.
-      # `actions/checkout`'s own `path:` input is documented as relative to `$GITHUB_WORKSPACE`
-      # (this job's own checkout), not its parent, so it can't place a checkout directly at the
-      # sibling location `SPACE_ROOT` resolves to (one level ABOVE `$GITHUB_WORKSPACE`) without
-      # relying on unclear parent-traversal (`../`) support. Checking out to a plain subdirectory
-      # first, then `mv`-ing it to the exact sibling path, is unambiguous either way. Public repo,
-      # no extra token needed.
-      - name: Checkout @zanix/space (sibling repo required by the i18n parity tests)
-        uses: actions/checkout@v5
-        with:
-          repository: zanix-io/space
-          path: _zanix_space_checkout
-
-      - name: Place @zanix/space as a real filesystem sibling of this repo
-        run: mv "$GITHUB_WORKSPACE/_zanix_space_checkout" "$GITHUB_WORKSPACE/../space"
-
-      - name: Setup Deno
-        uses: denoland/setup-deno@v2
-        with:
-          deno-version: v2.x
-
-      - name: Run tests
-        run: deno test --allow-all
-
       - name: Publish to Deno
         # `needs.ci.result == 'success'` is explicit, not just relying on the default `needs:`
         # skip-on-failure behavior above — that default only holds as long as `publish` keeps its
         # own `if:` unset; an `always()`/similar override on the JOB (e.g. added later to get
         # diagnostics on a failing run) would silently defeat it without this STEP-level check.
-        if: success() && needs.ci.result == 'success' && github.event_name == 'push'
+        if: success() && needs.ci.result == 'success'
         run: deno publish

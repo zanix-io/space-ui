@@ -76,16 +76,26 @@ package, exactly like removing a documented prop would be.
 
 ## `theme/` vs `shared/` — two optional, independent starter templates
 
-Scaffolded by `zanix new space` (once wired — the CLI-side flags are independent of each other, see
-below), living under this package's own `src/templates/`, never imported by any runtime code here. A
-project that receives either owns the file outright: no version pin, no import, edit or delete
-freely.
+Scaffolded by `zanix new space --template themed` (`@zanix/cli`'s own `space-theme.ts`, the same
+JSR-fetch mechanism `--icons`' `space-icons.ts` already uses), living under this package's own
+`src/templates/`, never imported by any runtime code here. A project that receives either owns the
+file outright: no version pin, no import, edit or delete freely.
 
 - **`theme/tokens.css`** — a starter default palette: primitive scale values (`--space-blue-500`, …)
   and the semantic tokens that reference them (`--space-color-primary`, …), following
   `@zanix/space`'s own `docs/theming.md` primitive/semantic convention exactly. This is the one file
   that varies by visual identity — a different theme preset would ship a different `tokens.css`,
   same shape.
+- **`theme/space-defaults.css`** — minimal, real styling for `@zanix/space`'s OWN built-in views:
+  its default `not-found`/`error` fallback (`[data-space="not-found"]`/`[data-space="error"]`) and
+  `--template welcome`'s landing page (`[data-space="welcome"]`). `data-space` is a distinct
+  attribute from this package's own `data-space-ui` — a different package, a different audience (see
+  this document's own header) — so this file, alone among the four, references `@zanix/space`'s
+  markup contract rather than this package's. References only semantic tokens from
+  `theme/tokens.css`, same discipline as `shared/behavior.css` below. **This is the canonical
+  source** — `@zanix/cli`'s own `space-theme.ts` ships an embedded copy of this file's content, kept
+  byte-for-byte in sync via `space-theme.test.ts`'s own integrity test, rather than fetching it from
+  JSR at scaffold time.
 - **`shared/behavior.css`** — structural/animation CSS rescued from the legacy `react-components`
   library's Tachyons extension (`.overlay`/`.hidden-overlay` + five `@keyframes`), re-tokenized
   (colors/z-index now reference semantic `--space-*` tokens, never a literal) and renamed with a

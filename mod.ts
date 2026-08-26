@@ -1,18 +1,22 @@
 /**
  * `@zanix/space-ui` — a small, framework-agnostic-where-possible component library for apps built
- * on `@zanix/space`. Every component but one takes already-resolved data (URLs, labels, viewBox)
- * as props — it never resolves assets, translates strings, or reaches into Space's own conventions
- * itself. That split keeps this package usable on its own terms, versioned independently from the
- * rendering engine it's meant to sit on top of.
+ * on `@zanix/space`. Every component exported from HERE (the default, `.` entrypoint) takes
+ * already-resolved data (URLs, labels, viewBox) as props — none of them resolves assets, translates
+ * strings, or reaches into `@zanix/space`'s own conventions itself, and none of them has a runtime
+ * dependency on `@zanix/space`. That split keeps this package usable on its own terms, versioned
+ * independently from the rendering engine it's meant to sit on top of.
  *
- * The exceptions: `Video`'s own `src`/`poster`/track `src`, and `Image`'s own `src`/`sources[].src`,
- * ARE resolved here, through `@zanix/space`'s own `resolveAssetHref` — a local video/poster/
- * subtitle/image file needs its real, possibly content-hashed build URL, and forcing every caller
- * to resolve that themselves before handing it to `Video`/`Image` would just be
- * `resolveAssetHref(x)` repeated at every call site. `Video` was this package's first real,
- * intentional runtime dependency on `@zanix/space` (see `Video/render.ts`'s own doc, and
- * `deno.jsonc`'s comment on the TEMP path this needs while `@zanix/space` is still unpublished);
- * `Image` follows the identical pattern (see `Image/render.ts`'s own doc).
+ * Six components — `Video`, `Image`, `RichText`, `ImgButton`, `Card`, `Menu` — DO have a real,
+ * direct-or-composed runtime dependency on `@zanix/space` (its own `resolveAssetHref`, from
+ * `@zanix/space/assets-manifest`), and are exported from `./runtime` instead (`./runtime/preact`
+ * for the Preact bindings) — never from here. A barrel export forces resolution of every module it
+ * re-exports together, so keeping these six here would force resolution of the ENTIRE barrel —
+ * including these six — the moment a consumer imports even one unrelated component (e.g. `Button`,
+ * which has zero `@zanix/space` dependency), pulling `@zanix/space` back into the graph and
+ * creating a genuine circular resolution whenever `@zanix/space`'s own build pipeline resolves a
+ * `@zanix/space-ui` import (confirmed to hang `@deno/loader`'s native workspace resolution in a
+ * real `zanix space build`). See `runtime.ts`'s own `@module` doc for the full reasoning and the
+ * exact composition chain behind each of the six.
  *
  * @module
  */
@@ -41,20 +45,11 @@ export type { CreateElement } from 'typings/renderer.ts'
 export { IFrame } from 'components/IFrame/index.ts'
 export type { IFrameProps } from 'components/IFrame/types.ts'
 
-export { Video } from 'components/Video/index.ts'
-export type { VideoProps, VideoSourceProps, VideoTrackProps } from 'components/Video/types.ts'
-
-export { Image } from 'components/Image/index.ts'
-export type { ImageProps, ImageSourceProps } from 'components/Image/types.ts'
-
 export { ProgressBar } from 'components/ProgressBar/index.ts'
 export type { ProgressBarProps } from 'components/ProgressBar/types.ts'
 
 export { Grid, GridItem } from 'components/Grid/index.ts'
 export type { GridItemProps, GridProps, TemplateArea } from 'components/Grid/types.ts'
-
-export { Card } from 'components/Card/index.ts'
-export type { CardImageProps, CardProps } from 'components/Card/types.ts'
 
 export { Button } from 'components/Button/index.ts'
 export type { BaseButtonProps, ButtonProps, CheckedButtonRole } from 'components/Button/types.ts'
@@ -62,14 +57,8 @@ export type { BaseButtonProps, ButtonProps, CheckedButtonRole } from 'components
 export { Link } from 'components/Link/index.ts'
 export type { LinkProps } from 'components/Link/types.ts'
 
-export { ImgButton } from 'components/ImgButton/index.ts'
-export type { ImgButtonProps } from 'components/ImgButton/types.ts'
-
 export { Counter } from 'components/Counter/index.ts'
 export type { CounterProps } from 'components/Counter/types.ts'
-
-export { Menu } from 'components/Menu/index.ts'
-export type { MenuItem, MenuOpenMode, MenuProps } from 'components/Menu/types.ts'
 
 export { Slider } from 'components/Slider/index.ts'
 export type { SliderProps } from 'components/Slider/index.ts'
@@ -152,17 +141,6 @@ export type { ComboboxBaseProps, ComboboxOption } from 'components/Combobox/type
 export { Select } from 'components/Select/index.ts'
 export type { SelectProps } from 'components/Select/index.ts'
 export type { SelectBaseProps, SelectOption } from 'components/Select/types.ts'
-
-export { RichText } from 'components/RichText/index.ts'
-export type { RichTextProps } from 'components/RichText/index.ts'
-export type { RichTextBaseProps, RichTextContentFormat } from 'components/RichText/types.ts'
-export { resolveRichTextDocument } from 'components/RichText/resolve.ts'
-export type { ResolveRichTextDocumentOptions } from 'components/RichText/resolve.ts'
-// The one piece of `RichText`'s own internals exported standalone — the sanctioned way a custom
-// tag passed through `RichText`'s own `tags` prop participates in population the same uniform way
-// every built-in tag does. Renderer-agnostic (no `h`/`createElement` involved), same export in
-// both entrypoints.
-export { extractRichTextProps } from 'components/RichText/props-sentinel.ts'
 
 export { SocialNetworks } from 'components/SocialNetworks/index.ts'
 export type {

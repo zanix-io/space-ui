@@ -2,7 +2,8 @@
  * `@zanix/space-ui`'s Preact-bound components — same props, same rendered markup as the default
  * (React) entrypoint. Import from here instead of `.` when your `@zanix/space` app uses
  * `--renderer=preact`. See the default entrypoint's own `@module` doc for the package's overall
- * design principle.
+ * design principle — including why `Video`/`Image`/`RichText`/`ImgButton`/`Card`/`Menu` are NOT
+ * exported from here, but from `./runtime/preact` instead.
  *
  * @module
  */
@@ -44,24 +45,6 @@ export type {
   IFrameProps,
 } from 'components/IFrame/types.ts'
 
-export { Video } from 'components/Video/index.preact.ts'
-export type {
-  /** See `components/Video/types.ts`'s own `VideoProps` for the full doc. */
-  VideoProps,
-  /** See `components/Video/types.ts`'s own `VideoSourceProps` for the full doc. */
-  VideoSourceProps,
-  /** See `components/Video/types.ts`'s own `VideoTrackProps` for the full doc. */
-  VideoTrackProps,
-} from 'components/Video/types.ts'
-
-export { Image } from 'components/Image/index.preact.ts'
-export type {
-  /** See `components/Image/types.ts`'s own `ImageProps` for the full doc. */
-  ImageProps,
-  /** See `components/Image/types.ts`'s own `ImageSourceProps` for the full doc. */
-  ImageSourceProps,
-} from 'components/Image/types.ts'
-
 export { ProgressBar } from 'components/ProgressBar/index.preact.ts'
 export type {
   /** See `components/ProgressBar/types.ts`'s own `ProgressBarProps` for the full doc. */
@@ -77,14 +60,6 @@ export type {
   /** See `components/Grid/types.ts`'s own `TemplateArea` for the full doc. */
   TemplateArea,
 } from 'components/Grid/types.ts'
-
-export { Card } from 'components/Card/index.preact.ts'
-export type {
-  /** See `components/Card/types.ts`'s own `CardImageProps` for the full doc. */
-  CardImageProps,
-  /** See `components/Card/types.ts`'s own `CardProps` for the full doc. */
-  CardProps,
-} from 'components/Card/types.ts'
 
 export { Button } from 'components/Button/index.preact.ts'
 export type {
@@ -102,27 +77,11 @@ export type {
   LinkProps,
 } from 'components/Link/types.ts'
 
-export { ImgButton } from 'components/ImgButton/index.preact.ts'
-export type {
-  /** See `components/ImgButton/types.ts`'s own `ImgButtonProps` for the full doc. */
-  ImgButtonProps,
-} from 'components/ImgButton/types.ts'
-
 export { Counter } from 'components/Counter/index.preact.ts'
 export type {
   /** See `components/Counter/types.ts`'s own `CounterProps` for the full doc. */
   CounterProps,
 } from 'components/Counter/types.ts'
-
-export { Menu } from 'components/Menu/index.preact.ts'
-export type {
-  /** See `components/Menu/types.ts`'s own `MenuItem` for the full doc. */
-  MenuItem,
-  /** See `components/Menu/types.ts`'s own `MenuOpenMode` for the full doc. */
-  MenuOpenMode,
-  /** See `components/Menu/types.ts`'s own `MenuProps` for the full doc. */
-  MenuProps,
-} from 'components/Menu/types.ts'
 
 export { Slider } from 'components/Slider/index.preact.ts'
 export type { SliderProps } from 'components/Slider/index.preact.ts'
@@ -294,27 +253,6 @@ export type {
   /** See `components/Select/types.ts`'s own `SelectOption` for the full doc. */
   SelectOption,
 } from 'components/Select/types.ts'
-
-export { RichText } from 'components/RichText/index.preact.ts'
-export type { RichTextProps } from 'components/RichText/index.preact.ts'
-export type {
-  /** See `components/RichText/types.ts`'s own `RichTextBaseProps` for the full doc. */
-  RichTextBaseProps,
-  /** See `components/RichText/types.ts`'s own `RichTextContentFormat` for the full doc. */
-  RichTextContentFormat,
-} from 'components/RichText/types.ts'
-export {
-  /** See `components/RichText/resolve.ts`'s own `resolveRichTextDocument` for the full doc. */
-  resolveRichTextDocument,
-} from 'components/RichText/resolve.ts'
-export type {
-  /** See `components/RichText/resolve.ts`'s own `ResolveRichTextDocumentOptions` for the full doc. */
-  ResolveRichTextDocumentOptions,
-} from 'components/RichText/resolve.ts'
-export {
-  /** See `components/RichText/props-sentinel.ts`'s own `extractRichTextProps` for the full doc. */
-  extractRichTextProps,
-} from 'components/RichText/props-sentinel.ts'
 
 export { SocialNetworks } from 'components/SocialNetworks/index.preact.ts'
 export type {

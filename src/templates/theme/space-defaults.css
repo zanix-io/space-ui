@@ -1,0 +1,51 @@
+/*
+ * Space-UI default theme — @zanix/space built-in view styling
+ * -------------------------------------------------------------
+ * Scaffolded by `zanix new space --template themed`, alongside `./tokens.css` and
+ * `../shared/{behavior,card}.css` — a plain file the new project owns outright: no import, no
+ * version pin, edit/extend/delete freely. Not imported by any `@zanix/space-ui` runtime code, and
+ * not imported by `@zanix/space` either — nothing in either package breaks if this file never
+ * existed.
+ *
+ * Deliberately separate from `../shared/behavior.css`: that file is scoped to `@zanix/space-ui`'s
+ * OWN `[data-space-ui="..."]` component hooks (a different package, a different audience — see
+ * that file's own header). This one targets `@zanix/space`'s own `[data-space="..."]` hooks
+ * instead — the stable attribute the framework's built-in `not-found`/`error` fallback views (and
+ * the `--template welcome` landing page) render on their root element. `data-space` and
+ * `data-space-ui` are two independent attributes on purpose: `@zanix/space` and `@zanix/space-ui`
+ * are two independent packages, and neither one's markup contract belongs to the other.
+ *
+ * Every rule below references only SEMANTIC `--space-*` tokens declared in `./tokens.css` (never a
+ * primitive, never a literal) — the same discipline `../shared/behavior.css` already follows, so a
+ * host overriding this project's palette (`docs/theming.md`'s own base→host cascade) restyles
+ * these views too, with no separate mechanism.
+ *
+ * Deliberately minimal — a coherent, readable starting point, not a full redesign: centered content,
+ * a comfortable measure, and the app's own primary color for the one interactive element
+ * (`--template welcome`'s outbound links). Delete or replace freely.
+ */
+
+[data-space='not-found'],
+[data-space='error'] {
+  display: block;
+  margin: 3rem auto;
+  max-width: 32rem;
+  padding: 0 var(--space-space-md, 1rem);
+  text-align: center;
+  color: var(--space-color-ink);
+}
+
+[data-space='welcome'] {
+  margin: 3rem auto;
+  max-width: 32rem;
+  padding: 0 var(--space-space-md, 1rem);
+  color: var(--space-color-ink);
+}
+
+[data-space='welcome'] a {
+  color: var(--space-color-primary);
+}
+
+[data-space='welcome'] a:hover {
+  color: var(--space-color-primary-strong);
+}

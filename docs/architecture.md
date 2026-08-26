@@ -69,8 +69,10 @@ responsibility.
 
 Lives in `src/shared/`. "Boundary preserved" means: not implemented, zero current consumer, but the
 shape below is what a future extraction should converge on — don't build something incompatible with
-it in the meantime. **Public** means exported from `mod.ts`/`mod-preact.ts` — usable directly by any
-consumer app, not just this package's own components; everything below is public except
+it in the meantime. **Public** means exported from `mod.ts`/`mod-preact.ts` (or, for the six
+components with a real runtime dependency on `@zanix/space`,
+`src/runtime.ts`/`src/runtime-preact.ts` — see that file's own `@module` doc) — usable directly by
+any consumer app, not just this package's own components; everything below is public except
 `shared/overlay-stack.ts` (now genuinely shared — see its own row below).
 
 | Primitive                                                                                            | Status                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 | Enables                                        |
@@ -214,19 +216,19 @@ own existing, single formatting dependency at the time) already had.
   the same "parameterized by h" pattern `createCatalogIcon` already established. This is exactly why
   Markdown renders through Preact with no `preact/compat` involved anywhere — a real, empirical
   dependency-boundary test
-  (`mod.ts and mod-preact.ts: both reach markdown-to-jsx, but never
-  through preact/compat`) proves
-  it, not just asserts it. `contentFormat: 'icu' | 'markdown'` (default `'icu'`) is the one explicit
-  switch — no sniffing by content or origin. `'markdown'` mode deliberately never runs `content`
-  through `formatMessage`/ICU first: ICU uses `{...}` for its own syntax, and real Markdown (a
-  fenced code block showing JSON, for one) commonly contains literal braces that ICU parsing would
-  otherwise misinterpret before Markdown ever saw them. The legacy `_props`-on-URL convention
-  (`MDLink`/`MDMedia`, routing a markdown link/image URL to `Link`/`Image`/`Video`) is kept, unified
-  onto the SAME `parsePropsQuery` the ICU side's `<props>` uses instead of legacy's own second,
-  parallel implementation. Covers the common node kinds a real CMS/docs document needs (paragraphs,
-  headings, emphasis, links, images, code, lists, blockquotes, breaks) — tables, footnotes, GFM
-  tasks, frontmatter, and raw HTML/JSX blocks are a real, disclosed v1 scope limit (render as
-  nothing, never a crash), not a hidden gap.
+  (`runtime.ts and runtime-preact.ts: both reach markdown-to-jsx, but never
+  through preact/compat`)
+  proves it, not just asserts it. `contentFormat: 'icu' | 'markdown'` (default `'icu'`) is the one
+  explicit switch — no sniffing by content or origin. `'markdown'` mode deliberately never runs
+  `content` through `formatMessage`/ICU first: ICU uses `{...}` for its own syntax, and real
+  Markdown (a fenced code block showing JSON, for one) commonly contains literal braces that ICU
+  parsing would otherwise misinterpret before Markdown ever saw them. The legacy `_props`-on-URL
+  convention (`MDLink`/`MDMedia`, routing a markdown link/image URL to `Link`/`Image`/`Video`) is
+  kept, unified onto the SAME `parsePropsQuery` the ICU side's `<props>` uses instead of legacy's
+  own second, parallel implementation. Covers the common node kinds a real CMS/docs document needs
+  (paragraphs, headings, emphasis, links, images, code, lists, blockquotes, breaks) — tables,
+  footnotes, GFM tasks, frontmatter, and raw HTML/JSX blocks are a real, disclosed v1 scope limit
+  (render as nothing, never a crash), not a hidden gap.
 - **`doc` is gone as a prop — moved out, not dropped.** Legacy's own `doc` mixed `fs.readFileSync`
   (Node-only, would throw in a browser/edge bundle), an unconditional client-side `fetch` with no
   caching or error handling, and a real, acknowledged-but-never-fixed hydration-mismatch bug
