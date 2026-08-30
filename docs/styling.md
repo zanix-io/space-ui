@@ -88,7 +88,10 @@ file outright: no version pin, no import, edit or delete freely.
   same shape.
 - **`theme/space-defaults.css`** — minimal, real styling for `@zanix/space`'s OWN built-in views:
   its default `not-found`/`error` fallback (`[data-space="not-found"]`/`[data-space="error"]`) and
-  `--template welcome`'s landing page (`[data-space="welcome"]`). `data-space` is a distinct
+  every `@zanix/cli`-scaffolded template's root element, which share ONE generic
+  `[data-space="content"]` hook — never a per-`--template` value (`welcome`, `population`, and any
+  future one all render the exact same `<main data-space="content">`), so a future scaffolded
+  template needs zero changes here to inherit this same styling. `data-space` is a distinct
   attribute from this package's own `data-space-ui` — a different package, a different audience (see
   this document's own header) — so this file, alone among the four, references `@zanix/space`'s
   markup contract rather than this package's. References only semantic tokens from

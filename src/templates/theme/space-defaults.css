@@ -11,9 +11,16 @@
  * OWN `[data-space-ui="..."]` component hooks (a different package, a different audience — see
  * that file's own header). This one targets `@zanix/space`'s own `[data-space="..."]` hooks
  * instead — the stable attribute the framework's built-in `not-found`/`error` fallback views (and
- * the `--template welcome` landing page) render on their root element. `data-space` and
- * `data-space-ui` are two independent attributes on purpose: `@zanix/space` and `@zanix/space-ui`
- * are two independent packages, and neither one's markup contract belongs to the other.
+ * the CLI's own scaffolded templates — `welcome`, `population`) render on their root element.
+ * `data-space` and `data-space-ui` are two independent attributes on purpose: `@zanix/space` and
+ * `@zanix/space-ui` are two independent packages, and neither one's markup contract belongs to the
+ * other.
+ *
+ * Every CLI-scaffolded template shares ONE generic root-element value, `data-space="content"` —
+ * never a per-`--template` value (`welcome`, `population`, and any future one all render the exact
+ * same `<main data-space="content">`, see `@zanix/cli`'s own `space-welcome.ts` doc for why): a
+ * future scaffolded template joins this same selector list automatically, with zero CSS changes
+ * needed here, rather than needing a parallel, duplicated rule set added per template.
  *
  * Every rule below references only SEMANTIC `--space-*` tokens declared in `./tokens.css` (never a
  * primitive, never a literal) — the same discipline `../shared/behavior.css` already follows, so a
@@ -22,7 +29,13 @@
  *
  * Deliberately minimal — a coherent, readable starting point, not a full redesign: centered content,
  * a comfortable measure, and the app's own primary color for the one interactive element
- * (`--template welcome`'s outbound links). Delete or replace freely.
+ * (a scaffolded page's own outbound links). Delete or replace freely.
+ *
+ * `code`/`pre` below are the one deliberate exception to the `[data-space="..."]`-scoped pattern
+ * above — genuinely content-agnostic (any inline code snippet or literal source excerpt, on any
+ * page, any `--template`), matching `../shared/behavior.css`'s own unscoped `[data-space-ui="..."]`
+ * component hooks. `--template population`'s own tutorial content (an ICU catalog excerpt, several
+ * `<code>` filenames) is the first real content this scaffold generates that uses either.
  */
 
 [data-space='not-found'],
@@ -35,17 +48,45 @@
   color: var(--space-color-ink);
 }
 
-[data-space='welcome'] {
+[data-space='content'] {
   margin: 3rem auto;
   max-width: 32rem;
   padding: 0 var(--space-space-md, 1rem);
   color: var(--space-color-ink);
 }
 
-[data-space='welcome'] a {
+[data-space='content'] a {
   color: var(--space-color-primary);
 }
 
-[data-space='welcome'] a:hover {
+[data-space='content'] a:hover {
   color: var(--space-color-primary-strong);
+}
+
+[data-space='content'] h2 {
+  margin-top: 2.5rem;
+  margin-bottom: 0.75rem;
+  color: var(--space-color-ink);
+}
+
+code {
+  padding: 0.15rem 0.4rem;
+  border: 1px solid var(--space-color-border);
+  border-radius: 4px;
+  background: var(--space-color-surface);
+  color: var(--space-color-ink);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.86em;
+}
+
+pre {
+  padding: 0.75rem 1rem;
+  overflow-x: auto;
+  border: 1px solid var(--space-color-border);
+  border-radius: 6px;
+  background: var(--space-color-surface);
+  color: var(--space-color-ink);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.86em;
+  line-height: 1.5;
 }

@@ -4,7 +4,7 @@ import type { VNode } from 'preact'
 import { act } from 'preact/test-utils'
 import { render as renderToString } from 'preact-render-to-string'
 import { assertEquals, assertStrictEquals, assertStringIncludes } from '@std/assert'
-import logger from '@zanix/utils/logger'
+import logger from 'shared/client-logger.ts'
 import { Modal, ModalProvider, useModal } from 'components/Modal/index.preact.ts'
 import type { ModalProps } from 'components/Modal/index.preact.ts'
 

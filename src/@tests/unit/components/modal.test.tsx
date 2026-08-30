@@ -4,7 +4,7 @@ import type { ReactNode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { assertEquals, assertStrictEquals, assertStringIncludes } from '@std/assert'
-import logger from '@zanix/utils/logger'
+import logger from 'shared/client-logger.ts'
 import { Modal, ModalProvider, useModal } from 'components/Modal/index.ts'
 
 function mount(element: ReturnType<typeof Modal>) {
