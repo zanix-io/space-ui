@@ -1,5 +1,5 @@
 import type { CreateElement } from 'typings/renderer.ts'
-import logger from '@zanix/utils/logger'
+import logger from 'shared/client-logger.ts'
 import { createButton } from '../Button/render.ts'
 import { isTopOverlay, registerOverlay } from 'shared/overlay-stack.ts'
 import type { DrawerAccessibleName, DrawerBaseProps } from './types.ts'

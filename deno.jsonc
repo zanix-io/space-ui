@@ -1,6 +1,6 @@
 {
   "name": "@zanix/space-ui",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "zanix": {
     "project": "library"
   },
@@ -49,7 +49,7 @@
       "src/@tests/functional/space-integration/fixtures/render-pipeline.ts"
     ],
     "plugins": [
-      "jsr:@zanix/utils@^4.0.0/linter/deno-zanix-plugin"
+      "jsr:@zanix/utils@^4.1.0/linter/deno-zanix-plugin"
     ],
     "report": "pretty"
   },
@@ -74,10 +74,16 @@
     // `Menu`, moved here once `Modal` became a real second consumer. Never introduced ahead of a
     // real second need.
     "shared/": "./src/shared/",
-    "@zanix/space/video-source": "jsr:@zanix/space@^0.2.0/video-source",
-    "@zanix/space/assets-manifest": "jsr:@zanix/space@^0.2.0/assets-manifest",
-    "@zanix/helpers": "jsr:@zanix/utils@^4.0.0/helpers",
-    "@zanix/utils/logger": "jsr:@zanix/utils@^4.0.0/logger",
+    "@zanix/space/video-source": "jsr:@zanix/space@^0.3.0/video-source",
+    "@zanix/space/assets-manifest": "jsr:@zanix/space@^0.3.0/assets-manifest",
+    "@zanix/helpers": "jsr:@zanix/utils@^4.1.0/helpers",
+    // The browser-safe entry only — `Modal`/`Drawer`'s own `render.ts` (via `shared/client-logger.ts`)
+    // is the one place in this package that needs a `Logger` at all, and never the full,
+    // server-capable `@zanix/utils/logger` (see that shared module's own doc for the real,
+    // reproduced regression pulling that entry into a browser bundle caused: `WorkerManager`,
+    // `Deno.readTextFile`-backed storage, and remote `https://jsr.io/...` fetches for
+    // `@std/fmt/colors`/`@std/path` on every page load).
+    "@zanix/utils/logger/client": "jsr:@zanix/utils@^4.1.0/logger/client",
     "@std/fmt": "jsr:@std/fmt@0.224",
     "@std/path": "jsr:@std/path@0.224",
     "react": "npm:react@^19.2.0",

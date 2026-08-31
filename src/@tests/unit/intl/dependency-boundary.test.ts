@@ -1,4 +1,5 @@
 import { assert } from '@std/assert'
+import { dirname, fromFileUrl } from '@std/path'
 
 /**
  * Structural guard rails for this package's own renderer boundary, now that `intl/` and
@@ -57,19 +58,61 @@ function includesPackage(specifiers: Set<string>, pkg: string): boolean {
 }
 
 /**
+ * Walks up from `localPath` looking for the nearest ancestor `deno.json`/`deno.jsonc` that
+ * declares a `"name"` field, and returns it — a cheap regex pull, not a full JSONC parse, since
+ * `deno.jsonc` files in this ecosystem carry `//` comments `JSON.parse` would choke on and only
+ * the `"name"` value is ever needed here. Returns `undefined` once the filesystem root is
+ * reached with no such file found.
+ */
+async function nearestPackageName(localPath: string): Promise<string | undefined> {
+  let dir = dirname(localPath)
+  while (true) {
+    for (const filename of ['deno.json', 'deno.jsonc']) {
+      try {
+        // Intentionally sequential: stop at the first ancestor directory that has either file,
+        // never read every ancestor up to the filesystem root regardless of where the real
+        // manifest sits.
+        // deno-lint-ignore no-await-in-loop
+        const text = await Deno.readTextFile(`${dir}/${filename}`)
+        const match = text.match(/"name"\s*:\s*"([^"]+)"/)
+        if (match) return match[1]
+      } catch {
+        // No such file at this level (or unreadable) — keep walking up.
+      }
+    }
+    const parent = dirname(dir)
+    if (parent === dir) return undefined
+    dir = parent
+  }
+}
+
+/**
  * Whether `@zanix/space` (any subpath) is present among `specifiers` — the real regression test
  * for the circular-resolution bug `runtime.ts`'s own `@module` doc describes: `.`/`./preact` must
- * NEVER reach it, `./runtime`/`./runtime/preact` always must. Matches both the raw import-map
- * form (`jsr:@zanix/space@...`) and its fully resolved form (`https://jsr.io/@zanix/space/...`,
- * which also covers `@zanix/space`'s own internal files pulled in transitively, e.g.
- * `video-source.ts`'s own `content-type.ts`) — never `@zanix/space-ui` (this package's own
- * specifier) on a same-prefix collision.
+ * NEVER reach it, `./runtime`/`./runtime/preact` always must. Matches the raw import-map form
+ * (`jsr:@zanix/space@...`), its fully resolved form (`https://jsr.io/@zanix/space/...`, which
+ * also covers `@zanix/space`'s own internal files pulled in transitively, e.g.
+ * `video-source.ts`'s own `content-type.ts`), AND the local `file://` form Deno's own workspace
+ * auto-linking produces when this repo happens to be checked out inside a Deno workspace that
+ * also has `@zanix/space` as a sibling member (see the `deno-workspace-link-pitfalls` skill) —
+ * CI's plain sibling checkout never triggers this branch, only a local monorepo checkout does.
+ * A `file://` match is confirmed via the resolved module's own nearest `deno.json`'s `"name"`,
+ * never a path-text guess, so it never collides with `@zanix/space-ui` (this package's own
+ * specifier) or an unrelated same-named local folder.
  */
-function includesZanixSpace(specifiers: Set<string>): boolean {
-  return [...specifiers].some((specifier) =>
-    /^jsr:@zanix\/space(@|\/|$)/.test(specifier) ||
-    /^https:\/\/jsr\.io\/@zanix\/space\//.test(specifier)
-  )
+async function includesZanixSpace(specifiers: Set<string>): Promise<boolean> {
+  for (const specifier of specifiers) {
+    if (/^jsr:@zanix\/space(@|\/|$)/.test(specifier)) return true
+    if (/^https:\/\/jsr\.io\/@zanix\/space\//.test(specifier)) return true
+    if (specifier.startsWith('file://')) {
+      // Intentionally sequential: short-circuits on the first matching specifier instead of
+      // resolving every candidate's package name up front.
+      // deno-lint-ignore no-await-in-loop
+      const name = await nearestPackageName(fromFileUrl(specifier))
+      if (name === '@zanix/space') return true
+    }
+  }
+  return false
 }
 
 Deno.test('mod.ts (React entrypoint): reaches react as a real code dependency', async () => {
@@ -180,14 +223,20 @@ Deno.test(
     // `@zanix/space-ui` import in a real `@zanix/space` app, that's a genuine circular resolution,
     // not just an unwanted dependency.
     const [react, preact] = await Promise.all([moduleGraph('mod.ts'), moduleGraph('mod-preact.ts')])
-    assert(!includesZanixSpace(react.code), '@zanix/space leaked into mod.ts as a code dependency')
-    assert(!includesZanixSpace(react.type), '@zanix/space leaked into mod.ts as a type dependency')
     assert(
-      !includesZanixSpace(preact.code),
+      !(await includesZanixSpace(react.code)),
+      '@zanix/space leaked into mod.ts as a code dependency',
+    )
+    assert(
+      !(await includesZanixSpace(react.type)),
+      '@zanix/space leaked into mod.ts as a type dependency',
+    )
+    assert(
+      !(await includesZanixSpace(preact.code)),
       '@zanix/space leaked into mod-preact.ts as a code dependency',
     )
     assert(
-      !includesZanixSpace(preact.type),
+      !(await includesZanixSpace(preact.type)),
       '@zanix/space leaked into mod-preact.ts as a type dependency',
     )
   },
@@ -204,11 +253,11 @@ Deno.test(
       moduleGraph('src/runtime-preact.ts'),
     ])
     assert(
-      includesZanixSpace(react.code),
+      await includesZanixSpace(react.code),
       'expected @zanix/space as a real code dependency of runtime.ts',
     )
     assert(
-      includesZanixSpace(preact.code),
+      await includesZanixSpace(preact.code),
       'expected @zanix/space as a real code dependency of runtime-preact.ts',
     )
   },

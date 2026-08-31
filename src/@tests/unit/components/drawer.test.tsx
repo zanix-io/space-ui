@@ -3,7 +3,7 @@ import { act } from 'react'
 import { createRoot } from 'react-dom/client'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { assertEquals, assertStringIncludes } from '@std/assert'
-import logger from '@zanix/utils/logger'
+import logger from 'shared/client-logger.ts'
 import { Drawer } from 'components/Drawer/index.ts'
 import { Modal } from 'components/Modal/index.ts'
 

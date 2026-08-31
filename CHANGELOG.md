@@ -5,6 +5,34 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/) and this project
 adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [0.2.1] - 2026-08-30
+
+### Fixed
+
+- **`Modal`/`Drawer` no longer pull `@zanix/utils`'s full, server-capable `Logger`
+  (`@zanix/utils/logger`) into a browser bundle.** Both components' own `render.ts` imported that
+  entry directly for their one `logger.warn` call; its `WorkerManager` and
+  `Deno.readTextFile`-backed default storage don't resolve to a local file for a browser bundler, so
+  bundling either component pulled in real, remote `https://jsr.io/...` fetches for
+  `@std/fmt/colors`/`@std/path` on every page load — a confirmed, reproduced regression (a
+  consumer's own error page took noticeably longer to become interactive, traced to this exact chain
+  via the browser's own Network panel). Both now import the new `src/shared/client-logger.ts`, a
+  thin wrapper around `@zanix/utils/logger/client`'s browser-safe `createClientLogger`, the same fix
+  `@zanix/space`'s own `modules/client/client-logger.ts` already applies. The `'noSave'` flag each
+  call site passes is unrelated to this fix and stays: it's a runtime flag on that one call, and was
+  never able to keep the OTHER entry's static import graph out of a bundle in the first place.
+
+### Changed
+
+- **`theme/space-defaults.css`'s scaffolded root-element hook is now the generic
+  `[data-space="content"]`, replacing the `--template welcome`-specific `[data-space="welcome"]`.**
+  Every `@zanix/cli`-scaffolded template (`welcome`, `population`, and any future one) renders the
+  same `<main data-space="content">`, so a new template inherits this styling automatically, with no
+  changes needed here. Also adds baseline `code`/`pre` styling — scoped outside
+  `[data-space="content"]`, since either element can appear on any scaffolded page — matching
+  `--template population`'s own tutorial content, the first scaffold to use them. See
+  [`docs/styling.md`](./docs/styling.md).
+
 ## [0.2.0] - 2026-08-26
 
 ### Changed

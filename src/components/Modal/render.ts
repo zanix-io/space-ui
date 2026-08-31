@@ -1,5 +1,5 @@
 import type { CreateElement } from 'typings/renderer.ts'
-import logger from '@zanix/utils/logger'
+import logger from 'shared/client-logger.ts'
 import { createButton } from '../Button/render.ts'
 import { isTopOverlay, registerOverlay } from 'shared/overlay-stack.ts'
 import type { ModalAccessibleName, ModalBaseProps } from './types.ts'
@@ -112,9 +112,11 @@ export function createModal<E, Node>(
     } = props
 
     if (!label && !ariaLabelledBy) {
-      // `'noSave'` — this warning is ephemeral dev-time output, never meant to be persisted, and
-      // (per this package's own `deno.jsonc` doc for this import) it's what keeps a browser-bundled
-      // call to `logger.warn` from ever reaching the (Deno-only) storage path at all.
+      // `'noSave'` — this warning is ephemeral dev-time output, never meant to be persisted. What
+      // actually keeps a browser-bundled call to `logger.warn` from ever reaching the (Deno-only)
+      // storage path is the IMPORT above (`shared/client-logger.ts`, never `@zanix/utils/logger`
+      // directly — see that shared module's own doc): `'noSave'` alone is a runtime flag on this
+      // one call, and can't prevent the OTHER entry's static import graph from being bundled at all.
       logger.warn(
         'Modal: neither `label` nor `ariaLabelledBy` was given — this dialog has no accessible ' +
           'name. Pass one of the two so assistive technology can announce what this dialog is.',

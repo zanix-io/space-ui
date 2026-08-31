@@ -5,13 +5,13 @@
     "jsr:@std/fmt@0.224": "0.224.0",
     "jsr:@std/internal@0.224": "0.224.0",
     "jsr:@std/path@0.224": "0.224.0",
-    "jsr:@zanix/space@0.2": "0.2.0",
-    "jsr:@zanix/utils@4": "4.0.0",
+    "jsr:@zanix/space@0.3": "0.3.0",
+    "jsr:@zanix/utils@^4.1.0": "4.1.0",
     "npm:@formatjs/icu-messageformat-parser@^3.5.17": "3.5.17",
-    "npm:@formatjs/intl@^4.1.19": "4.1.19",
+    "npm:@formatjs/intl@^4.1.19": "4.1.20",
     "npm:@types/react-dom@^19.2.0": "19.2.5_@types+react@19.2.18",
     "npm:@types/react@^19.2.0": "19.2.18",
-    "npm:happy-dom@^20.11.2": "20.11.6",
+    "npm:happy-dom@^20.11.2": "20.12.0",
     "npm:markdown-to-jsx@^9.10.2": "9.10.2_react@19.2.8",
     "npm:preact-render-to-string@^6.5.0": "6.7.0_preact@10.29.8",
     "npm:preact@^10.29.0": "10.29.8_preact-render-to-string@6.7.0",
@@ -42,14 +42,14 @@
         "jsr:@std/assert"
       ]
     },
-    "@zanix/space@0.2.0": {
-      "integrity": "86431131b9676946135e45e13d53007a9f2f38065136386771e6c2db9d520095",
+    "@zanix/space@0.3.0": {
+      "integrity": "ca32d33613e0024d34a1d74e11fceb450028340cb433749f67999025cdd28050",
       "dependencies": [
         "jsr:@zanix/utils"
       ]
     },
-    "@zanix/utils@4.0.0": {
-      "integrity": "2ef04a760e011829ff14e198d6e5fc947ae0cf2615b519c1954ddb78b7b376e6",
+    "@zanix/utils@4.1.0": {
+      "integrity": "3b223433ddbfac0a33edf1a985092f5ea947ccaed0142f016495bec4e42dce9b",
       "dependencies": [
         "jsr:@std/fmt",
         "jsr:@std/path"
@@ -69,16 +69,16 @@
     "@formatjs/icu-skeleton-parser@2.1.11": {
       "integrity": "sha512-j8cUmOJzVgkHuS0QiQ6ga76UIoLOFSAMWhs7aZJztH3aAdCOAE6vpC8KVvFB4cU10ON0y2/5oOVmPJ43s2lTwA=="
     },
-    "@formatjs/intl@4.1.19": {
-      "integrity": "sha512-bZMROATl+rzfL8wsDZ53i8XWHx5e6rVr8QlGT5GDvHImEUro4WE9pxUd2dobzmI3CtD+zkt/wkEdqcb+3CK8Fg==",
+    "@formatjs/intl@4.1.20": {
+      "integrity": "sha512-q3gaFvc1mXrl0fcSY2QKSS+WzJxpbIXs48O+QLA3UsRtIwVhazvxtLrLGKEse5Mq4U8hAYyTB6Y9buU2ZRFz/w==",
       "dependencies": [
         "@formatjs/fast-memoize",
         "@formatjs/icu-messageformat-parser",
         "intl-messageformat"
       ]
     },
-    "@types/node@26.3.0": {
-      "integrity": "sha512-L3fgrnchriRC2ExBflb8j4uZZURHZfQsmQeyVzhjcHW4kkwVyo8/0h1B2MVzMTrYUJYu6G7EWs14hW/L9putqw==",
+    "@types/node@26.4.0": {
+      "integrity": "sha512-faiGnoIrLH/V8cibOMEAZ8pMw6oXqSukl29ra4mN8GdaB2ZewzeaLj+INpV5N+Z1eKWzY+IzaIZH2EIR6YZRNQ==",
       "dependencies": [
         "undici-types"
       ]
@@ -116,8 +116,8 @@
     "entities@7.0.1": {
       "integrity": "sha512-TWrgLOFUQTH994YUyl1yT4uyavY5nNB5muff+RtWaqNVCAK408b5ZnnbNAUEWLTCpum9w6arT70i1XdQ4UeOPA=="
     },
-    "happy-dom@20.11.6": {
-      "integrity": "sha512-Hldbg8AdAa5a5oDcZpjqnGitp7JB0hqWmfv/8qr+kft4vzSD8BHsbdRfzYvL/0QcbKcURC/yyoygbeDQarPvYg==",
+    "happy-dom@20.12.0": {
+      "integrity": "sha512-7uMYJu2SEwwL8vVcKp0C0lnt6d2LSGGe+T+oY79PiCJNNSgFpbxW8n5KuzpDQvrU4mt+fYiK1+Jy7Z2v39YR6g==",
       "dependencies": [
         "@types/node",
         "@types/whatwg-mimetype",
@@ -190,8 +190,8 @@
       "jsr:@std/assert@0.224",
       "jsr:@std/fmt@0.224",
       "jsr:@std/path@0.224",
-      "jsr:@zanix/space@0.2",
-      "jsr:@zanix/utils@4",
+      "jsr:@zanix/space@0.3",
+      "jsr:@zanix/utils@^4.1.0",
       "npm:@formatjs/icu-messageformat-parser@^3.5.17",
       "npm:@formatjs/intl@^4.1.19",
       "npm:@types/react-dom@^19.2.0",
