@@ -2,8 +2,8 @@
 
 An optional, curated set of 17 common UI icons, available to any component/consumer through
 `CatalogIcon` — a thin resolver over the unmodified `Icon`, never a second icon system. This
-document covers the catalog's architecture, its license/attribution, and exactly what's implemented
-today versus what still depends on an external event (this package publishing to JSR).
+document covers the catalog's architecture, its license/attribution, and the `--icons` scaffold flag
+(`zanix new space`/`zanix new spacecraft`) that ships it into a new project.
 
 ## `CatalogIcon`
 
@@ -162,8 +162,8 @@ elements — no path geometry altered), and why the legacy `react-components` sp
 deliberately **not** used as a source (it carried no license/attribution artifact of its own).
 
 These three files/paths are not renamed, minimized, or moved by anything in this package's own build
-or by the (still-blocked) CLI scaffold step — see `NOTICE.md` itself for the complete, authoritative
-account.
+or by the CLI scaffold step (`--icons`, below) — see `NOTICE.md` itself for the complete,
+authoritative account.
 
 ## Why brand icons aren't in this catalog
 
@@ -185,9 +185,10 @@ document via `<use>`. Pass the ids you need to keep to `svgo`'s own `preserve` o
 `@zanix/space`, a bare `optimize: { svg: true }` already does this automatically for every
 `<symbol id>`, while still cleaning up genuinely unused ids elsewhere in the file).
 
-A `--icons` convenience flag for `zanix new space`/`zanix new spacecraft` — which would scaffold
-this catalog into a new project's own `assets/icons/` and generate a pre-wired `CatalogIcon` wrapper
-— is planned for `@zanix/cli`, but not available today.
+A `--icons` convenience flag for `zanix new space`/`zanix new spacecraft` scaffolds this catalog
+into a new project's own `assets/icons/` and generates a pre-wired `CatalogIcon` wrapper —
+implemented in `@zanix/cli` (`space-icons.ts`), fetching this package's real, published-to-JSR
+template content at scaffold time.
 
 ## See also
 

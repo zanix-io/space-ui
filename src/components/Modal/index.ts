@@ -101,10 +101,11 @@ const bound = createModal<ReactElement, ReactNode>(
  * ## Accessible name: required by the type, not enforced by a throw
  *
  * {@linkcode ModalAccessibleName} makes "at least one of `label`/`ariaLabelledBy`" a compile
- * error to skip for typed callers. For anyone else, this component logs a `logger.warn` (this
- * package's own `@zanix/utils/logger`, marked `'noSave'`) rather than throwing — a missing
- * accessible name is a real accessibility gap to catch in development and tests, not a structural
- * misuse: a mislabeled dialog still opens, still traps focus, still closes correctly.
+ * error to skip for typed callers. For anyone else, this component logs a `logger.warn` (via
+ * this package's own `shared/client-logger.ts`, marked `'noSave'` — never `@zanix/utils/logger`
+ * directly; see that shared module's own doc) rather than throwing — a missing accessible name is
+ * a real accessibility gap to catch in development and tests, not a structural misuse: a
+ * mislabeled dialog still opens, still traps focus, still closes correctly.
  *
  * ## Backdrop and outside-click are the same decision, not two
  *
