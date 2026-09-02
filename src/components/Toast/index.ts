@@ -1,6 +1,5 @@
 import {
   createContext,
-  createElement,
   Fragment,
   useCallback,
   useContext as useReactContext,
@@ -10,6 +9,7 @@ import {
 } from 'react'
 import type { ReactElement, ReactNode } from 'react'
 import type { CreateElement } from 'typings/renderer.ts'
+import { createElementWithNonceHydrationFix } from 'shared/create-element-nonce-hydration-fix.ts'
 import { createToast } from './render.ts'
 import type { ToastMessage, ToastPosition } from './types.ts'
 
@@ -27,7 +27,7 @@ function useContext(context: unknown): unknown {
 }
 
 const bound = createToast<ReactElement, ReactNode>(
-  createElement as unknown as CreateElement<ReactElement>,
+  createElementWithNonceHydrationFix as unknown as CreateElement<ReactElement>,
   { createContext, useContext, useCallback, useMemo, useEffect, useState },
   Fragment,
 )
@@ -57,6 +57,17 @@ const bound = createToast<ReactElement, ReactNode>(
  * symmetry for its own sake, not a real need. `ToastProvider`/`useToast` are plain `useState` +
  * `Context`, the same shape `ModalProvider`/`IntlProvider` already use — never Zustand, never
  * assumed as a requirement just because legacy's own store happened to use it.
+ *
+ * ## `nonce`, for a nonce-based `style-src` CSP
+ *
+ * `ToastProvider`'s own stack container positions itself via a self-rendered `<style
+ * nonce={nonce}>` element (never an inline `style` attribute, which a nonce-based CSP — e.g.
+ * `@zanix/space`'s own zero-config default — blocks unconditionally). Pass the request's real
+ * nonce as `<ToastProvider nonce={nonce}>` when running under such a CSP; omit it otherwise, same
+ * as every other prop here. This binding renders that `<style>` via
+ * `shared/create-element-nonce-hydration-fix.ts` — see `Modal/index.ts`'s own `nonce` doc for why
+ * (a real, cosmetic-only React hydration-warning gotcha this fixes without touching `render.ts`'s
+ * own Preact-shared markup).
  *
  * ## `position` moved from per-toast to per-`ToastProvider`
  *
@@ -105,9 +116,14 @@ const bound = createToast<ReactElement, ReactNode>(
  * it in place (e.g. a `'loading'` toast becoming a `'success'` one) instead of stacking a
  * duplicate — legacy's own dedup-by-`id` behavior, made explicit and intentional here rather than
  * left implicit.
+ *
+ * The close button's own visible content is an inline "X" `<svg>` by default (see
+ * `shared/close-button-icon.ts`'s own doc for why — not a Unicode character, not a bundled
+ * `CatalogIcon` call), overridable per-toast via `ToastMessage.closeButtonContent`; the button's
+ * own accessible name (`aria-label="Close"`) is unaffected either way.
  */
 export const ToastProvider: (
-  props: { position?: ToastPosition; children: ReactNode },
+  props: { position?: ToastPosition; nonce?: string; children: ReactNode },
 ) => ReactElement = bound.ToastProvider
 
 /**

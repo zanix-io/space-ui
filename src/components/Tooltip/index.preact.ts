@@ -1,6 +1,6 @@
 import { h } from 'preact'
 import type { ComponentChildren, VNode } from 'preact'
-import { useEffect, useId, useMemo, useRef, useState } from 'preact/hooks'
+import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'preact/hooks'
 import type { CreateElement } from 'typings/renderer.ts'
 import { usePosition } from 'shared/use-position.preact.ts'
 import { createTooltip } from './render.ts'
@@ -24,5 +24,5 @@ export type TooltipProps = TooltipBaseProps & {
  */
 export const Tooltip: (props: TooltipProps) => VNode = createTooltip<VNode, ComponentChildren>(
   h as unknown as CreateElement<VNode>,
-  { useEffect, useId, useMemo, useRef, useState, usePosition },
+  { useEffect, useLayoutEffect, useId, useMemo, useRef, useState, usePosition },
 )

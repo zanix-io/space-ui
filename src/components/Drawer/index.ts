@@ -1,8 +1,9 @@
-import { createElement, Fragment, useEffect, useRef } from 'react'
+import { Fragment, useEffect, useRef } from 'react'
 import type { ReactElement, ReactNode } from 'react'
 import type { CreateElement } from 'typings/renderer.ts'
 import { useCloseOnOutside } from 'shared/close-on-outside.ts'
 import { useFocusScope } from 'shared/focus-scope.ts'
+import { createElementWithNonceHydrationFix } from 'shared/create-element-nonce-hydration-fix.ts'
 import { createDrawer } from './render.ts'
 import type { DrawerAccessibleName, DrawerBaseProps } from './types.ts'
 
@@ -36,6 +37,19 @@ export type DrawerProps = DrawerBaseProps & DrawerAccessibleName & { children: R
  * no slide-in transition ships here (a `className`/CSS concern entirely, same "no CSS shipped"
  * posture every component in this package already has).
  *
+ * ## `nonce`, for a nonce-based `style-src` CSP
+ *
+ * Same contract as `Modal`'s own `nonce` — see `Modal/index.ts`'s own doc for the full reasoning,
+ * including the React-only hydration-warning fix this component's own `<style nonce>` needs the
+ * same way. `<Drawer nonce={nonce}>` when the consuming page runs a nonce-based CSP, omitted
+ * otherwise.
+ *
+ * ## Close button content
+ *
+ * Same contract as `Modal`'s own — see `Modal/index.ts`'s own doc for the full reasoning, not
+ * repeated here. `closeButtonContent` overrides the default inline "X" `<svg>` with any renderer
+ * node; the button's own accessible name (`aria-label="Close"`) is unaffected either way.
+ *
  * ## Otherwise identical to `Modal`'s own contract
  *
  * Accessible-name requirement (compile-time via {@linkcode DrawerAccessibleName}, `logger.warn`
@@ -49,7 +63,7 @@ export const Drawer: (props: DrawerProps) => ReactElement | null = createDrawer<
   ReactElement,
   ReactNode
 >(
-  createElement as unknown as CreateElement<ReactElement>,
+  createElementWithNonceHydrationFix as unknown as CreateElement<ReactElement>,
   { useEffect, useRef, useFocusScope, useCloseOnOutside },
   Fragment,
 )

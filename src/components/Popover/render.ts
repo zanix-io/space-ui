@@ -1,7 +1,30 @@
 import type { CreateElement } from 'typings/renderer.ts'
 import { createEscapeToCloseHandler } from 'shared/escape-to-close.ts'
 import type { ComputePositionOptions, ComputePositionResult } from 'shared/positioning.ts'
+import {
+  buildOverlayCss,
+  getOrInsertDynamicRule,
+  removeDynamicRule,
+} from 'shared/overlay-position-css.ts'
 import type { PopoverBaseProps, PopoverTriggerRenderProps } from './types.ts'
+
+/**
+ * The static, non-dynamic part of this component's own positioning — same shape/reasoning
+ * `Tooltip/render.ts`'s own `TOOLTIP_POSITION_CSS` establishes, see that constant's own doc (and
+ * `PopoverBaseProps.nonce`'s) for the full CSP reasoning.
+ *
+ * `visibility: hidden` is included here too, as the DEFAULT (see `TOOLTIP_POSITION_CSS`'s own doc
+ * for the full reasoning — same "hidden via CSS alone, no dependency on any inline `style`/JS
+ * having run yet" rationale) — the per-instance dynamic rule
+ * (`[data-space-ui='popover'][data-popover-id='...']`) always overrides it once a real position
+ * exists, being strictly more specific.
+ */
+const POPOVER_POSITION_CSS: string = buildOverlayCss('popover', {
+  position: 'fixed',
+  top: 0,
+  left: 0,
+  visibility: 'hidden',
+})
 
 /**
  * The subset of hooks/primitives this component's shared body needs, injected alongside `h` — same
@@ -12,9 +35,14 @@ import type { PopoverBaseProps, PopoverTriggerRenderProps } from './types.ts'
  * already a per-renderer pair (`shared/close-on-outside.ts`/`.preact.ts`,
  * `shared/use-position.ts`/`.preact.ts`), so `index.ts`/`index.preact.ts` each pass their own
  * already-bound one in, the same way `Modal/render.ts`'s own `ModalHooks` already does for both.
+ *
+ * `useLayoutEffect` is injected alongside `useState`/`useRef`/... specifically for the CSSOM-rule
+ * application this component's own doc covers below — React's and `preact/hooks`' real exports
+ * share the same name and signature, so this is a genuine renderer-agnostic binding.
  */
 export type PopoverHooks = {
   useId: () => string
+  useLayoutEffect: (effect: () => void | (() => void), deps: unknown[]) => void
   useMemo: <T>(fn: () => T, deps: unknown[]) => T
   useRef: <T>(initial: T) => { current: T }
   useState: <T>(initial: T) => [T, (value: T | ((current: T) => T)) => void]
@@ -44,6 +72,16 @@ export type PopoverRenderProps<Node> = PopoverBaseProps & {
  * same pattern as `Table/render.ts`, extended with `useCloseOnOutside`/`usePosition` injected
  * alongside the ordinary hooks (see {@linkcode PopoverHooks}'s own doc).
  *
+ * The static part of this component's own positioning is a `<style nonce={nonce}>` element it
+ * renders itself, built once from `POPOVER_POSITION_CSS` above — see `PopoverBaseProps.nonce`'s
+ * own doc for the full CSP reasoning. The genuinely dynamic `transform`/`visibility` part —
+ * recomputed every render from `usePosition`'s real measurement — is never an inline `style`
+ * attribute either: it's applied to a CSSOM rule scoped to this instance
+ * (`[data-space-ui='popover'][data-popover-id='<contentId>']`), inserted into the SAME `<style>`
+ * element (only while `open`, since this component's panel/style element are both unmounted
+ * otherwise — unlike `Tooltip`'s own always-mounted one) via `getOrInsertDynamicRule`, and mutated
+ * on every position update via `hooks.useLayoutEffect` (synchronously before paint).
+ *
  * See `index.ts`'s own doc for the full public behavioral contract (why `trigger` is a render-prop
  * with no `ref` crossing it, why no portal, why no focus trap, why unmounted-when-closed like
  * `Modal`, why `useCloseOnOutside` scopes to a container wrapping BOTH the trigger and the panel
@@ -65,6 +103,7 @@ export function createPopover<E, Node>(
       offset = 8,
       id,
       className,
+      nonce,
     } = props
     const contentId = hooks.useId()
     const isControlled = controlledOpen !== undefined
@@ -90,6 +129,39 @@ export function createPopover<E, Node>(
     }), [])
 
     const position = hooks.usePosition(referenceRef, panelRef, open, { placement, offset })
+
+    // The dynamic-positioning CSSOM rule — see this module's own doc above and
+    // `shared/overlay-position-css.ts`'s own doc for the full mechanism/reasoning. Scoped to this
+    // instance via `contentId` (stable for the component's lifetime, from `useId()`). Unlike
+    // `Tooltip`'s always-mounted panel, this component's own `<style>` element unmounts every time
+    // `open` becomes `false` — so the insert/cleanup effect below is keyed on `open` itself (a fresh
+    // rule inserted into the fresh element each time it reopens, cleaned up each time it closes),
+    // not `[]` — inserting into a `<style>` element that's about to unmount (or no longer exists)
+    // would either no-op or leak a rule nothing ever removes.
+    const styleElRef = hooks.useRef<HTMLStyleElement | null>(null)
+    const dynamicRuleRef = hooks.useRef<CSSStyleRule | null>(null)
+    const dynamicSelector = `[data-space-ui='popover'][data-popover-id='${contentId}']`
+    hooks.useLayoutEffect(() => {
+      if (!open) return
+      const styleEl = styleElRef.current
+      if (!styleEl) return
+      getOrInsertDynamicRule(styleEl, dynamicRuleRef, dynamicSelector)
+      return () => removeDynamicRule(styleEl, dynamicRuleRef)
+    }, [open])
+
+    // Applies the CSSOM rule's own `transform`/`visibility` on every position update —
+    // `useLayoutEffect`, not `useEffect`, so this runs synchronously before the browser paints (see
+    // `shared/overlay-position-css.ts`'s own doc for why a plain `useEffect` here would flash/jump
+    // on every `autoUpdate` scroll-driven update instead of just once at mount).
+    hooks.useLayoutEffect(() => {
+      const rule = dynamicRuleRef.current
+      if (!rule) return
+      rule.style.setProperty(
+        'transform',
+        position ? `translate(${position.x}px, ${position.y}px)` : '',
+      )
+      rule.style.setProperty('visibility', position ? 'visible' : 'hidden')
+    }, [position])
 
     // `containerRef` wraps BOTH the trigger and the panel — not `triggerWrapperRef` alone, a real
     // bug found and fixed while building `Tooltip`'s own sibling component: the panel is a sibling
@@ -120,6 +192,16 @@ export function createPopover<E, Node>(
     // hidden` until a real `position` exists, revealed only once it does — the standard "measure
     // while hidden, then reveal" technique, avoiding the alternative FOUC an `x: 0, y: 0` starting
     // transform would cause.
+    // Static, non-dynamic `position: fixed; top: 0; left: 0` lives in a self-rendered `<style>`
+    // element (see `POPOVER_POSITION_CSS`'s own doc) — the genuinely dynamic `transform`/
+    // `visibility` are applied to a CSSOM rule inside that SAME element instead of an inline
+    // `style` attribute (see this module's own `createPopover` doc above); the panel itself carries
+    // no `style` prop at all. Only rendered alongside the panel itself — no panel mounted, nothing
+    // to position.
+    const styleEl = open
+      ? h('style', { key: 'style', nonce, ref: styleElRef }, POPOVER_POSITION_CSS)
+      : null
+
     const panel = open
       ? h(
         'div',
@@ -129,14 +211,8 @@ export function createPopover<E, Node>(
           className,
           ref: panelRef,
           'data-space-ui': 'popover',
+          'data-popover-id': contentId,
           onKeyDown: handleKeyDown,
-          style: {
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            transform: position ? `translate(${position.x}px, ${position.y}px)` : undefined,
-            visibility: position ? 'visible' : 'hidden',
-          },
         },
         children,
       )
@@ -144,6 +220,7 @@ export function createPopover<E, Node>(
 
     return h('span', { ref: containerRef, style: { display: 'contents' } }, [
       triggerEl,
+      styleEl,
       panel,
     ])
   }

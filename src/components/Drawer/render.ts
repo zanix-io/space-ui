@@ -1,9 +1,10 @@
 import type { CreateElement } from 'typings/renderer.ts'
 import logger from 'shared/client-logger.ts'
 import { createButton } from '../Button/render.ts'
+import { createDefaultCloseIcon } from 'shared/close-button-icon.ts'
 import { isTopOverlay, registerOverlay } from 'shared/overlay-stack.ts'
 import type { DrawerAccessibleName, DrawerBaseProps } from './types.ts'
-import { DRAWER_SIDE_STYLE, DRAWER_Z_INDEX } from './types.ts'
+import { DRAWER_POSITION_CSS } from './types.ts'
 
 /**
  * The hooks/primitives this component's shared body needs, injected alongside `h` — same shape
@@ -40,6 +41,15 @@ export type DrawerRenderProps<Node> = DrawerBaseProps & DrawerAccessibleName & {
  * button it renders, never a redundant one of its own; the panel root itself carries
  * `data-space-ui="drawer"`, the optional backdrop `data-space-ui="drawer-backdrop"`.
  *
+ * The close button's own visible content is `closeButtonContent` when given, otherwise
+ * `shared/close-button-icon.ts`'s own default inline "X" `<svg>` — same contract, same reasoning
+ * `Modal/render.ts`'s own doc already covers (not repeated here); `aria-label="Close"` is
+ * unconditional either way.
+ *
+ * Positioning is a `<style nonce={nonce}>` element this component renders itself, built once from
+ * `DRAWER_POSITION_CSS` (`Drawer/types.ts`) — same mechanism/reasoning as `Modal/render.ts`'s own
+ * `MODAL_POSITION_CSS`, never an inline `style` attribute.
+ *
  * See `index.ts`'s own doc for the full public behavioral contract (shares `Modal`'s own overlay
  * stack, `side` with no default, otherwise identical to `Modal`'s own contract) — not repeated
  * here.
@@ -50,6 +60,7 @@ export function createDrawer<E, Node>(
   Fragment: unknown,
 ): (props: DrawerRenderProps<Node>) => E | null {
   const Button = createButton(h)
+  const DefaultCloseIcon = createDefaultCloseIcon(h)
   const hAny = h as unknown as (
     type: unknown,
     props: Record<string, unknown> | null,
@@ -60,6 +71,7 @@ export function createDrawer<E, Node>(
     const {
       open,
       onClose,
+      closeButtonContent,
       side,
       label,
       ariaLabelledBy,
@@ -67,6 +79,7 @@ export function createDrawer<E, Node>(
       closeOnEscape = true,
       id,
       className,
+      nonce,
       children,
     } = props
 
@@ -111,15 +124,16 @@ export function createDrawer<E, Node>(
 
     if (!open) return null
 
+    // Static, non-dynamic positioning CSS, injected as a real `<style>` element instead of an
+    // inline `style` attribute — see `DRAWER_POSITION_CSS`'s own doc for the full CSP reasoning.
+    const styleEl = h('style', { key: 'style', nonce }, DRAWER_POSITION_CSS)
+
     const backdrop = showOverlay
-      ? h('div', {
-        key: 'backdrop',
-        'data-space-ui': 'drawer-backdrop',
-        style: { position: 'fixed', inset: 0, zIndex: DRAWER_Z_INDEX.backdrop },
-      })
+      ? h('div', { key: 'backdrop', 'data-space-ui': 'drawer-backdrop' })
       : null
 
     return hAny(Fragment, null, [
+      styleEl,
       backdrop,
       h(
         'div',
@@ -134,15 +148,21 @@ export function createDrawer<E, Node>(
           'aria-labelledby': ariaLabelledBy,
           tabIndex: -1,
           'data-space-ui': 'drawer',
+          'data-side': side,
           onKeyDown: handleKeyDown,
-          style: {
-            position: 'fixed',
-            zIndex: DRAWER_Z_INDEX.panel,
-            ...DRAWER_SIDE_STYLE[side],
-          },
         },
         [
-          hAny(Fragment, { key: 'close' }, Button({ onClick: onClose, label: 'Close' })),
+          hAny(
+            Fragment,
+            { key: 'close' },
+            // Same default-vs-override contract `Modal/render.ts`'s own close button uses (see
+            // that file's own comment here for the full reasoning) — not repeated per component.
+            Button({
+              onClick: onClose,
+              label: 'Close',
+              children: closeButtonContent ?? DefaultCloseIcon(),
+            }),
+          ),
           hAny(Fragment, { key: 'children' }, children),
         ],
       ),

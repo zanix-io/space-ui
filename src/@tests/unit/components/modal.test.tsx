@@ -112,6 +112,56 @@ Deno.test('Modal: showOverlay=false renders no backdrop', () => {
   assertEquals(html.includes('data-space-ui="modal-backdrop"'), false)
 })
 
+// --- positioning: <style> injection instead of an inline style attribute (CSP) ----------------
+
+Deno.test('Modal: the dialog/backdrop carry no style attribute, only data-position', () => {
+  const html = renderToStaticMarkup(
+    <Modal open onClose={() => {}} label='X' position='top-right'>
+      Body
+    </Modal>,
+  )
+
+  assertEquals(/data-space-ui="modal"[^>]*style="/.test(html), false)
+  assertEquals(/data-space-ui="modal-backdrop"[^>]*style="/.test(html), false)
+  assertStringIncludes(html, 'data-position="top-right"')
+})
+
+Deno.test('Modal: the injected style text has the correct rule for the current position', () => {
+  const html = renderToStaticMarkup(
+    <Modal open onClose={() => {}} label='X' position='top-right'>
+      Body
+    </Modal>,
+  )
+
+  const styleText = must(html.match(/<style[^>]*>([^<]+)<\/style>/))[1]
+  assertStringIncludes(styleText, "[data-space-ui='modal-backdrop']{position:fixed")
+  const rule = must(
+    styleText.match(/\[data-space-ui='modal'\]\[data-position='top-right'\]\{([^}]+)\}/),
+  )[1]
+  assertStringIncludes(rule, 'top:1rem')
+  assertStringIncludes(rule, 'right:1rem')
+})
+
+Deno.test('Modal: nonce lands on the injected style element', () => {
+  const html = renderToStaticMarkup(
+    <Modal open onClose={() => {}} label='X' nonce='abc123'>
+      Body
+    </Modal>,
+  )
+
+  assertStringIncludes(html, '<style nonce="abc123">')
+})
+
+Deno.test('Modal: with no nonce given, the style element renders without one', () => {
+  const html = renderToStaticMarkup(
+    <Modal open onClose={() => {}} label='X'>
+      Body
+    </Modal>,
+  )
+
+  assertStringIncludes(html, '<style>')
+})
+
 Deno.test('Modal: renders a real, accessible close button', () => {
   const html = renderToStaticMarkup(
     <Modal open onClose={() => {}} label='X'>
@@ -120,6 +170,41 @@ Deno.test('Modal: renders a real, accessible close button', () => {
   )
 
   assertStringIncludes(html, 'aria-label="Close"')
+})
+
+Deno.test('Modal: the close button has real, aria-hidden visible content by default', () => {
+  const html = renderToStaticMarkup(
+    <Modal open onClose={() => {}} label='X'>
+      Body
+    </Modal>,
+  )
+
+  const closeButtonHtml = must(
+    html.match(/<button[^>]*aria-label="Close"[^>]*>.*?<\/button>/s),
+  )[0]
+  assertStringIncludes(closeButtonHtml, '<svg')
+  assertStringIncludes(closeButtonHtml, 'aria-hidden="true"')
+})
+
+Deno.test('Modal: closeButtonContent overrides the default close icon', () => {
+  const html = renderToStaticMarkup(
+    <Modal
+      open
+      onClose={() => {}}
+      label='X'
+      closeButtonContent={<span data-testid='my-close-icon'>×</span>}
+    >
+      Body
+    </Modal>,
+  )
+
+  assertStringIncludes(html, 'data-testid="my-close-icon"')
+  const closeButtonHtml = must(
+    html.match(/<button[^>]*aria-label="Close"[^>]*>.*?<\/button>/s),
+  )[0]
+  assertEquals(closeButtonHtml.includes('<svg'), false)
+  // `aria-label="Close"` stays the accessible name regardless of which content renders.
+  assertStringIncludes(closeButtonHtml, 'aria-label="Close"')
 })
 
 // --- backdrop / outside-click contract --------------------------------------------------------

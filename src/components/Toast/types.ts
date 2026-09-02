@@ -43,6 +43,13 @@ export type ToastMessageBase = {
    * button, or `closeToast(id)` called directly) — same per-entry callback shape
    * `ModalProvider`'s own `openModal`'s `onClose` already has. */
   onClose?: () => void
+  /** Same contract as `ModalBaseProps.closeButtonContent` — overrides this toast's own close
+   * button's visible content in place of the default inline "X" `shared/close-button-icon.ts`
+   * renders (see that module's own doc for why). Typed `unknown`, the same escape hatch
+   * `ButtonProps.children` already uses, since this value is threaded straight through as that
+   * same `Button`'s own `children`. Omit for the default "X"; `aria-label="Close"` is unaffected
+   * either way. */
+  closeButtonContent?: unknown
   className?: string
 }
 

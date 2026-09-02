@@ -121,6 +121,82 @@ Deno.test('Modal (preact): renders a real, accessible close button', () => {
   assertStringIncludes(html, 'aria-label="Close"')
 })
 
+Deno.test('Modal (preact): the close button has real, aria-hidden visible content by default', () => {
+  const html = renderToString(
+    element({ open: true, onClose: () => {}, label: 'X', children: 'Body' }),
+  )
+
+  const closeButtonHtml = must(
+    html.match(/<button[^>]*aria-label="Close"[^>]*>.*?<\/button>/s),
+  )[0]
+  assertStringIncludes(closeButtonHtml, '<svg')
+  assertStringIncludes(closeButtonHtml, 'aria-hidden="true"')
+})
+
+Deno.test('Modal (preact): closeButtonContent overrides the default close icon', () => {
+  const html = renderToString(
+    element({
+      open: true,
+      onClose: () => {},
+      label: 'X',
+      children: 'Body',
+      closeButtonContent: h('span', { 'data-testid': 'my-close-icon' }, '×'),
+    }),
+  )
+
+  assertStringIncludes(html, 'data-testid="my-close-icon"')
+  const closeButtonHtml = must(
+    html.match(/<button[^>]*aria-label="Close"[^>]*>.*?<\/button>/s),
+  )[0]
+  assertEquals(closeButtonHtml.includes('<svg'), false)
+  assertStringIncludes(closeButtonHtml, 'aria-label="Close"')
+})
+
+// --- positioning: <style> injection instead of an inline style attribute (CSP) ----------------
+
+Deno.test('Modal (preact): the dialog/backdrop carry no style attribute, only data-position', () => {
+  const html = renderToString(
+    element({
+      open: true,
+      onClose: () => {},
+      label: 'X',
+      position: 'top-right',
+      children: 'Body',
+    }),
+  )
+
+  assertEquals(/data-space-ui="modal"[^>]*style="/.test(html), false)
+  assertEquals(/data-space-ui="modal-backdrop"[^>]*style="/.test(html), false)
+  assertStringIncludes(html, 'data-position="top-right"')
+})
+
+Deno.test('Modal (preact): the injected style text has the correct rule for the current position', () => {
+  const html = renderToString(
+    element({
+      open: true,
+      onClose: () => {},
+      label: 'X',
+      position: 'top-right',
+      children: 'Body',
+    }),
+  )
+
+  const styleText = must(html.match(/<style[^>]*>([^<]+)<\/style>/))[1]
+  const rule = must(
+    styleText.match(/\[data-space-ui='modal'\]\[data-position='top-right'\]\{([^}]+)\}/),
+  )[1]
+  assertStringIncludes(rule, 'top:1rem')
+  assertStringIncludes(rule, 'right:1rem')
+})
+
+Deno.test('Modal (preact): nonce lands on the injected style element', () => {
+  const html = renderToString(
+    element({ open: true, onClose: () => {}, label: 'X', nonce: 'abc123', children: 'Body' }),
+  )
+
+  assertStringIncludes(html, 'nonce="abc123"')
+})
+
 // --- backdrop / outside-click contract --------------------------------------------------------
 
 Deno.test('Modal (preact): with a backdrop, an outside click never closes it', () => {

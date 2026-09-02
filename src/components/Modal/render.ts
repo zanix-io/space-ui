@@ -1,9 +1,10 @@
 import type { CreateElement } from 'typings/renderer.ts'
 import logger from 'shared/client-logger.ts'
 import { createButton } from '../Button/render.ts'
+import { createDefaultCloseIcon } from 'shared/close-button-icon.ts'
 import { isTopOverlay, registerOverlay } from 'shared/overlay-stack.ts'
 import type { ModalAccessibleName, ModalBaseProps } from './types.ts'
-import { MODAL_POSITION_STYLE, MODAL_Z_INDEX } from './types.ts'
+import { MODAL_POSITION_CSS } from './types.ts'
 
 /**
  * The hooks/primitives this component's shared body needs, injected alongside `h` — same
@@ -73,9 +74,20 @@ export type ModalRenderStackApi<Node> = {
  * one of its own; the dialog root itself carries `data-space-ui="modal"`, the optional backdrop
  * `data-space-ui="modal-backdrop"`.
  *
+ * The close button's own visible content is `closeButtonContent` when given, otherwise
+ * `shared/close-button-icon.ts`'s own default inline "X" `<svg>` (see that module's own doc for why
+ * — not a Unicode character, not a bundled `CatalogIcon` call). Either way it becomes that same
+ * `Button`'s own `children`; `aria-label="Close"` is unconditional, independent of which content
+ * renders.
+ *
  * `Fragment` is injected as its own parameter (not a hook) for the same reason `Menu/render.ts`
  * already documents: `CreateElement`'s own `type` parameter is typed as `string` only, so calling
  * `h` with a component reference needs a small local widening cast, done once here.
+ *
+ * Positioning (`position`/`z-index`, plus the per-`ModalPosition` anchor) is a `<style
+ * nonce={nonce}>` element this component renders itself, built once from `MODAL_POSITION_CSS`
+ * (`Modal/types.ts`) — never an inline `style` attribute, which a nonce-based CSP blocks
+ * unconditionally. See that constant's own doc for the full reasoning.
  *
  * See `index.ts`'s own doc for the full public behavioral contract (declarative vs.
  * `ModalProvider`/`useModal`, no portal, the accessible-name contract, backdrop vs. outside-click,
@@ -91,6 +103,7 @@ export function createModal<E, Node>(
   useModal: () => ModalRenderStackApi<Node>
 } {
   const Button = createButton(h)
+  const DefaultCloseIcon = createDefaultCloseIcon(h)
   const hAny = h as unknown as (
     type: unknown,
     props: Record<string, unknown> | null,
@@ -101,6 +114,7 @@ export function createModal<E, Node>(
     const {
       open,
       onClose,
+      closeButtonContent,
       label,
       ariaLabelledBy,
       showOverlay = true,
@@ -108,6 +122,7 @@ export function createModal<E, Node>(
       position = 'center',
       id,
       className,
+      nonce,
       children,
     } = props
 
@@ -166,15 +181,18 @@ export function createModal<E, Node>(
 
     if (!open) return null
 
+    // Static, non-dynamic positioning CSS, injected as a real `<style>` element instead of an
+    // inline `style` attribute — see `MODAL_POSITION_CSS`'s own doc for the full CSP reasoning.
+    // `nonce` is threaded straight from this component's own props; harmless (and `undefined`) when
+    // the consuming page has no nonce-based CSP.
+    const styleEl = h('style', { key: 'style', nonce }, MODAL_POSITION_CSS)
+
     const backdrop = showOverlay
-      ? h('div', {
-        key: 'backdrop',
-        'data-space-ui': 'modal-backdrop',
-        style: { position: 'fixed', inset: 0, zIndex: MODAL_Z_INDEX.backdrop },
-      })
+      ? h('div', { key: 'backdrop', 'data-space-ui': 'modal-backdrop' })
       : null
 
     return hAny(Fragment, null, [
+      styleEl,
       backdrop,
       h(
         'div',
@@ -189,15 +207,25 @@ export function createModal<E, Node>(
           'aria-labelledby': ariaLabelledBy,
           tabIndex: -1,
           'data-space-ui': 'modal',
+          'data-position': position,
           onKeyDown: handleKeyDown,
-          style: {
-            position: 'fixed',
-            zIndex: MODAL_Z_INDEX.dialog,
-            ...MODAL_POSITION_STYLE[position],
-          },
         },
         [
-          hAny(Fragment, { key: 'close' }, Button({ onClick: onClose, label: 'Close' })),
+          hAny(
+            Fragment,
+            { key: 'close' },
+            // `children` here is the close button's own visible content — `closeButtonContent`
+            // when the caller supplies one, otherwise the default inline "X" `<svg>` (see
+            // `shared/close-button-icon.ts`'s own doc for why: a real, self-contained SVG renders
+            // identically everywhere, unlike a system-font Unicode glyph, without depending on the
+            // icon-catalog sprite `CatalogIcon` needs an `href` for — this component has no way to
+            // know one). `aria-label="Close"` stays the accessible name regardless.
+            Button({
+              onClick: onClose,
+              label: 'Close',
+              children: closeButtonContent ?? DefaultCloseIcon(),
+            }),
+          ),
           hAny(Fragment, { key: 'children' }, children),
         ],
       ),

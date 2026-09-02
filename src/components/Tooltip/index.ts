@@ -1,7 +1,8 @@
-import { createElement, useEffect, useId, useMemo, useRef, useState } from 'react'
+import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import type { ReactElement, ReactNode } from 'react'
 import type { CreateElement } from 'typings/renderer.ts'
 import { usePosition } from 'shared/use-position.ts'
+import { createElementWithNonceHydrationFix } from 'shared/create-element-nonce-hydration-fix.ts'
 import { createTooltip } from './render.ts'
 import type { TooltipBaseProps, TooltipTriggerRenderProps } from './types.ts'
 
@@ -88,11 +89,26 @@ export type TooltipProps = TooltipBaseProps & {
  * Same technique `Popover`'s own doc covers in full: the panel is always mounted (see above) so its
  * ref is always attached, but stays `visibility: hidden` until `usePosition` returns a real,
  * non-`null` result, revealed only then with the real computed `transform`.
+ *
+ * ## `nonce`, for a nonce-based `style-src` CSP
+ *
+ * This component's own positioning — both the STATIC part (`position: fixed`, `top: 0`, `left: 0`)
+ * and the genuinely dynamic `transform`/`visibility`/`pointerEvents` recomputed every render from a
+ * real `usePosition` measurement — lives entirely in a self-rendered `<style nonce={nonce}>`
+ * element, never an inline `style` attribute. The dynamic part is a CSSOM rule scoped to this
+ * instance, inserted once into that same element and mutated via `CSSStyleRule.style.setProperty(...)`
+ * on every position update (a `useLayoutEffect`, applied synchronously before paint — see
+ * `shared/overlay-position-css.ts`'s own doc for the full CSP reasoning behind why this isn't
+ * blocked the way an inline `style` attribute would be). Pass the request's real nonce as `<Tooltip
+ * nonce={nonce}>` under such a CSP; see `TooltipBaseProps.nonce`'s own doc for the full contract.
+ * This binding renders that `<style>` via `shared/create-element-nonce-hydration-fix.ts` — see
+ * `Modal/index.ts`'s own `nonce` doc for why (a real, cosmetic-only React hydration-warning gotcha
+ * this fixes without touching `render.ts`'s own Preact-shared markup).
  */
 export const Tooltip: (props: TooltipProps) => ReactElement = createTooltip<
   ReactElement,
   ReactNode
 >(
-  createElement as unknown as CreateElement<ReactElement>,
-  { useEffect, useId, useMemo, useRef, useState, usePosition },
+  createElementWithNonceHydrationFix as unknown as CreateElement<ReactElement>,
+  { useEffect, useLayoutEffect, useId, useMemo, useRef, useState, usePosition },
 )

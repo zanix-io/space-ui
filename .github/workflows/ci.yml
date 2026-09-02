@@ -39,6 +39,10 @@ jobs:
       # - name: Check for circular-import hazards
       #   run: deno run -A jsr:@zanix/cli check-cycles
 
+      # Temporarily disabled: @zanix/cli check-duplicates has not been published yet.
+      # - name: Check for duplicate '@zanix/*' dependencies
+      #   run: deno run -A jsr:@zanix/cli check-duplicates
+
       # `src/@tests/functional/space-integration/`'s own i18n parity tests drive a real render
       # pipeline from the sibling `@zanix/space` repo (see `space-import-map.ts`'s own doc) —
       # `SPACE_ROOT` resolves it as a literal sibling directory (`../../../../../space/` from the

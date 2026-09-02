@@ -35,4 +35,13 @@ export type PopoverBaseProps = {
   offset?: number
   id?: string
   className?: string
+  /** Same contract as `TooltipBaseProps.nonce` — threaded onto this component's own self-rendered
+   * `<style>` element (see `render.ts`'s own doc), required only under a nonce-based `style-src`
+   * CSP. Covers this component's ENTIRE positioning, not just the static part: the dynamic
+   * `transform: translate(x, y)`/`visibility` `usePosition` computes fresh on every scroll/resize
+   * apply to a CSSOM rule scoped to this instance, inserted into this SAME `<style>` element rather
+   * than an inline `style` attribute (see `render.ts`'s own doc, and
+   * `shared/overlay-position-css.ts`'s, for the full mechanism). Omit `nonce` entirely when no such
+   * CSP is in effect. */
+  nonce?: string
 }

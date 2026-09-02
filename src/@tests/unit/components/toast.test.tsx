@@ -1,7 +1,7 @@
 import { installTimerMock, must } from './dom-test-setup.ts'
 import { act } from 'react'
 import { createRoot } from 'react-dom/client'
-import { assertEquals, assertThrows } from '@std/assert'
+import { assertEquals, assertStringIncludes, assertThrows } from '@std/assert'
 import { ToastProvider, useToast } from 'components/Toast/index.ts'
 
 function mount(children: ReturnType<typeof ToastProvider>) {
@@ -18,10 +18,10 @@ function Trigger({ onReady }: { onReady: (api: ReturnType<typeof useToast>) => v
   return null
 }
 
-function mountWithApi(position?: 'top-left' | 'bottom-left') {
+function mountWithApi(position?: 'top-left' | 'bottom-left', nonce?: string) {
   let api!: ReturnType<typeof useToast>
   const { container, unmount } = mount(
-    <ToastProvider position={position}>
+    <ToastProvider position={position} nonce={nonce}>
       <Trigger onReady={(value) => (api = value)} />
     </ToastProvider>,
   )
@@ -77,6 +77,40 @@ Deno.test('ToastProvider: a toast always renders a close button, regardless of t
 
   const closeButton = must(container.querySelector('button[aria-label="Close"]'))
   assertEquals(closeButton !== null, true)
+
+  unmount()
+})
+
+Deno.test('ToastProvider: the close button has real, aria-hidden visible content by default', () => {
+  const { container, unmount, api } = mountWithApi()
+
+  act(() => {
+    api.showToast({ title: 'No timeout' })
+  })
+
+  const closeButton = must(container.querySelector('button[aria-label="Close"]'))
+  const svg = closeButton.querySelector('svg')
+  assertEquals(svg !== null, true)
+  assertEquals(must(svg).getAttribute('aria-hidden'), 'true')
+
+  unmount()
+})
+
+Deno.test('ToastProvider: closeButtonContent overrides the default close icon', () => {
+  const { container, unmount, api } = mountWithApi()
+
+  act(() => {
+    api.showToast({
+      title: 'Custom close icon',
+      closeButtonContent: <span data-testid='my-close-icon'>×</span>,
+    })
+  })
+
+  const closeButton = must(container.querySelector('button[aria-label="Close"]'))
+  assertEquals(closeButton.querySelector('svg'), null)
+  assertEquals(closeButton.querySelector('[data-testid="my-close-icon"]') !== null, true)
+  // `aria-label="Close"` stays the accessible name regardless of which content renders.
+  assertEquals(closeButton.getAttribute('aria-label'), 'Close')
 
   unmount()
 })
@@ -282,9 +316,33 @@ Deno.test('ToastProvider: position controls the stack container anchor', () => {
     api.showToast({ title: 'Anchored' })
   })
 
+  // The whole `style` object (including `top`/`left`, every one of them a fixed, non-dynamic
+  // constant for this component) moved to a self-rendered `<style>` element (a real CSP fix — see
+  // `TOAST_STACK_CSS`'s own doc) — the stack container carries no inline `style` attribute at all
+  // anymore, only a `data-position` marker.
   const stack = must(container.querySelector<HTMLElement>('[data-space-ui="toast-stack"]'))
-  assertEquals(stack.style.top, '1rem')
-  assertEquals(stack.style.left, '1rem')
+  assertEquals(stack.getAttribute('style'), null)
+  assertEquals(stack.getAttribute('data-position'), 'top-left')
+
+  const styleEl = must(container.querySelector('style'))
+  const css = styleEl.textContent ?? ''
+  const rule =
+    must(css.match(/\[data-space-ui='toast-stack'\]\[data-position='top-left'\]\{([^}]+)\}/))[1]
+  assertStringIncludes(rule, 'top:1rem')
+  assertStringIncludes(rule, 'left:1rem')
+
+  unmount()
+})
+
+Deno.test('ToastProvider: nonce lands on the injected style element', () => {
+  const { container, unmount, api } = mountWithApi('bottom-left', 'abc123')
+
+  act(() => {
+    api.showToast({ title: 'Anchored' })
+  })
+
+  const styleEl = must(container.querySelector('style'))
+  assertEquals(styleEl.getAttribute('nonce'), 'abc123')
 
   unmount()
 })

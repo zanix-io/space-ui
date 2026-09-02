@@ -1,8 +1,9 @@
-import { createElement, useId, useMemo, useRef, useState } from 'react'
+import { useId, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import type { ReactElement, ReactNode } from 'react'
 import type { CreateElement } from 'typings/renderer.ts'
 import { useCloseOnOutside } from 'shared/close-on-outside.ts'
 import { usePosition } from 'shared/use-position.ts'
+import { createElementWithNonceHydrationFix } from 'shared/create-element-nonce-hydration-fix.ts'
 import { createPopover } from './render.ts'
 import type { PopoverBaseProps, PopoverTriggerRenderProps } from './types.ts'
 
@@ -81,11 +82,24 @@ export type PopoverProps = PopoverBaseProps & {
  * returns a real (non-`null`) result, then revealed with the real computed `transform` — the
  * standard "measure while hidden, then reveal" technique, avoiding the flash-of-unpositioned-
  * content an `x: 0, y: 0` starting transform would otherwise cause.
+ *
+ * ## `nonce`, for a nonce-based `style-src` CSP
+ *
+ * Same shape `Tooltip`'s own doc covers in full: this component's ENTIRE positioning — the STATIC
+ * part (`position: fixed`, `top: 0`, `left: 0`) and the genuinely dynamic `transform`/`visibility`
+ * recomputed every render from a real `usePosition` measurement — lives in a self-rendered
+ * `<style nonce={nonce}>` element, never an inline `style` attribute. The dynamic part is a CSSOM
+ * rule scoped to this instance, inserted once per open into that same element and mutated via
+ * `CSSStyleRule.style.setProperty(...)` on every position update (a `useLayoutEffect`, applied
+ * synchronously before paint). See `PopoverBaseProps.nonce`'s own doc for the full contract. This
+ * binding renders the static `<style>` via `shared/create-element-nonce-hydration-fix.ts` — see
+ * `Modal/index.ts`'s own `nonce` doc for why (a real, cosmetic-only React hydration-warning gotcha
+ * this fixes without touching `render.ts`'s own Preact-shared markup).
  */
 export const Popover: (props: PopoverProps) => ReactElement = createPopover<
   ReactElement,
   ReactNode
 >(
-  createElement as unknown as CreateElement<ReactElement>,
-  { useId, useMemo, useRef, useState, useCloseOnOutside, usePosition },
+  createElementWithNonceHydrationFix as unknown as CreateElement<ReactElement>,
+  { useId, useLayoutEffect, useMemo, useRef, useState, useCloseOnOutside, usePosition },
 )

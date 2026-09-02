@@ -1,6 +1,6 @@
 import { h } from 'preact'
 import type { ComponentChildren, VNode } from 'preact'
-import { useId, useMemo, useRef, useState } from 'preact/hooks'
+import { useId, useLayoutEffect, useMemo, useRef, useState } from 'preact/hooks'
 import type { CreateElement } from 'typings/renderer.ts'
 import { useCloseOnOutside } from 'shared/close-on-outside.preact.ts'
 import { usePosition } from 'shared/use-position.preact.ts'
@@ -24,5 +24,5 @@ export type PopoverProps = PopoverBaseProps & {
  */
 export const Popover: (props: PopoverProps) => VNode = createPopover<VNode, ComponentChildren>(
   h as unknown as CreateElement<VNode>,
-  { useId, useMemo, useRef, useState, useCloseOnOutside, usePosition },
+  { useId, useLayoutEffect, useMemo, useRef, useState, useCloseOnOutside, usePosition },
 )

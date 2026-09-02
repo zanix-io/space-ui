@@ -18,6 +18,60 @@ This isn't a temporary gap waiting to be filled — it's the permanent architect
 [`docs/icons.md`](./icons.md) for the one optional exception (a default icon catalog), which is
 still `className`/CSS-free from the component's own point of view.
 
+## Functional positioning under a strict CSP: `nonce`
+
+`Modal`, `Drawer`, `Toast` (via `ToastProvider`), `Tooltip`, and `Popover` each need real
+`position`/`z-index` (and, for `Modal`/`Drawer`/`Toast`, a per-instance anchor) to actually function
+as an overlay — see `Modal/types.ts`'s own doc on `MODAL_POSITION_STYLE` for why this is treated as
+functional, not decorative, the same footing as `Slider`'s visually-hidden live region. Applying
+that as an inline `style` attribute is a real, confirmed-in-browser violation of a nonce-based
+`style-src` Content-Security-Policy (`@zanix/space`'s own zero-config default is exactly this shape)
+— a CSP nonce never applies to a `style="..."` attribute, only to a `<style>`
+element/`<link
+rel=stylesheet>`. All five components instead render their own
+`<style nonce={nonce}>` element, built once at module scope from the same style-object constants
+they always used (`MODAL_POSITION_STYLE`/`MODAL_Z_INDEX`/`DRAWER_SIDE_STYLE`/`DRAWER_Z_INDEX`/…),
+keyed off `data-space-ui`/`data-position`/`data-side` attribute selectors — see
+`shared/overlay-position-css.ts` for the shared CSS-building helper, and each component's own
+`nonce?: string` prop doc for the per-component contract. Pass the consuming page's own real CSP
+nonce as that prop; omit it entirely when no such CSP is in effect — nothing else changes either
+way.
+
+**`Tooltip`/`Popover`'s own genuinely dynamic positioning is covered too**, not just the static
+part: their panel position — a `transform: translate(x, y)` (plus `visibility`/`pointerEvents`)
+computed fresh every render from a real `usePosition` measurement — can't be expressed as a static
+CSS rule the way `Modal`/`Drawer`/`Toast`'s fixed anchor can, so it doesn't use `buildOverlayCss` at
+all. Instead it's applied to a CSSOM rule scoped to that one component instance
+(`[data-space-ui='tooltip'][data-tooltip-id='...']`/`[data-space-ui='popover'][data-popover-id='...']`),
+inserted once (via `sheet.insertRule(...)`) into the SAME `<style nonce={nonce}>` element already
+rendering the static rule, then mutated on every position update via
+`CSSStyleRule.style.setProperty(...)` — never `HTMLElement.style` (the attribute-backed inline style
+object `style-src-attr` actually covers). A CSP nonce authorizes the `<style>` ELEMENT itself once;
+CSSOM mutation of a rule already living inside that authorized element is a distinct code path from
+mutating an inline `style` attribute, the same technique CSP-compatible CSS-in-JS runtimes
+(styled-components "speedy" mode, Emotion) rely on. Applied via `useLayoutEffect` (never a plain
+`useEffect`), so the update happens synchronously before the browser paints — a plain `useEffect`
+would flash/jump visibly on every `autoUpdate` scroll-driven position update, which fires
+continuously while open, not just once at mount. See `shared/overlay-position-css.ts`'s own
+`getOrInsertDynamicRule`/`removeDynamicRule` doc for the full mechanism, including cleanup on
+unmount/close (`Popover`'s own panel/style element unmount whenever it closes, unlike `Tooltip`'s
+always-mounted one, so its insert/cleanup effect is keyed on `open` rather than running once).
+
+**A real, cosmetic-only React hydration warning, and why it's fixed at the `createElement` level,
+not in `render.ts`.** A browser clears an applied `nonce` CONTENT ATTRIBUTE back to `""` right after
+using it (spec'd behavior — the real value survives only on the element's own `.nonce` property).
+React's hydration mismatch check special-cases this for `<script>` (reading `.nonce` instead of the
+attribute) but not for `<style>`, so a server-rendered `<style nonce="real-value">` would otherwise
+log "A tree hydrated but some attributes of the server rendered HTML didn't match..." on every page
+load — confirmed live under `@zanix/space`'s own CSP default; functionally harmless (the nonce still
+applies, the CSP still passes), just noisy. `suppressHydrationWarning` fixes it, but it's a
+React-only convention Preact's `h` doesn't recognize (it would leak a literal
+`suppresshydrationwarning="true"` attribute into Preact's own markup) — so each of the five
+components' React binding (`index.ts`, never `index.preact.ts`) passes
+`shared/create-element-nonce-hydration-fix.ts`'s `createElementWithNonceHydrationFix` instead of raw
+`createElement`, which adds `suppressHydrationWarning` only to a `<style>` element that actually
+carries a `nonce` prop key. `render.ts` itself stays exactly as renderer-agnostic as before.
+
 ## `data-space-ui` — a stable selector hook, not a styling system
 
 Every component in this package renders (or, composing another component, inherits) a
@@ -109,22 +163,35 @@ file outright: no version pin, no import, edit or delete freely.
   own real backdrop is the second and third real consumer, wired via
   `[data-space-ui="modal-backdrop"], [data-space-ui="drawer-backdrop"]` — the same attribute-
   selector mechanism `progress-bar`'s own rule uses, not a class name either component would have to
-  render. Deliberately sets ONLY `background` — `position`/`z-index` stay owned by each component's
-  own inline `style` (`MODAL_Z_INDEX`/`DRAWER_Z_INDEX`, both `999` for the backdrop), which an
-  external stylesheet can never override regardless of specificity; porting `--space-z-overlay`
-  (`2147483646`, a wildly different number) into this rule would misleadingly imply a value that
-  could never actually apply. Keeping that functional stacking inline (not CSS-dependent) is
-  deliberate, not an oversight — headless means `Modal`/`Drawer` stack correctly even with zero CSS
-  ever imported; making that depend on an optional stylesheet would be less headless, not more.
-  `--space-z-overlay` itself (`theme/tokens.css`) is consequently unreferenced by any real rule in
-  this package — a known, accepted trade-off of the same reasoning, not a gap to close by coupling
-  the components to it. The legacy `.hidden-overlay` variant (a positioned-but-undimmed backdrop)
-  isn't ported at all: `showOverlay={false}` renders NO backdrop element in either component, and
-  `Popover`/`Combobox` — which also need outside-click dismissal with no visible backdrop — use
-  `useCloseOnOutside`'s own `document`-level listener instead of a catch-all element, the same
-  choice `Modal`/`Drawer` independently made. Nothing in this package's current architecture has a
-  rendered state that variant would ever style. `Menu`/`Slider`/`Toast` have no backdrop of any kind
-  (`Toast` stacks without one; `Menu`'s/`Slider`'s own content never needs one).
+  render. Deliberately sets ONLY `background` — `position`/`z-index` stay owned by a
+  `<style
+  nonce={nonce}>` element `Modal`/`Drawer` render THEMSELVES (`MODAL_POSITION_CSS`/
+  `DRAWER_POSITION_CSS`, built from `MODAL_Z_INDEX`/`DRAWER_Z_INDEX`, both `999` for the backdrop —
+  see `Modal/types.ts`'s own doc for the full mechanism). This used to be a real inline `style`
+  attribute, which an external stylesheet could never override regardless of specificity; moved to
+  this component-rendered `<style>` element instead specifically to fix a real, confirmed CSP
+  violation under a nonce-based `style-src` policy (a CSP nonce never applies to a `style="..."`
+  attribute, only to a `<style>` element — see `shared/overlay-position-css.ts` for the full
+  reasoning). A real, honest trade-off of that move: unlike inline `style`, this is now an ordinary
+  CSS rule — a consumer's own same-specificity rule loaded later in the DOM could in principle
+  override it, though in the common case (a stylesheet in `<head>` parsing before this component's
+  own `<style>` element renders later in `<body>`) source order still resolves in this rule's favor.
+  Porting `--space-z-overlay` (`2147483646`, a wildly different number) into THIS rule (the one in
+  `behavior.css`) would still misleadingly imply a value that could never actually apply, unchanged
+  from before. Keeping that functional stacking owned by the component itself (not dependent on an
+  optional stylesheet) is still deliberate, not an oversight — headless means `Modal`/`Drawer` stack
+  correctly even with zero CSS ever imported; making that depend on an optional stylesheet would be
+  less headless, not more — just implemented via a self-rendered `<style>` element now instead of a
+  `style` attribute. `--space-z-overlay` itself (`theme/tokens.css`) is consequently unreferenced by
+  any real rule in this package — a known, accepted trade-off of the same reasoning, not a gap to
+  close by coupling the components to it. The legacy `.hidden-overlay` variant (a
+  positioned-but-undimmed backdrop) isn't ported at all: `showOverlay={false}` renders NO backdrop
+  element in either component, and `Popover`/`Combobox` — which also need outside-click dismissal
+  with no visible backdrop — use `useCloseOnOutside`'s own `document`-level listener instead of a
+  catch-all element, the same choice `Modal`/`Drawer` independently made. Nothing in this package's
+  current architecture has a rendered state that variant would ever style. `Menu`/`Slider`/`Toast`
+  have no backdrop of any kind (`Toast` stacks without one; `Menu`'s/`Slider`'s own content never
+  needs one).
 - **`shared/card.css`** — a separate file from `behavior.css` on purpose: `Card`'s responsive layout
   is CSS _layout_, not the animation/structural-behavior concern `behavior.css` covers. Entirely
   `grid-template-areas`-driven, keyed off `Card`'s own `data-space-ui="card"`/

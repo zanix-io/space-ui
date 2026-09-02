@@ -4,7 +4,32 @@ import { createButton } from '../Button/render.ts'
 import { createIcon } from '../Icon/render.ts'
 import { createProgressBar } from '../ProgressBar/render.ts'
 import { MODAL_POSITION_STYLE, MODAL_Z_INDEX } from 'components/Modal/types.ts'
+import { createDefaultCloseIcon } from 'shared/close-button-icon.ts'
+import { buildOverlayCss } from 'shared/overlay-position-css.ts'
 import type { ToastMessage, ToastPosition } from './types.ts'
+
+/**
+ * The static CSS text `ToastProvider` injects via its own `<style>` element for the stack
+ * container, built ONCE at module scope — same `<style nonce={nonce}>`-injection mechanism
+ * `Modal`/`Drawer` use (see `Modal/types.ts`'s own `MODAL_POSITION_CSS` doc for the full CSP
+ * reasoning), reusing `MODAL_POSITION_STYLE`/`MODAL_Z_INDEX` verbatim rather than re-deriving a
+ * separate copy — `Toast`'s own stack anchoring is the identical problem `Modal`'s own `position`
+ * already solves (see `types.ts`'s own doc on `ToastPosition`). Unlike `Modal`/`Drawer`, EVERY
+ * property this stack container sets is a fixed, non-dynamic constant (`display`/`flexDirection`/
+ * `gap` included, not just `position`/`z-index`/the anchor) — so this is the one component of the
+ * five where the whole `style` object moves out, leaving no inline `style` attribute at all.
+ */
+const TOAST_STACK_CSS: string = buildOverlayCss(
+  'toast-stack',
+  {
+    position: 'fixed',
+    zIndex: MODAL_Z_INDEX.dialog,
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '0.5rem',
+  },
+  { attr: 'data-position', values: MODAL_POSITION_STYLE },
+)
 
 /**
  * The hooks/primitives this component's shared body needs, injected alongside `h` — same shape
@@ -38,6 +63,16 @@ export type ToastRenderApi = {
  * each toast's own wrapper carries `data-space-ui="toast"` plus `data-variant`, the stack container
  * `data-space-ui="toast-stack"`.
  *
+ * Each toast's own close button renders `entry.closeButtonContent` when given, otherwise
+ * `shared/close-button-icon.ts`'s own default inline "X" `<svg>` — same default-vs-override
+ * contract `Modal/render.ts`'s own close button uses (see that file's own comment for the full
+ * reasoning); `aria-label="Close"` is unconditional either way.
+ *
+ * Positioning (`position`/`z-index`/the per-`ToastPosition` anchor, plus the stack's own
+ * `display`/`flexDirection`/`gap` — every one of them a fixed, non-dynamic constant) is a `<style
+ * nonce={nonce}>` element `ToastProvider` renders itself, built once from `TOAST_STACK_CSS` above —
+ * never an inline `style` attribute, which a nonce-based CSP blocks unconditionally.
+ *
  * See `index.ts`'s own doc for the full public behavioral contract (imperative-only, `position`
  * per-`ToastProvider` not per-toast, the `Alert` composition, the legacy `setTimeout`/
  * `clearInterval` bug NOT replicated, why `'custom'` variant was dropped, always-present close
@@ -48,13 +83,14 @@ export function createToast<E, Node>(
   hooks: ToastHooks,
   Fragment: unknown,
 ): {
-  ToastProvider: (props: { position?: ToastPosition; children: Node }) => E
+  ToastProvider: (props: { position?: ToastPosition; nonce?: string; children: Node }) => E
   useToast: () => ToastRenderApi
 } {
   const Button = createButton(h)
   const Icon = createIcon(h)
   const ProgressBar = createProgressBar(h)
   const Alert = createAlert(h)
+  const DefaultCloseIcon = createDefaultCloseIcon(h)
   const hAny = h as unknown as (
     type: unknown,
     props: Record<string, unknown> | null,
@@ -64,7 +100,17 @@ export function createToast<E, Node>(
   function ToastEntryView(
     { entry, onClose }: { entry: ToastMessage & { id: string }; onClose: () => void },
   ): E {
-    const { variant = 'info', title, body, icon, buttons, timeout, showProgress, className } = entry
+    const {
+      variant = 'info',
+      title,
+      body,
+      icon,
+      buttons,
+      timeout,
+      showProgress,
+      className,
+      closeButtonContent,
+    } = entry
     const shouldShowProgress = showProgress ?? variant === 'loading'
 
     hooks.useEffect(() => {
@@ -88,7 +134,15 @@ export function createToast<E, Node>(
           icon ? hAny(Fragment, { key: 'icon' }, Icon(icon)) : null,
           title ? h('strong', { key: 'title' }, title) : null,
           body ? h('p', { key: 'body' }, body) : null,
-          hAny(Fragment, { key: 'close' }, Button({ onClick: onClose, label: 'Close' })),
+          hAny(
+            Fragment,
+            { key: 'close' },
+            Button({
+              onClick: onClose,
+              label: 'Close',
+              children: closeButtonContent ?? DefaultCloseIcon(),
+            }),
+          ),
           buttons?.length
             ? hAny(
               Fragment,
@@ -110,8 +164,8 @@ export function createToast<E, Node>(
 
   let nextToastId = 0
 
-  function ToastProvider(props: { position?: ToastPosition; children: Node }): E {
-    const { position = 'bottom-left', children } = props
+  function ToastProvider(props: { position?: ToastPosition; nonce?: string; children: Node }): E {
+    const { position = 'bottom-left', nonce, children } = props
     const [entries, setEntries] = hooks.useState<Array<ToastMessage & { id: string }>>([])
 
     const closeToast = hooks.useCallback((id: string) => {
@@ -143,24 +197,24 @@ export function createToast<E, Node>(
     return hAny((ToastContext as { Provider: unknown }).Provider, { value: api }, [
       hAny(Fragment, { key: 'children' }, children),
       entries.length > 0
-        ? h(
-          'div',
-          {
-            key: 'stack',
-            'data-space-ui': 'toast-stack',
-            style: {
-              position: 'fixed',
-              zIndex: MODAL_Z_INDEX.dialog,
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '0.5rem',
-              ...MODAL_POSITION_STYLE[position],
+        ? hAny(Fragment, { key: 'stack' }, [
+          // Static, non-dynamic positioning/layout CSS, injected as a real `<style>` element
+          // instead of an inline `style` attribute — see `TOAST_STACK_CSS`'s own doc for the full
+          // CSP reasoning. `TOAST_STACK_CSS` has one rule per `ToastPosition`, keyed off the
+          // `data-position` attribute the stack `<div>` below actually carries.
+          h('style', { key: 'style', nonce }, TOAST_STACK_CSS),
+          h(
+            'div',
+            {
+              key: 'stack',
+              'data-space-ui': 'toast-stack',
+              'data-position': position,
             },
-          },
-          entries.map((entry) =>
-            hAny(ToastEntryView, { key: entry.id, entry, onClose: () => closeToast(entry.id) })
+            entries.map((entry) =>
+              hAny(ToastEntryView, { key: entry.id, entry, onClose: () => closeToast(entry.id) })
+            ),
           ),
-        )
+        ])
         : null,
     ])
   }

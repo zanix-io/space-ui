@@ -5,6 +5,51 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/) and this project
 adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [0.3.0] - 2026-09-01
+
+### Added
+
+- **`Modal`/`Drawer`/`Toast` accept a new `closeButtonContent` prop** that overrides their built-in
+  close button's visible content (a `CatalogIcon`, a plain `<svg>`, any renderer node) — the
+  default, when omitted, is now a real inline "X" `<svg>` (`shared/close-button-icon.ts`) instead of
+  a plain Unicode glyph, since a system-font character can render inconsistently, or as a
+  missing-glyph box, across browsers/platforms. `aria-label="Close"` stays the button's accessible
+  name either way.
+- **`Modal`, `Drawer`, `Toast`, `Tooltip`, and `Popover` accept a new `nonce` prop** for pages
+  running a nonce-based `style-src` Content-Security-Policy — `@zanix/space`'s own zero-config
+  default is exactly this shape. All five now position themselves (`position`/`z-index`, plus each
+  component's own per-instance anchor) via a self-rendered `<style nonce={nonce}>` element instead
+  of an inline `style` attribute, since a CSP nonce never applies to a `style="..."` attribute, only
+  to a `<style>` element — applying it inline is a real, confirmed-in-browser CSP violation.
+  `Tooltip`/`Popover`'s own genuinely dynamic positioning (a
+  `transform`/`visibility`/`pointerEvents` recomputed every render from a live `usePosition`
+  measurement) is covered too, via a CSSOM rule mutated inside that same `<style>` element rather
+  than `HTMLElement.style` directly. `nonce` is optional and has no effect when the consuming page
+  has no such CSP.
+- **New shared helpers backing the above**: `src/shared/overlay-position-css.ts` builds the static
+  CSS text for a fixed-position overlay from its existing style-object constants
+  (`MODAL_POSITION_STYLE`/`DRAWER_SIDE_STYLE`/…) and manages the CSSOM rule `Tooltip`/`Popover` use
+  for their dynamic positioning; `src/shared/create-element-nonce-hydration-fix.ts` (React binding
+  only) suppresses the cosmetic hydration-mismatch warning React logs for a server-rendered
+  `<style
+  nonce>` element, since a browser clears the `nonce` content attribute back to `""` right
+  after use and React's hydration check doesn't special-case `<style>` the way it does `<script>`;
+  `src/shared/close-button-icon.ts` renders the new default close icon.
+- `docs/styling.md` documents the new `nonce`-based positioning contract and the dynamic-rule
+  mechanism `Tooltip`/`Popover` use; `README.md` documents the new `closeButtonContent` contract for
+  `Modal`/`Drawer`/`Toast`.
+
+### Changed
+
+- **`Modal`'s/`Drawer`'s backdrop and dialog/panel positioning, and `Toast`'s stack positioning,
+  move from an inline `style` attribute to a component-rendered `<style>` element** (see `nonce`,
+  above). The values and their shape are unchanged; only how they reach the DOM is different. One
+  real, honest trade-off: unlike inline `style`, the injected rule is now ordinary CSS with ordinary
+  specificity, so a consumer's own same-specificity rule loaded later in the DOM could in principle
+  override it — in practice not a real risk for the common case (a stylesheet in `<head>` still
+  resolves in the component's favor by source order against a `<style>` element rendered later in
+  `<body>`).
+
 ## [0.2.1] - 2026-08-30
 
 ### Fixed

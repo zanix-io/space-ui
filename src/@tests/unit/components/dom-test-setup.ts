@@ -74,6 +74,30 @@ export function must<T>(value: T | null | undefined): T {
 }
 
 /**
+ * Finds the per-instance CSSOM rule `Tooltip`/`Popover` insert into their own `<style nonce>`
+ * element (`shared/overlay-position-css.ts`'s own `getOrInsertDynamicRule`) — the technique that
+ * replaced their genuinely dynamic `transform`/`visibility`/`pointer-events` inline `style`
+ * attribute. `panel` supplies the unique scoping value itself (`data-tooltip-id`/`data-popover-id`),
+ * so this works correctly even with two instances of the same component mounted at once, each with
+ * its own `<style>` element and its own scoped rule — searches every `<style>` element under `root`
+ * (not just the first) for the one rule whose own `selectorText` actually contains `panel`'s real
+ * id attribute value, never assuming a fixed index into `cssRules`.
+ */
+export function getDynamicRule(root: ParentNode, panel: Element, idAttr: string): CSSStyleRule {
+  const idValue = must(panel.getAttribute(idAttr))
+  const marker = `[${idAttr}='${idValue}']`
+  for (const styleEl of Array.from(root.querySelectorAll('style'))) {
+    const sheet = (styleEl as HTMLStyleElement).sheet
+    if (!sheet) continue
+    for (const rule of Array.from(sheet.cssRules)) {
+      const styleRule = rule as CSSStyleRule
+      if (styleRule.selectorText?.includes(marker)) return styleRule
+    }
+  }
+  throw new Error(`Expected a dynamic rule scoped to ${marker}, found none`)
+}
+
+/**
  * A deterministic replacement for `setTimeout`/`clearTimeout` — a fake clock a test advances by an
  * exact number of milliseconds, firing exactly the timeouts that would have fired by then, instead
  * of waiting on real wall-clock time. Same shape and reasoning as `counter-test-utils.ts`'s own

@@ -29,8 +29,8 @@ function mount(props: DrawerProps) {
   }
 }
 
-function panelStyle(html: string): string {
-  return must(html.match(/data-space-ui="drawer"[^>]*style="([^"]+)"/))[1]
+function styleTagText(html: string): string {
+  return must(html.match(/<style[^>]*>([^<]+)<\/style>/))[1]
 }
 
 // --- SSR / structure -----------------------------------------------------------------------
@@ -108,19 +108,30 @@ Deno.test('Drawer (preact): id/className land on the panel element', () => {
 
 // --- side positioning ------------------------------------------------------------------------
 
-Deno.test('Drawer (preact): side="left" anchors top/left/bottom, no right', () => {
+Deno.test('Drawer (preact): the panel element itself carries no style attribute', () => {
   const html = renderToString(
     element({ open: true, onClose: () => {}, side: 'left', label: 'Nav', children: 'Links' }),
   )
 
-  const style = panelStyle(html)
-  assertStringIncludes(style, 'top:0')
-  assertStringIncludes(style, 'left:0')
-  assertStringIncludes(style, 'bottom:0')
-  assertEquals(style.includes('right:0'), false)
+  assertEquals(/data-space-ui="drawer"[^>]*style="/.test(html), false)
 })
 
-Deno.test('Drawer (preact): side="bottom" anchors bottom/left/right, no top', () => {
+Deno.test('Drawer (preact): side="left" carries data-side="left", and the injected CSS anchors top/left/bottom, no right', () => {
+  const html = renderToString(
+    element({ open: true, onClose: () => {}, side: 'left', label: 'Nav', children: 'Links' }),
+  )
+
+  assertStringIncludes(html, 'data-side="left"')
+
+  const css = styleTagText(html)
+  const rule = must(css.match(/\[data-space-ui='drawer'\]\[data-side='left'\]\{([^}]+)\}/))[1]
+  assertStringIncludes(rule, 'top:0')
+  assertStringIncludes(rule, 'left:0')
+  assertStringIncludes(rule, 'bottom:0')
+  assertEquals(rule.includes('right:0'), false)
+})
+
+Deno.test('Drawer (preact): side="bottom" carries data-side="bottom", and the injected CSS anchors bottom/left/right, no top', () => {
   const html = renderToString(
     element({
       open: true,
@@ -131,11 +142,31 @@ Deno.test('Drawer (preact): side="bottom" anchors bottom/left/right, no top', ()
     }),
   )
 
-  const style = panelStyle(html)
-  assertStringIncludes(style, 'bottom:0')
-  assertStringIncludes(style, 'left:0')
-  assertStringIncludes(style, 'right:0')
-  assertEquals(style.includes('top:0'), false)
+  assertStringIncludes(html, 'data-side="bottom"')
+
+  const css = styleTagText(html)
+  const rule = must(css.match(/\[data-space-ui='drawer'\]\[data-side='bottom'\]\{([^}]+)\}/))[1]
+  assertStringIncludes(rule, 'bottom:0')
+  assertStringIncludes(rule, 'left:0')
+  assertStringIncludes(rule, 'right:0')
+  assertEquals(rule.includes('top:0'), false)
+})
+
+// --- nonce / CSP -----------------------------------------------------------------------------
+
+Deno.test('Drawer (preact): nonce lands on the injected style element', () => {
+  const html = renderToString(
+    element({
+      open: true,
+      onClose: () => {},
+      side: 'left',
+      label: 'Cart',
+      nonce: 'abc123',
+      children: 'Empty',
+    }),
+  )
+
+  assertStringIncludes(html, 'nonce="abc123"')
 })
 
 // --- backdrop / outside click ------------------------------------------------------------------
@@ -201,6 +232,41 @@ Deno.test('Drawer (preact): renders a real, accessible close button', () => {
   })
 
   assertEquals(must(container.querySelector('button')).getAttribute('aria-label'), 'Close')
+
+  unmount()
+})
+
+Deno.test('Drawer (preact): the close button has real, aria-hidden visible content by default', () => {
+  const { container, unmount } = mount({
+    open: true,
+    onClose: () => {},
+    side: 'left',
+    label: 'Cart',
+    children: 'Empty',
+  })
+
+  const closeButton = must(container.querySelector('button[aria-label="Close"]'))
+  const svg = closeButton.querySelector('svg')
+  assertEquals(svg !== null, true)
+  assertEquals(must(svg).getAttribute('aria-hidden'), 'true')
+
+  unmount()
+})
+
+Deno.test('Drawer (preact): closeButtonContent overrides the default close icon', () => {
+  const { container, unmount } = mount({
+    open: true,
+    onClose: () => {},
+    side: 'left',
+    label: 'Cart',
+    children: 'Empty',
+    closeButtonContent: h('span', { 'data-testid': 'my-close-icon' }, '×'),
+  })
+
+  const closeButton = must(container.querySelector('button[aria-label="Close"]'))
+  assertEquals(closeButton.querySelector('svg'), null)
+  assertEquals(closeButton.querySelector('[data-testid="my-close-icon"]') !== null, true)
+  assertEquals(closeButton.getAttribute('aria-label'), 'Close')
 
   unmount()
 })

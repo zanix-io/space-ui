@@ -1,6 +1,5 @@
 import {
   createContext,
-  createElement,
   Fragment,
   useCallback,
   useContext as useReactContext,
@@ -13,6 +12,7 @@ import type { ReactElement, ReactNode } from 'react'
 import type { CreateElement } from 'typings/renderer.ts'
 import { useCloseOnOutside } from 'shared/close-on-outside.ts'
 import { useFocusScope } from 'shared/focus-scope.ts'
+import { createElementWithNonceHydrationFix } from 'shared/create-element-nonce-hydration-fix.ts'
 import { createModal } from './render.ts'
 import type { ModalAccessibleName, ModalBaseProps } from './types.ts'
 
@@ -34,7 +34,7 @@ function useContext(context: unknown): unknown {
 }
 
 const bound = createModal<ReactElement, ReactNode>(
-  createElement as unknown as CreateElement<ReactElement>,
+  createElementWithNonceHydrationFix as unknown as CreateElement<ReactElement>,
   {
     createContext,
     useContext,
@@ -115,6 +115,33 @@ const bound = createModal<ReactElement, ReactNode>(
  * the same small hook `Menu`'s own submenu disclosure already uses. No separate
  * `closeOnOutsideClick` prop: it would just be a second way to express a rule `showOverlay`
  * already determines.
+ *
+ * ## `nonce`, for a nonce-based `style-src` CSP
+ *
+ * This component positions itself (`position`/`z-index`, both the backdrop's and the dialog's own
+ * per-`position` anchor) via a self-rendered `<style nonce={nonce}>` element (never an inline
+ * `style` attribute, which a nonce-based CSP — e.g. `@zanix/space`'s own zero-config default —
+ * blocks unconditionally, since a nonce never applies to a `style="..."` attribute, only to a
+ * `<style>` element). Pass the request's real nonce as `<Modal nonce={nonce}>` (or in an
+ * `openModal({ nonce, ... })` call) when running under such a CSP; omit it otherwise.
+ *
+ * A browser clears an applied `nonce` attribute back to `""` right after using it (real, spec'd
+ * behavior — the true value survives only on the element's own `.nonce` property); React's
+ * hydration check doesn't special-case this for `<style>` the way it does for `<script>`, so this
+ * component's React binding renders its `<style nonce>` via
+ * `shared/create-element-nonce-hydration-fix.ts` — suppresses the resulting cosmetic hydration
+ * mismatch warning without touching `render.ts`'s own Preact-shared markup (see that file's own doc
+ * for the full reasoning, including why Preact needs no equivalent).
+ *
+ * ## Close button content
+ *
+ * The close button always renders — an inline "X" `<svg>` by default (see
+ * `shared/close-button-icon.ts`'s own doc for why it's a real inline SVG, not a Unicode character
+ * or a bundled `CatalogIcon` call: the sprite `CatalogIcon` needs is a scaffolded, consumer-chosen
+ * template asset this component has no `href` for). `closeButtonContent` overrides it with any
+ * renderer node — a `CatalogIcon`, a plain `<svg>`, plain text — for a consumer who already has an
+ * icon system set up; the button's own accessible name (`aria-label="Close"`) never changes either
+ * way.
  *
  * ## Focus management
  *

@@ -189,7 +189,11 @@ ahead of time:
   reachable via `Tab`), and returns to whatever had it once the topmost modal closes. With several
   modals open, only the topmost traps `Tab`/reacts to `Escape`; the page's scroll stays locked,
   restored to its exact prior value, only once the last one closes — via a small module-level stack,
-  not a store.
+  not a store. The close button's own visible content is a real inline "X" `<svg>` by default — not
+  a Unicode character (inconsistent glyph rendering across platforms) and not a bundled
+  `CatalogIcon` call (its sprite is a consumer-scaffolded template asset this component has no
+  `href` for) — overridable per-instance via `closeButtonContent`, for a consumer with an icon
+  system of their own; `aria-label="Close"` stays the accessible name either way.
 - ✅ **`Showcase`** — `children` grouped into pages of `itemsPerSlide`, each page one `Slider`
   slide; nothing else — every one of `Slider`'s own capabilities (loop, autoplay, dots vs. arrows,
   keyboard, accessible structure) is available here unchanged through a `slider` passthrough prop.
@@ -273,7 +277,8 @@ ahead of time:
   (`'left'`/`'right'`/`'top'`/`'bottom'`, no default — the caller always makes that call explicitly)
   instead of centered). Composes the exact same focus-trap/`Escape`/backdrop primitives `Modal`
   does, and genuinely shares `Modal`'s own overlay-stacking coordination — a `Drawer` and a `Modal`
-  open at once correctly defer to whichever is truly topmost, regardless of kind.
+  open at once correctly defer to whichever is truly topmost, regardless of kind. Same close-button
+  default/override contract as `Modal`'s own (`closeButtonContent`).
 
 - ✅ **`Field`** — a labeled form-field wrapper: a `<label>`, the caller's own input, an optional
   hint, and an error message, correctly cross-referenced via `aria-describedby`/`aria-invalid`.
@@ -311,7 +316,8 @@ ahead of time:
   semantics. Cleanup uses a real `clearTimeout`, matched to the `setTimeout` that scheduled the
   auto-dismiss; every toast composes `Alert` for its own message, so the toast region always carries
   a real `role`/`aria-live`. `position` is set per-`ToastProvider` rather than per-toast, since
-  per-toast positions don't compose correctly with genuine stacking.
+  per-toast positions don't compose correctly with genuine stacking. Same close-button
+  default/override contract as `Modal`'s own, per-toast via `ToastMessage.closeButtonContent`.
 
 - ✅ **`Popover`** — a floating panel anchored to a `trigger`, positioned via `computePosition`/
   `usePosition`. `trigger` is a render-prop (`(triggerProps) => ...`), the same shape

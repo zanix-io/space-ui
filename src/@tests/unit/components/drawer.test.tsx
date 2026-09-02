@@ -88,41 +88,80 @@ Deno.test('Drawer: id/className land on the panel element', () => {
   assertStringIncludes(html, 'class="panel"')
 })
 
-// --- side positioning ------------------------------------------------------------------------
+// --- side positioning --------------------------------------------------------------------------
+//
+// Positioning moved from an inline `style` attribute to a self-rendered `<style>` element (a real
+// CSP fix — see `DRAWER_POSITION_CSS`'s own doc) — the panel now carries no `style` attribute at
+// all, only a `data-side` marker the injected CSS text keys its per-side rule off of.
 
-function panelStyle(html: string): string {
-  // The backdrop (rendered first) has its own `style="..."` too — this specifically finds the
-  // panel's, matching on its own unique `data-space-ui="drawer"` marker (which the panel's own
-  // attribute order places BEFORE its `style`).
-  return must(html.match(/data-space-ui="drawer"[^>]*style="([^"]+)"/))[1]
+function styleTagText(html: string): string {
+  return must(html.match(/<style[^>]*>([^<]+)<\/style>/))[1]
 }
 
-Deno.test('Drawer: side="left" anchors top/left/bottom, no right', () => {
+Deno.test('Drawer: the panel element itself carries no style attribute', () => {
   const html = renderToStaticMarkup(
     <Drawer open onClose={() => {}} side='left' label='Nav'>
       <p>Links</p>
     </Drawer>,
   )
 
-  const style = panelStyle(html)
-  assertStringIncludes(style, 'top:0')
-  assertStringIncludes(style, 'left:0')
-  assertStringIncludes(style, 'bottom:0')
-  assertEquals(style.includes('right:0'), false)
+  assertEquals(/data-space-ui="drawer"[^>]*style="/.test(html), false)
 })
 
-Deno.test('Drawer: side="bottom" anchors bottom/left/right, no top', () => {
+Deno.test('Drawer: side="left" carries data-side="left", and the injected CSS anchors top/left/bottom, no right', () => {
+  const html = renderToStaticMarkup(
+    <Drawer open onClose={() => {}} side='left' label='Nav'>
+      <p>Links</p>
+    </Drawer>,
+  )
+
+  assertStringIncludes(html, 'data-side="left"')
+
+  const css = styleTagText(html)
+  const rule = must(css.match(/\[data-space-ui='drawer'\]\[data-side='left'\]\{([^}]+)\}/))[1]
+  assertStringIncludes(rule, 'top:0')
+  assertStringIncludes(rule, 'left:0')
+  assertStringIncludes(rule, 'bottom:0')
+  assertEquals(rule.includes('right:0'), false)
+})
+
+Deno.test('Drawer: side="bottom" carries data-side="bottom", and the injected CSS anchors bottom/left/right, no top', () => {
   const html = renderToStaticMarkup(
     <Drawer open onClose={() => {}} side='bottom' label='Filters'>
       <p>Options</p>
     </Drawer>,
   )
 
-  const style = panelStyle(html)
-  assertStringIncludes(style, 'bottom:0')
-  assertStringIncludes(style, 'left:0')
-  assertStringIncludes(style, 'right:0')
-  assertEquals(style.includes('top:0'), false)
+  assertStringIncludes(html, 'data-side="bottom"')
+
+  const css = styleTagText(html)
+  const rule = must(css.match(/\[data-space-ui='drawer'\]\[data-side='bottom'\]\{([^}]+)\}/))[1]
+  assertStringIncludes(rule, 'bottom:0')
+  assertStringIncludes(rule, 'left:0')
+  assertStringIncludes(rule, 'right:0')
+  assertEquals(rule.includes('top:0'), false)
+})
+
+// --- nonce / CSP -----------------------------------------------------------------------------
+
+Deno.test('Drawer: nonce lands on the injected style element', () => {
+  const html = renderToStaticMarkup(
+    <Drawer open onClose={() => {}} side='left' label='Cart' nonce='abc123'>
+      <p>Empty</p>
+    </Drawer>,
+  )
+
+  assertStringIncludes(html, '<style nonce="abc123">')
+})
+
+Deno.test('Drawer: with no nonce given, the style element renders without one', () => {
+  const html = renderToStaticMarkup(
+    <Drawer open onClose={() => {}} side='left' label='Cart'>
+      <p>Empty</p>
+    </Drawer>,
+  )
+
+  assertStringIncludes(html, '<style>')
 })
 
 // --- backdrop / outside click ------------------------------------------------------------------
@@ -189,6 +228,43 @@ Deno.test('Drawer: renders a real, accessible close button', () => {
   )
 
   const closeButton = must(container.querySelector('button'))
+  assertEquals(closeButton.getAttribute('aria-label'), 'Close')
+
+  unmount()
+})
+
+Deno.test('Drawer: the close button has real, aria-hidden visible content by default', () => {
+  const { container, unmount } = mount(
+    <Drawer open onClose={() => {}} side='left' label='Cart'>
+      <p>Empty</p>
+    </Drawer>,
+  )
+
+  const closeButton = must(container.querySelector('button[aria-label="Close"]'))
+  const svg = closeButton.querySelector('svg')
+  assertEquals(svg !== null, true)
+  assertEquals(must(svg).getAttribute('aria-hidden'), 'true')
+
+  unmount()
+})
+
+Deno.test('Drawer: closeButtonContent overrides the default close icon', () => {
+  const { container, unmount } = mount(
+    <Drawer
+      open
+      onClose={() => {}}
+      side='left'
+      label='Cart'
+      closeButtonContent={<span data-testid='my-close-icon'>×</span>}
+    >
+      <p>Empty</p>
+    </Drawer>,
+  )
+
+  const closeButton = must(container.querySelector('button[aria-label="Close"]'))
+  assertEquals(closeButton.querySelector('svg'), null)
+  assertEquals(closeButton.querySelector('[data-testid="my-close-icon"]') !== null, true)
+  // `aria-label="Close"` stays the accessible name regardless of which content renders.
   assertEquals(closeButton.getAttribute('aria-label'), 'Close')
 
   unmount()
