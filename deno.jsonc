@@ -1,6 +1,6 @@
 {
   "name": "@zanix/space-ui",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "zanix": {
     "project": "library"
   },
@@ -16,6 +16,14 @@
     "src/@tests/functional/space-integration/fixtures/render-pipeline.ts"
   ],
   "compilerOptions": {
+    // Explicit because Deno's default `lib` set depends on invocation shape: config-driven
+    // discovery (this package's own `test.include` glob) resolves a DOM-inclusive default, while
+    // an explicit file path CLI argument (e.g. `deno test path/to/file.test.tsx`) resolves a
+    // narrower, DOM-exclusive one. Real source files here (`shared/close-on-outside.ts`,
+    // `components/Menu/render.ts`, ...) use ordinary DOM APIs (`document`, `Node`, `FocusEvent`,
+    // `HTMLElement.contains`/`.querySelector`), which need `lib` declared explicitly to
+    // type-check consistently under either invocation shape.
+    "lib": ["deno.window", "dom", "dom.iterable"],
     "strict": true,
     "noImplicitAny": true,
     "jsx": "react-jsx",
