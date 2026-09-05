@@ -36,10 +36,10 @@ jobs:
         run: deno lint
 
       - name: Check for circular-import hazards
-        run: deno run --min-deo-age=0 -A jsr:@zanix/cli check-cycles
+        run: deno run --min-dep-age=0 -A jsr:@zanix/cli check-cycles
 
       - name: Check for duplicate '@zanix/*' dependencies
-        run: deno run --min-deo-age=0 -A jsr:@zanix/cli check-duplicates
+        run: deno run --min-dep-age=0 -A jsr:@zanix/cli check-duplicates
 
       # `src/@tests/functional/space-integration/`'s own i18n parity tests drive a real render
       # pipeline from the sibling `@zanix/space` repo (see `space-import-map.ts`'s own doc) —
