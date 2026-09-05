@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/) and this project
 adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+
+- **`deno.jsonc` now declares `compilerOptions.lib` explicitly**
+  (`["deno.window", "dom",
+  "dom.iterable"]`) to fix spurious DOM type errors on explicit-path test
+  runs. Deno's default `lib` set depends on invocation shape: config-driven discovery (this
+  package's own `test.include` glob) resolved a DOM-inclusive default, while the same file passed as
+  an explicit CLI path (e.g. `deno test path/to/file.test.tsx`) resolved a narrower, DOM-exclusive
+  one — causing 33 spurious TS2584/TS2812/TS2304/TS2693 errors (`document`/`Node`/`FocusEvent`/
+  `HTMLElement.contains`/`.querySelector` "not found") on ordinary DOM usage already covered by 1564
+  passing tests. Declaring `lib` explicitly removes the discrepancy for both invocation shapes. Does
+  not address the separate `deno check --all` failure (`lib.dom` vs `@types/node` declaration
+  collisions) — different root cause, not fixed here.
+
 ## [0.3.0] - 2026-09-01
 
 ### Added
