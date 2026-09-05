@@ -7,6 +7,8 @@ adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.0.1] - 2026-09-05
+
 ### Fixed
 
 - **`deno.jsonc` now declares `compilerOptions.lib` explicitly**
@@ -21,7 +23,7 @@ adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
   not address the separate `deno check --all` failure (`lib.dom` vs `@types/node` declaration
   collisions) — different root cause, not fixed here.
 
-## [0.3.0] - 2026-09-01
+## [1.0.0] - 2026-09-01
 
 ### Added
 
