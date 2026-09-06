@@ -1,12 +1,13 @@
 import type { IconProps } from 'components/Icon/types.ts'
-import type { ImageProps } from 'components/Image/types.ts'
 
 /**
- * One entry in a {@linkcode Menu}, recursively — `submenu` nests further entries to any depth.
- * See `index.ts`'s own doc for the full contract on how each field maps onto the rendered
- * `Link`/`Button`/`ImgButton`.
+ * The renderer-agnostic fields of one {@linkcode Menu} entry — everything except `visual`/
+ * `submenu`, whose real types depend on the renderer's own node type (see `render.ts`'s own
+ * `MenuRenderItem<Node>` doc for why, the same split `TableColumnBase`'s own doc already
+ * establishes between itself and `TableRenderColumn<Row, Node>`). `index.ts`/`index.preact.ts` each
+ * instantiate the full, recursive `MenuItem` with `ReactNode`/`ComponentChildren`.
  */
-export type MenuItem = {
+export type MenuItemFields = {
   /** Visible text — rendered as the item's own link/button content. */
   label: string
   /** Present → the item is a real, navigable link. Absent, with `submenu` given → the item is a
@@ -20,15 +21,9 @@ export type MenuItem = {
   /** Accessible-name override for the item's own visible `label` — same "supplements or replaces"
    * contract as `Link.label`. Omit when `label` already reads well standalone. */
   accessibleLabel?: string
-  /** Exact `IconProps` `Icon` itself takes — wins over `image` when both are given, same
-   * precedence `ImgButton` already establishes. */
+  /** Exact `IconProps` `Icon` itself takes — wins over `visual` when both are given, same
+   * precedence `ImgButton` already establishes between its own `icon`/`visual`. */
   icon?: IconProps
-  /** Exact `ImgButtonProps.image` shape — `alt` is never read from this object, the composed
-   * `Image` is always decorative here (the item's own accessible name carries the meaning). */
-  image?: Omit<ImageProps, 'alt'>
-  /** Nested items. A non-empty array makes this item a disclosure trigger — see `index.ts`'s own
-   * doc for exactly how that trigger is rendered depending on whether `url` is also given. */
-  submenu?: MenuItem[]
 }
 
 /** How a submenu reveals once its trigger is reached. `'onClick'` (default): explicit
@@ -36,9 +31,15 @@ export type MenuItem = {
  * `index.ts`'s own doc. `'onRender'`: always expanded, no trigger/interactivity of any kind. */
 export type MenuOpenMode = 'onClick' | 'onHover' | 'onRender'
 
-/** Props for {@linkcode Menu}. See `index.ts`'s own doc for the full behavioral contract. */
-export type MenuProps = {
-  items: MenuItem[]
+/**
+ * Fields shared by both the React and Preact `Menu` bindings — everything except `items`, whose
+ * real type depends on the renderer's own node type (`render.ts`'s own `MenuRenderProps<Node>`),
+ * the same split {@linkcode TableBaseProps} already establishes relative to `TableProps` — `items`
+ * is genuinely renderer-specific here (each entry's own `visual` render-prop returns that
+ * renderer's node type), same reasoning `trigger`/`children` aren't declared on
+ * `DisclosureBaseProps` either.
+ */
+export type MenuBaseProps = {
   /** @default 'onClick' */
   openMode?: MenuOpenMode
   /** Whether the whole menu sits collapsed behind its own toggle button. A plain boolean — `Menu`

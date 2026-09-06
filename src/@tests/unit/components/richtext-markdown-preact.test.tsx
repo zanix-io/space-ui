@@ -3,6 +3,7 @@ import type { VNode } from 'preact'
 import { render as renderToString } from 'preact-render-to-string'
 import { assertEquals, assertStringIncludes } from '@std/assert'
 import { renderMarkdown } from 'components/RichText/markdown.ts'
+import type { MarkdownTags } from 'components/RichText/markdown.ts'
 import type { CreateElement } from 'typings/renderer.ts'
 
 // Preact's own `h` doesn't structurally match `CreateElement<E>` either (same class of cast the
@@ -11,8 +12,8 @@ import type { CreateElement } from 'typings/renderer.ts'
 // `preact/compat` involved anywhere in the chain (see `markdown.ts`'s own doc for why that matters).
 const hh = h as unknown as CreateElement<VNode>
 
-function html(source: string): string {
-  const nodes = renderMarkdown(hh, source)
+function html(source: string, tags?: MarkdownTags<VNode>): string {
+  const nodes = renderMarkdown(hh, source, tags)
   return renderToString(h('div', {}, nodes))
 }
 
@@ -68,6 +69,36 @@ Deno.test('renderMarkdown (preact): an image renders through the real Image comp
 
 Deno.test('renderMarkdown (preact): a relative image src resolves via resolveAssetHref', () => {
   assertStringIncludes(html('![x](pic.jpg)'), 'src="/assets/pic.jpg"')
+})
+
+// --- tags: the markdownTags override hatch (img/video) --------------------------------------
+
+Deno.test('renderMarkdown (preact): tags.img overrides the built-in Image composition', () => {
+  const result = html('![alt text](pic.jpg)', {
+    img: ({ key, src }) => h('span', { key, 'data-testid': 'custom-img' }, src) as VNode,
+  })
+
+  assertStringIncludes(result, 'data-testid="custom-img"')
+  assertStringIncludes(result, '>pic.jpg<')
+  assertEquals(result.includes('data-space-ui="image"'), false)
+})
+
+Deno.test('renderMarkdown (preact): tags.video overrides the built-in Video composition', () => {
+  const result = html('![caption](clip.mp4?_props[video]=true)', {
+    video: ({ key, src }) => h('span', { key, 'data-testid': 'custom-video' }, src) as VNode,
+  })
+
+  assertStringIncludes(result, 'data-testid="custom-video"')
+  assertStringIncludes(result, '>clip.mp4<')
+  assertEquals(result.includes('data-space-ui="video"'), false)
+})
+
+Deno.test('renderMarkdown (preact): without tags, behavior is unchanged (purely additive)', () => {
+  const withoutTags = html('![alt text](pic.jpg)')
+  const withEmptyTags = html('![alt text](pic.jpg)', {})
+
+  assertEquals(withoutTags, withEmptyTags)
+  assertStringIncludes(withoutTags, 'data-space-ui="image"')
 })
 
 // --- the _props-on-URL convention -----------------------------------------------------------

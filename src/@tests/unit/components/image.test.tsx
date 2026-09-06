@@ -1,7 +1,12 @@
 import { assertEquals, assertStringIncludes } from '@std/assert'
 import { renderToStaticMarkup } from 'react-dom/server'
-import { setAssetsManifestState } from '@zanix/space/assets-manifest'
 import { Image } from 'components/Image/index.ts'
+
+// This is the comet-safe, root-barrel `Image` (`createImage(h)`, no resolver injected) — a
+// relative `src`/`sources[].src`/`placeholder` is left exactly as given here, never resolved
+// against `@zanix/space`'s own manifest. See `image-runtime.test.tsx` for the OTHER binding
+// (`@zanix/space-ui/runtime/image`), which DOES inject `resolveAssetHref` and auto-resolves a
+// relative path exactly as this component always used to, unconditionally.
 
 Deno.test('Image: renders a bare <img> with src and alt when sources is absent', () => {
   const html = renderToStaticMarkup(<Image src='photo.jpg' alt='A photo' />)
@@ -31,8 +36,8 @@ Deno.test('Image: sources renders a <picture> with one <source> per entry, img l
   )
 
   assertStringIncludes(html, '<picture>')
-  assertStringIncludes(html, '<source media="(max-width: 599px)" srcSet="/assets/mobile.jpg"/>')
-  assertStringIncludes(html, '<source media="(min-width: 600px)" srcSet="/assets/tablet.jpg"/>')
+  assertStringIncludes(html, '<source media="(max-width: 599px)" srcSet="mobile.jpg"/>')
+  assertStringIncludes(html, '<source media="(min-width: 600px)" srcSet="tablet.jpg"/>')
   // fallback <img> is the last child of <picture>
   const pictureBody = html.slice(html.indexOf('<picture>'), html.indexOf('</picture>'))
   assertStringIncludes(pictureBody.slice(pictureBody.lastIndexOf('<source')), '<img')
@@ -51,28 +56,21 @@ Deno.test('Image: source type is rendered when provided, omitted when not', () =
   )
 
   assertStringIncludes(html, 'type="image/avif"')
-  assertStringIncludes(html, '<source media="(max-width: 599px)" srcSet="/assets/mobile.jpg"/>')
+  assertStringIncludes(html, '<source media="(max-width: 599px)" srcSet="mobile.jpg"/>')
 })
 
-Deno.test('Image: src resolves through resolveAssetHref when the manifest has an entry', () => {
-  setAssetsManifestState({ manifest: { 'photo.jpg': '/assets/photo-abc123.jpg' } })
-  try {
+Deno.test(
+  'Image: a relative src passes through UNRESOLVED — no resolver injected (root barrel, comet-safe)',
+  () => {
     const html = renderToStaticMarkup(<Image src='photo.jpg' alt='A photo' />)
-    assertStringIncludes(html, 'src="/assets/photo-abc123.jpg"')
-  } finally {
-    setAssetsManifestState(undefined)
-  }
-})
 
-Deno.test('Image: src falls back to /assets/<path> when unresolved', () => {
-  const html = renderToStaticMarkup(<Image src='photo.jpg' alt='A photo' />)
+    assertStringIncludes(html, 'src="photo.jpg"')
+  },
+)
 
-  assertStringIncludes(html, 'src="/assets/photo.jpg"')
-})
-
-Deno.test('Image: sources[].src also resolves through resolveAssetHref', () => {
-  setAssetsManifestState({ manifest: { 'mobile.jpg': '/assets/mobile-abc123.jpg' } })
-  try {
+Deno.test(
+  'Image: a relative sources[].src also passes through UNRESOLVED — same as src',
+  () => {
     const html = renderToStaticMarkup(
       <Image
         src='desktop.jpg'
@@ -80,11 +78,9 @@ Deno.test('Image: sources[].src also resolves through resolveAssetHref', () => {
         sources={[{ media: '(max-width: 599px)', src: 'mobile.jpg' }]}
       />,
     )
-    assertStringIncludes(html, 'srcSet="/assets/mobile-abc123.jpg"')
-  } finally {
-    setAssetsManifestState(undefined)
-  }
-})
+    assertStringIncludes(html, 'srcSet="mobile.jpg"')
+  },
+)
 
 Deno.test('Image: an absolute src URL passes through untouched', () => {
   const html = renderToStaticMarkup(
@@ -217,30 +213,21 @@ Deno.test('Image: without width/height, neither attribute is rendered', () => {
 // request algorithm, with no defined effect on CSS-triggered resource fetches), not in a live
 // browser trace run as part of this suite.
 
-Deno.test('Image: placeholder renders as a background style on the bare <img>', () => {
-  const html = renderToStaticMarkup(
-    <Image src='photo.jpg' alt='A photo' placeholder='thumb.jpg' />,
-  )
+Deno.test(
+  'Image: placeholder renders as a background style on the bare <img>, UNRESOLVED (root barrel)',
+  () => {
+    const html = renderToStaticMarkup(
+      <Image src='photo.jpg' alt='A photo' placeholder='thumb.jpg' />,
+    )
 
-  assertStringIncludes(html, 'style="background:url(/assets/thumb.jpg) center / cover no-repeat"')
-})
+    assertStringIncludes(html, 'style="background:url(thumb.jpg) center / cover no-repeat"')
+  },
+)
 
 Deno.test('Image: without placeholder, no style attribute is rendered', () => {
   const html = renderToStaticMarkup(<Image src='photo.jpg' alt='A photo' />)
 
   assertEquals(html.includes('style='), false)
-})
-
-Deno.test('Image: placeholder resolves through resolveAssetHref', () => {
-  setAssetsManifestState({ manifest: { 'thumb.jpg': '/assets/thumb-abc123.jpg' } })
-  try {
-    const html = renderToStaticMarkup(
-      <Image src='photo.jpg' alt='A photo' placeholder='thumb.jpg' />,
-    )
-    assertStringIncludes(html, 'background:url(/assets/thumb-abc123.jpg)')
-  } finally {
-    setAssetsManifestState(undefined)
-  }
 })
 
 Deno.test('Image: an absolute placeholder URL passes through untouched', () => {
@@ -262,7 +249,7 @@ Deno.test('Image: placeholder still renders on the <img> when sources is also gi
   )
 
   assertStringIncludes(html, '<picture>')
-  assertStringIncludes(html, 'style="background:url(/assets/thumb.jpg) center / cover no-repeat"')
+  assertStringIncludes(html, 'style="background:url(thumb.jpg) center / cover no-repeat"')
   // still absent from <picture> itself — same placement rule as id/className/data-space-ui.
   assertEquals(html.includes('<picture style='), false)
 })
@@ -337,7 +324,7 @@ Deno.test('Image: a realistic multi-prop example renders well-formed markup', ()
   )
 
   assertStringIncludes(html, '<picture><source media="(max-width: 599px)"')
-  assertStringIncludes(html, 'src="/assets/hero-desktop.jpg"')
+  assertStringIncludes(html, 'src="hero-desktop.jpg"')
   assertStringIncludes(html, 'alt="A mountain at sunrise"')
   assertStringIncludes(html, 'width="1200"')
   assertStringIncludes(html, 'height="630"')

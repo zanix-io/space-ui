@@ -2,8 +2,14 @@
  * `@zanix/space-ui`'s Preact-bound components — same props, same rendered markup as the default
  * (React) entrypoint. Import from here instead of `.` when your `@zanix/space` app uses
  * `--renderer=preact`. See the default entrypoint's own `@module` doc for the package's overall
- * design principle — including why `Video`/`Image`/`RichText`/`ImgButton`/`Card`/`Menu` are NOT
- * exported from here, but from `./runtime/preact` instead.
+ * design principle — including why `RichText`/`NavDrawer` are NOT exported from here, but each from
+ * its own `./runtime/<name>/preact` subpath instead (e.g. `./runtime/rich-text/preact`) — never a
+ * shared combined `./runtime/preact` barrel (removed as of this change, see `src/runtime/video.ts`'s
+ * own `@module` doc for why). `Menu`, `ImgButton`, and `Card` each have zero `@zanix/space`
+ * dependency of their own (see `mod.ts`'s own doc), so all three are exported from here.
+ * `Video`/`Image` are ALSO exported from here now — a separate, comet-safe, absolute-URL-only
+ * binding of the same name as `./runtime/video/preact`/`./runtime/image/preact`'s own
+ * `@zanix/space`-dependent, auto-resolving siblings (see `mod.ts`'s own doc for the full reasoning).
  *
  * @module
  */
@@ -76,6 +82,49 @@ export type {
   /** See `components/Link/types.ts`'s own `LinkProps` for the full doc. */
   LinkProps,
 } from 'components/Link/types.ts'
+
+// `Image`/`Video` live here too now, alongside `./runtime/image/preact`/`./runtime/video/preact` —
+// see `mod.ts`'s own `@module` doc, "`Video`/`Image` ship from HERE too now", for the full
+// reasoning.
+export { Image } from 'components/Image/index.preact.ts'
+export type {
+  /** See `components/Image/types.ts`'s own `ImageProps` for the full doc. */
+  ImageProps,
+  /** See `components/Image/types.ts`'s own `ImageSourceProps` for the full doc. */
+  ImageSourceProps,
+} from 'components/Image/types.ts'
+
+export { Video } from 'components/Video/index.preact.ts'
+export type {
+  /** See `components/Video/types.ts`'s own `VideoProps` for the full doc. */
+  VideoProps,
+  /** See `components/Video/types.ts`'s own `VideoSourceProps` for the full doc. */
+  VideoSourceProps,
+  /** See `components/Video/types.ts`'s own `VideoTrackProps` for the full doc. */
+  VideoTrackProps,
+} from 'components/Video/types.ts'
+
+// `ImgButton`/`Card` live here, not any `./runtime/*` subpath — see `mod.ts`'s own `@module` doc
+// for why.
+export { ImgButton } from 'components/ImgButton/index.preact.ts'
+export type {
+  /** See `components/ImgButton/index.preact.ts`'s own `ImgButtonProps` for the full doc. */
+  ImgButtonProps,
+} from 'components/ImgButton/index.preact.ts'
+export type {
+  /** See `components/ImgButton/types.ts`'s own `ImgButtonBaseProps` for the full doc. */
+  ImgButtonBaseProps,
+} from 'components/ImgButton/types.ts'
+
+export { Card } from 'components/Card/index.preact.ts'
+export type {
+  /** See `components/Card/index.preact.ts`'s own `CardProps` for the full doc. */
+  CardProps,
+} from 'components/Card/index.preact.ts'
+export type {
+  /** See `components/Card/types.ts`'s own `CardBaseProps` for the full doc. */
+  CardBaseProps,
+} from 'components/Card/types.ts'
 
 export { Counter } from 'components/Counter/index.preact.ts'
 export type {
@@ -345,6 +394,22 @@ export type {
   TableBaseProps,
   TableColumnBase,
 } from 'components/Table/types.ts'
+
+// `Menu` lives here, not any `./runtime/*` subpath — see `mod.ts`'s own `@module` doc for why.
+export { Menu } from 'components/Menu/index.preact.ts'
+export type {
+  /** See `components/Menu/index.preact.ts`'s own `MenuItem` for the full doc. */
+  MenuItem,
+  /** See `components/Menu/types.ts`'s own `MenuOpenMode` for the full doc. */
+  MenuOpenMode,
+  /** See `components/Menu/index.preact.ts`'s own `MenuProps` for the full doc. */
+  MenuProps,
+} from 'components/Menu/index.preact.ts'
+export type {
+  /** See `components/Menu/types.ts`'s own `MenuBaseProps`/`MenuItemFields` for the full doc. */
+  MenuBaseProps,
+  MenuItemFields,
+} from 'components/Menu/types.ts'
 
 // --- Shared primitives ---------------------------------------------------------------------
 // See the default entrypoint's own comment on this section — same reasoning, Preact bindings for

@@ -3,8 +3,15 @@ import { assertEquals, assertStringIncludes } from '@std/assert'
 import { act } from 'react'
 import { createRoot } from 'react-dom/client'
 import { renderToStaticMarkup } from 'react-dom/server'
-import { setAssetsManifestState } from '@zanix/space/assets-manifest'
 import { Video } from 'components/Video/index.ts'
+
+// This is the comet-safe, root-barrel `Video` (`createVideo(h)`, no `resolveAssetHref` injected —
+// `@zanix/space/video-source`'s own classification logic stays unconditional regardless, see
+// `Video/render.ts`'s own module doc for why that's safe). A relative file/poster/track path is
+// left exactly as given here, never resolved against `@zanix/space`'s own manifest. See
+// `video-runtime.test.tsx` for the OTHER binding (`@zanix/space-ui/runtime/video`), which DOES
+// inject `resolveAssetHref` and auto-resolves a relative path exactly as this component always
+// used to, unconditionally.
 
 // --- provider (YouTube/Vimeo) ---------------------------------------------------------------
 
@@ -84,22 +91,14 @@ Deno.test('Video: a generic embeddable URL renders an IFrame with src as-is', ()
 
 // --- file (local/CDN video) -------------------------------------------------------------------
 
-Deno.test('Video: a local file path renders a real <video>, resolved via resolveAssetHref', () => {
-  setAssetsManifestState({ manifest: { 'clip.mp4': '/assets/clip-abc123.mp4' } })
-  try {
+Deno.test(
+  'Video: a local file path renders a real <video>, UNRESOLVED — no resolver injected (root barrel)',
+  () => {
     const html = renderToStaticMarkup(<Video src='clip.mp4' title='Demo' />)
     assertStringIncludes(html, '<video')
-    assertStringIncludes(html, 'src="/assets/clip-abc123.mp4"')
-  } finally {
-    setAssetsManifestState(undefined)
-  }
-})
-
-Deno.test('Video: a local file path with no manifest loaded falls back to the stable path', () => {
-  const html = renderToStaticMarkup(<Video src='clip.mp4' title='Demo' />)
-
-  assertStringIncludes(html, 'src="/assets/clip.mp4"')
-})
+    assertStringIncludes(html, 'src="clip.mp4"')
+  },
+)
 
 // --- data-space-ui: own root for the file case, inherited from IFrame otherwise ------------
 
@@ -201,11 +200,14 @@ Deno.test('Video: onError fires on a real DOM error event, not just wired in pro
   container.remove()
 })
 
-Deno.test('Video: poster is resolved through resolveAssetHref for the file case', () => {
-  const html = renderToStaticMarkup(<Video src='clip.mp4' title='Demo' poster='poster.jpg' />)
+Deno.test(
+  'Video: poster passes through UNRESOLVED for the file case — no resolver injected (root barrel)',
+  () => {
+    const html = renderToStaticMarkup(<Video src='clip.mp4' title='Demo' poster='poster.jpg' />)
 
-  assertStringIncludes(html, 'poster="/assets/poster.jpg"')
-})
+    assertStringIncludes(html, 'poster="poster.jpg"')
+  },
+)
 
 Deno.test('Video: an absolute poster URL passes through untouched', () => {
   const html = renderToStaticMarkup(
@@ -228,7 +230,7 @@ Deno.test('Video: title becomes aria-label on the native <video>, not a title at
   assertEquals(html.includes('title='), false)
 })
 
-Deno.test('Video: tracks render as real <track> elements, resolved via resolveAssetHref', () => {
+Deno.test('Video: tracks render as real <track> elements, UNRESOLVED (root barrel)', () => {
   const html = renderToStaticMarkup(
     <Video
       src='clip.mp4'
@@ -246,7 +248,7 @@ Deno.test('Video: tracks render as real <track> elements, resolved via resolveAs
   )
 
   assertStringIncludes(html, '<track')
-  assertStringIncludes(html, 'src="/assets/captions-en.vtt"')
+  assertStringIncludes(html, 'src="captions-en.vtt"')
   assertStringIncludes(html, 'kind="captions"')
   // React's own real output casing for this attribute — see render.ts's own doc comment.
   assertStringIncludes(html, 'srcLang="en"')
@@ -265,14 +267,14 @@ Deno.test('Video: without tracks, no <track> element is rendered', () => {
 Deno.test('Video: without sources, <video> keeps its own src attribute', () => {
   const html = renderToStaticMarkup(<Video src='clip.mp4' title='Demo' />)
 
-  assertStringIncludes(html, 'src="/assets/clip.mp4"')
+  assertStringIncludes(html, 'src="clip.mp4"')
   assertEquals(html.includes('<source'), false)
 })
 
 Deno.test('Video: an explicit empty sources array behaves identically to omitting it', () => {
   const html = renderToStaticMarkup(<Video src='clip.mp4' title='Demo' sources={[]} />)
 
-  assertStringIncludes(html, 'src="/assets/clip.mp4"')
+  assertStringIncludes(html, 'src="clip.mp4"')
   assertEquals(html.includes('<source'), false)
 })
 
@@ -295,7 +297,7 @@ Deno.test('Video: a single source renders as a real <source> element', () => {
     <Video src='clip.mp4' title='Demo' sources={[{ src: 'clip-hd.mp4' }]} />,
   )
 
-  assertStringIncludes(html, '<source src="/assets/clip-hd.mp4"/>')
+  assertStringIncludes(html, '<source src="clip-hd.mp4"/>')
 })
 
 Deno.test('Video: multiple sources preserve the given order', () => {
@@ -324,7 +326,7 @@ Deno.test('Video: sources with media present renders the media attribute verbati
     />,
   )
 
-  assertStringIncludes(html, '<source media="(min-width: 1441px)" src="/assets/clip-dlg.mp4"/>')
+  assertStringIncludes(html, '<source media="(min-width: 1441px)" src="clip-dlg.mp4"/>')
 })
 
 Deno.test('Video: sources with no media omits the attribute entirely', () => {
@@ -332,7 +334,7 @@ Deno.test('Video: sources with no media omits the attribute entirely', () => {
     <Video src='clip.mp4' title='Demo' sources={[{ src: 'clip.webm', type: 'video/webm' }]} />,
   )
 
-  assertStringIncludes(html, '<source src="/assets/clip.webm" type="video/webm"/>')
+  assertStringIncludes(html, '<source src="clip.webm" type="video/webm"/>')
 })
 
 Deno.test('Video: sources with type present renders the type attribute verbatim', () => {
@@ -366,20 +368,8 @@ Deno.test('Video: sources combining media and type together renders both verbati
 
   assertStringIncludes(
     html,
-    '<source media="(min-width: 1441px)" src="/assets/clip-dlg.webm" type="video/webm"/>',
+    '<source media="(min-width: 1441px)" src="clip-dlg.webm" type="video/webm"/>',
   )
-})
-
-Deno.test('Video: a relative source src resolves through resolveAssetHref', () => {
-  setAssetsManifestState({ manifest: { 'clip-hd.mp4': '/assets/clip-hd-abc123.mp4' } })
-  try {
-    const html = renderToStaticMarkup(
-      <Video src='clip.mp4' title='Demo' sources={[{ src: 'clip-hd.mp4' }]} />,
-    )
-    assertStringIncludes(html, 'src="/assets/clip-hd-abc123.mp4"')
-  } finally {
-    setAssetsManifestState(undefined)
-  }
 })
 
 Deno.test('Video: an absolute source src passes through untouched', () => {
@@ -404,7 +394,7 @@ Deno.test('Video: the top-level src is appended as the final fallback source', (
   )
 
   const dlgIndex = html.indexOf('clip-dlg.mp4')
-  const fallbackIndex = html.indexOf('<source src="/assets/clip.mp4"/>')
+  const fallbackIndex = html.indexOf('<source src="clip.mp4"/>')
   assertEquals(dlgIndex > -1 && fallbackIndex > dlgIndex, true)
 })
 
@@ -418,8 +408,8 @@ Deno.test('Video: sources combines correctly with poster', () => {
     />,
   )
 
-  assertStringIncludes(html, 'poster="/assets/poster.jpg"')
-  assertStringIncludes(html, '<source src="/assets/clip-hd.mp4"/>')
+  assertStringIncludes(html, 'poster="poster.jpg"')
+  assertStringIncludes(html, '<source src="clip-hd.mp4"/>')
 })
 
 Deno.test('Video: sources combines correctly with tracks (sources render before tracks)', () => {

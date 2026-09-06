@@ -10,9 +10,11 @@ export type ImageSourceProps = {
    * attribute; the browser (not this component) evaluates it and picks the first match. */
   media: string
   /** Same resolution rules as {@linkcode ImageProps.src} — an absolute URL passes through
-   * untouched, a relative path resolves through `@zanix/space`'s `resolveAssetHref`. Rendered
-   * onto the real `srcSet` DOM attribute (not `src` — `<source>` inside `<picture>` has no `src`
-   * attribute of its own), see `render.ts`'s own doc for that mapping. */
+   * untouched; a relative path resolves via `@zanix/space`'s `resolveAssetHref` ONLY when using
+   * `@zanix/space-ui/runtime/image` — the root-barrel `Image` leaves it exactly as given (see
+   * `render.ts`'s own module doc). Rendered onto the real `srcSet` DOM attribute (not `src` —
+   * `<source>` inside `<picture>` has no `src` attribute of its own), see `render.ts`'s own doc for
+   * that mapping. */
   src: string
   /** MIME type hint, e.g. `'image/avif'`. Optional pass-through only — never inferred from `src`'s
    * extension; MIME detection by extension is a resolver-side concern this component doesn't own. */
@@ -25,10 +27,13 @@ export type ImageSourceProps = {
  */
 export type ImageProps = {
   /** Local/relative asset path or absolute URL — same `resolveFileSrc` pattern already used by
-   * `Video.src`/`Video.poster`: an absolute URL passes through untouched, a relative path
-   * resolves through `@zanix/space`'s `resolveAssetHref` to its real, possibly content-hashed
-   * build URL. This is intentionally a plain `string`, not a new `Asset`-shaped type — it's what
-   * lets any generated image file (e.g. a video thumbnail, once registered as a normal asset)
+   * `Video.src`/`Video.poster`: an absolute URL passes through untouched either way. A relative
+   * path resolves through `@zanix/space`'s `resolveAssetHref` to its real, possibly content-hashed
+   * build URL ONLY when using `@zanix/space-ui/runtime/image` — the root-barrel `Image` (this
+   * package's default `.`/`./preact` export) has no resolver injected at all, so a relative path
+   * passes through exactly as given there, a deliberate, comet-safe degradation (see `render.ts`'s
+   * own module doc). This is intentionally a plain `string`, not a new `Asset`-shaped type — it's
+   * what lets any generated image file (e.g. a video thumbnail, once registered as a normal asset)
    * become an ordinary `src` here, with `Image` never knowing or caring how it was produced. */
   src: string
   /** Required — a real, common accessibility gap, same "make forgetting it a compile error" bar
@@ -40,12 +45,13 @@ export type ImageProps = {
    * browser in order, same as a hand-authored `<picture>`. Renders a bare `<img>` (no `<picture>`
    * wrapper) when omitted or an empty array — see `render.ts`'s own doc. */
   sources?: ImageSourceProps[]
-  /** A plain, already-resolved asset path/URL (same resolution rules as {@linkcode src}) shown
-   * while the real image hasn't finished loading — a real, independent capability, not a lazy-
-   * loading detail: it's about WHAT is visible in the meantime, not WHEN `src` is fetched (works
-   * the same with `loading` set to `'lazy'`, `'eager'`, or left unset). Composes with
-   * {@linkcode sources} for free — stays visible regardless of which `<source>` the browser picked.
-   * See `render.ts`'s own doc for the full rendering-mechanism reasoning. */
+  /** A plain asset path/URL (same resolution rules as {@linkcode src} — including the root-barrel
+   * vs. `./runtime/image` resolver distinction) shown while the real image hasn't finished loading
+   * — a real, independent capability, not a lazy-loading detail: it's about WHAT is visible in the
+   * meantime, not WHEN `src` is fetched (works the same with `loading` set to `'lazy'`, `'eager'`,
+   * or left unset). Composes with {@linkcode sources} for free — stays visible regardless of which
+   * `<source>` the browser picked. See `render.ts`'s own doc for the full rendering-mechanism
+   * reasoning. */
   placeholder?: string
   /** Native `decoding` hint. Defaults to `'async'` — a real, harmless default that never blocks the
    * main thread decoding a large image. */

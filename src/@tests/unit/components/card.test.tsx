@@ -1,6 +1,7 @@
 import { assertEquals, assertStringIncludes } from '@std/assert'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { Card } from 'components/Card/index.ts'
+import { Image } from 'components/Image/index.ts'
 
 Deno.test('Card: renders the root with data-space-ui="card" and the given type', () => {
   const html = renderToStaticMarkup(<Card type='article' content='Body text' />)
@@ -50,7 +51,7 @@ Deno.test('Card: no GridItem ever carries an inline grid-column/grid-row style',
       subtitle='S'
       content='C'
       footer={[{ href: '/x', children: 'Link' }]}
-      image={{ src: 'a.jpg', alt: 'A' }}
+      visual={() => <Image src='a.jpg' alt='A' />}
     />,
   )
 
@@ -77,7 +78,7 @@ Deno.test('Card: DOM order is always title, subtitle, content, footer, image', (
       subtitle='S'
       content='C'
       footer={[{ href: '/x', children: 'F' }]}
-      image={{ src: 'a.jpg', alt: 'A' }}
+      visual={() => <Image src='a.jpg' alt='A' />}
     />,
   )
 
@@ -108,39 +109,90 @@ Deno.test('Card: without footer, no card-footer item is rendered', () => {
   assertEquals(html.includes('card-footer'), false)
 })
 
-Deno.test('Card: image reuses Image exactly, including sources and placeholder', () => {
+Deno.test('Card: visual reuses Image exactly, including sources and placeholder', () => {
   const html = renderToStaticMarkup(
     <Card
       content='C'
-      image={{
-        src: 'hero.jpg',
-        alt: 'A hero image',
-        placeholder: 'thumb.jpg',
-        sources: [{ media: '(min-width: 1441px)', src: 'hero-dlg.jpg' }],
-      }}
+      visual={() => (
+        <Image
+          src='hero.jpg'
+          alt='A hero image'
+          placeholder='thumb.jpg'
+          sources={[{ media: '(min-width: 1441px)', src: 'hero-dlg.jpg' }]}
+        />
+      )}
     />,
   )
 
   assertStringIncludes(html, 'data-space-ui="card-image"')
   assertStringIncludes(html, 'data-space-ui="image"')
-  assertStringIncludes(html, 'src="/assets/hero.jpg"')
+  // `visual` composes the caller's OWN `Image` instance verbatim — a relative `src` here is left
+  // unresolved, same root-barrel `Image` behavior `image.test.tsx` covers directly.
+  assertStringIncludes(html, 'src="hero.jpg"')
   assertStringIncludes(html, 'alt="A hero image"')
-  assertStringIncludes(html, 'style="background:url(/assets/thumb.jpg) center / cover no-repeat"')
+  assertStringIncludes(html, 'style="background:url(thumb.jpg) center / cover no-repeat"')
   assertStringIncludes(html, '<picture>')
-  assertStringIncludes(html, 'srcSet="/assets/hero-dlg.jpg"')
+  assertStringIncludes(html, 'srcSet="hero-dlg.jpg"')
 })
 
-Deno.test('Card: without image, no card-image item is rendered', () => {
+Deno.test('Card: without visual or image, no card-image item is rendered', () => {
   const html = renderToStaticMarkup(<Card content='C' />)
 
   assertEquals(html.includes('card-image'), false)
+})
+
+Deno.test('Card: visual is a plain render-prop — never composes Image internally', () => {
+  const html = renderToStaticMarkup(
+    <Card
+      content='C'
+      visual={() => <span data-testid='custom-visual'>*</span>}
+    />,
+  )
+
+  assertStringIncludes(html, 'data-testid="custom-visual"')
+  assertEquals(html.includes('data-space-ui="image"'), false)
+})
+
+// --- image (convenience sugar over the comet-safe, root-barrel Image) ------------------------
+
+Deno.test(
+  'Card: image builds the visual as Image({ ...image, alt: "" }) using the root-barrel Image',
+  () => {
+    const html = renderToStaticMarkup(
+      <Card content='C' image={{ src: 'https://cdn.example.com/hero.jpg' }} />,
+    )
+
+    assertStringIncludes(html, 'data-space-ui="card-image"')
+    assertStringIncludes(html, 'data-space-ui="image"')
+    assertStringIncludes(html, 'src="https://cdn.example.com/hero.jpg"')
+    assertStringIncludes(html, 'alt=""')
+  },
+)
+
+Deno.test('Card: a relative image.src is left unresolved — no resolver injected', () => {
+  const html = renderToStaticMarkup(<Card content='C' image={{ src: 'hero.jpg' }} />)
+
+  assertStringIncludes(html, 'src="hero.jpg"')
+})
+
+Deno.test('Card: visual wins over image when both are given', () => {
+  const html = renderToStaticMarkup(
+    <Card
+      content='C'
+      image={{ src: 'hero.jpg' }}
+      visual={() => <span data-testid='custom-visual'>*</span>}
+    />,
+  )
+
+  assertStringIncludes(html, 'data-testid="custom-visual"')
+  assertEquals(html.includes('data-space-ui="image"'), false)
 })
 
 // --- align -------------------------------------------------------------------------------------
 
 Deno.test('Card: align="left" sets data-align="left" on the root', () => {
   const html = renderToStaticMarkup(
-    <Card content='C' image={{ src: 'a.jpg', alt: 'A', align: 'left' }} />,
+    <Card content='C' visual={() => <Image src='a.jpg' alt='A' />} align='left' />,
   )
 
   assertStringIncludes(html, 'data-align="left"')
@@ -148,26 +200,24 @@ Deno.test('Card: align="left" sets data-align="left" on the root', () => {
 
 Deno.test('Card: align="right" renders no data-align attribute (same as omitted)', () => {
   const html = renderToStaticMarkup(
-    <Card content='C' image={{ src: 'a.jpg', alt: 'A', align: 'right' }} />,
+    <Card content='C' visual={() => <Image src='a.jpg' alt='A' />} align='right' />,
   )
 
   assertEquals(html.includes('data-align'), false)
 })
 
-Deno.test('Card: without an image, no data-align attribute is rendered', () => {
+Deno.test('Card: without a visual, align still sets data-align (its own, independent prop)', () => {
+  const html = renderToStaticMarkup(<Card content='C' align='left' />)
+
+  // `align` is Card's own top-level layout decision now, independent of whether `visual` is given
+  // — unlike the removed `image.align`, which only ever existed alongside a real image.
+  assertStringIncludes(html, 'data-align="left"')
+})
+
+Deno.test('Card: without align, no data-align attribute is rendered', () => {
   const html = renderToStaticMarkup(<Card content='C' />)
 
   assertEquals(html.includes('data-align'), false)
-})
-
-Deno.test('Card: the align value never reaches the underlying Image', () => {
-  const html = renderToStaticMarkup(
-    <Card content='C' image={{ src: 'a.jpg', alt: 'A', align: 'left' }} />,
-  )
-
-  // "align" must not leak onto the <img> itself as a stray attribute.
-  const imgTag = html.slice(html.indexOf('<img'), html.indexOf('<img') + 200)
-  assertEquals(imgTag.includes('align'), false)
 })
 
 // --- stacked -------------------------------------------------------------------------------------
@@ -198,7 +248,8 @@ Deno.test('Card: a realistic multi-prop example renders well-formed markup', () 
       subtitle='Weekend getaway'
       content='Description of the property goes here.'
       footer={[{ href: '/listings/cabin', children: 'View listing' }]}
-      image={{ src: '/images/cabin.jpg', alt: 'A cabin in the mountains', align: 'left' }}
+      visual={() => <Image src='/images/cabin.jpg' alt='A cabin in the mountains' />}
+      align='left'
       id='listing-42'
     />,
   )

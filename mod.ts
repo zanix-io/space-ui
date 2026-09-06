@@ -1,22 +1,45 @@
 /**
  * `@zanix/space-ui` — a small, framework-agnostic-where-possible component library for apps built
  * on `@zanix/space`. Every component exported from HERE (the default, `.` entrypoint) takes
- * already-resolved data (URLs, labels, viewBox) as props — none of them resolves assets, translates
- * strings, or reaches into `@zanix/space`'s own conventions itself, and none of them has a runtime
- * dependency on `@zanix/space`. That split keeps this package usable on its own terms, versioned
+ * already-resolved data (URLs, labels, viewBox) as props — none of them has a REQUIRED runtime
+ * dependency on `@zanix/space`; none of them translates strings or reaches into `@zanix/space`'s
+ * own conventions itself. That split keeps this package usable on its own terms, versioned
  * independently from the rendering engine it's meant to sit on top of.
  *
- * Six components — `Video`, `Image`, `RichText`, `ImgButton`, `Card`, `Menu` — DO have a real,
- * direct-or-composed runtime dependency on `@zanix/space` (its own `resolveAssetHref`, from
- * `@zanix/space/assets-manifest`), and are exported from `./runtime` instead (`./runtime/preact`
- * for the Preact bindings) — never from here. A barrel export forces resolution of every module it
- * re-exports together, so keeping these six here would force resolution of the ENTIRE barrel —
- * including these six — the moment a consumer imports even one unrelated component (e.g. `Button`,
+ * `RichText` has a real, composed runtime dependency on `@zanix/space` (`resolveAssetHref`, from
+ * `@zanix/space/assets-manifest`, for its own dynamic/caller-uncontrolled content), plus `NavDrawer`
+ * (a Comet, importing `@zanix/space/comet`'s own `defineComet`) — each exported from its OWN
+ * `./runtime/<name>` subpath instead (a `/preact` variant alongside each) — never from here, and
+ * never from a shared combined `./runtime` barrel either (removed as of this change — see
+ * `src/runtime/video.ts`'s own `@module` doc for why). A barrel export forces resolution of every
+ * module it re-exports together, so keeping these here would force resolution of the ENTIRE barrel
+ * — including them — the moment a consumer imports even one unrelated component (e.g. `Button`,
  * which has zero `@zanix/space` dependency), pulling `@zanix/space` back into the graph and
  * creating a genuine circular resolution whenever `@zanix/space`'s own build pipeline resolves a
  * `@zanix/space-ui` import (confirmed to hang `@deno/loader`'s native workspace resolution in a
- * real `zanix space build`). See `runtime.ts`'s own `@module` doc for the full reasoning and the
- * exact composition chain behind each of the six.
+ * real `zanix space build`). See `src/runtime/video.ts`'s own `@module` doc for the full reasoning
+ * and the exact composition chain/dependency behind each. `Menu`, `ImgButton`, and `Card` each
+ * compose only zero-`@zanix/space`-dependency components internally (`Menu`: `Link`/`Button`/
+ * `Icon`; `ImgButton`/`Card`: `Link`/`Button`/`Icon`/`Grid`/`GridItem` plus the comet-safe `Image`
+ * below for their own `image` convenience prop) — zero `@zanix/space` dependency, so all three ship
+ * from here with the rest of this barrel, not `./runtime/*`.
+ *
+ * ## `Video`/`Image` ship from HERE too now — comet-safe, absolute-URL-only
+ *
+ * `Video`/`Image`'s own `render.ts` factories no longer have a HARDCODED `@zanix/space` import —
+ * `resolveAssetHref` (the one real, `'server-only'`-flagged dependency, from `@zanix/space/assets-
+ * manifest`) is now an OPTIONAL, injected parameter (`Video`'s own `@zanix/space/video-source`
+ * classification dependency stays static and unconditional — see `Video/render.ts`'s own doc for
+ * why that one's genuinely safe to keep). The `Video`/`Image` exported from HERE call their own
+ * factory with NO resolver injected: zero `@zanix/space/assets-manifest` reachability, safe inside
+ * a `'use comet'` file, and correct for any already-absolute `src`/`sources[].src`/`placeholder`/
+ * `poster`/`track.src` (a CDN image, a YouTube/Vimeo/generic-iframe video, any external URL) — the
+ * common case for a Comet author today. A relative local asset path is left exactly as given here,
+ * never resolved against a manifest — a predictable, documented degradation, not a bug (see each
+ * component's own `index.ts` doc). `@zanix/space-ui/runtime/image`/`@zanix/space-ui/runtime/video`
+ * still export the byte-for-byte identical, `@zanix/space`-dependent, auto-resolving SSR-only
+ * siblings, unchanged — two bindings, same component name, at two different subpaths, by design
+ * (see `src/runtime/video.ts`'s own `@module` doc, "Two bindings, same name, additive").
  *
  * @module
  */
@@ -56,6 +79,25 @@ export type { BaseButtonProps, ButtonProps, CheckedButtonRole } from 'components
 
 export { Link } from 'components/Link/index.ts'
 export type { LinkProps } from 'components/Link/types.ts'
+
+// `Image`/`Video` live here too now, alongside `./runtime/image`/`./runtime/video` — comet-safe,
+// absolute-URL-only, no resolver injected. See this file's own `@module` doc, "`Video`/`Image` ship
+// from HERE too now", for the full reasoning.
+export { Image } from 'components/Image/index.ts'
+export type { ImageProps, ImageSourceProps } from 'components/Image/types.ts'
+
+export { Video } from 'components/Video/index.ts'
+export type { VideoProps, VideoSourceProps, VideoTrackProps } from 'components/Video/types.ts'
+
+// `ImgButton`/`Card` live here, not any `./runtime/*` subpath — zero `@zanix/space` dependency,
+// see this file's own `@module` doc for the full reasoning.
+export { ImgButton } from 'components/ImgButton/index.ts'
+export type { ImgButtonProps } from 'components/ImgButton/index.ts'
+export type { ImgButtonBaseProps } from 'components/ImgButton/types.ts'
+
+export { Card } from 'components/Card/index.ts'
+export type { CardProps } from 'components/Card/index.ts'
+export type { CardBaseProps } from 'components/Card/types.ts'
 
 export { Counter } from 'components/Counter/index.ts'
 export type { CounterProps } from 'components/Counter/types.ts'
@@ -208,6 +250,12 @@ export type {
   TableSortDirection,
 } from 'components/Table/index.ts'
 export type { TableBaseProps, TableColumnBase } from 'components/Table/types.ts'
+
+// `Menu` lives here, not any `./runtime/*` subpath — zero `@zanix/space` dependency, see this
+// file's own `@module` doc for the full reasoning.
+export { Menu } from 'components/Menu/index.ts'
+export type { MenuItem, MenuOpenMode, MenuProps } from 'components/Menu/index.ts'
+export type { MenuBaseProps, MenuItemFields } from 'components/Menu/types.ts'
 
 // --- Shared primitives ---------------------------------------------------------------------
 // The same headless building blocks this package's own interactive components (`Modal`, `Menu`,

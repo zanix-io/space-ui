@@ -5,7 +5,295 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/) and this project
 adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [2.0.0] - 2026-09-05
+
+### Changed
+
+- **BREAKING: `MenuItem.image` is removed, replaced by a new `visual?: () => Node` render-prop** —
+  `Menu`'s own `icon`/`image` composition (via `ImgButton`, which composes `Image`) gave every
+  `Menu` instance a real, static dependency on `@zanix/space`'s own `resolveAssetHref` regardless of
+  whether a given instance ever used `image` at all — a static ES import is unconditionally hoisted
+  regardless of runtime branching. That made `Menu` unusable inside a `'use comet'` file, since
+  `@zanix/space`'s own `comet-plugin.ts` fails a build whenever a Comet's module graph reaches a
+  module flagged `'server-only'` (`assets-manifest` is one). `visual` replaces `image`: the caller
+  supplies an already-built element (their own `Image`/`ImgButton` instance, resolved server-side
+  outside the Comet, a plain `<img>`, anything) instead of a data shape `Menu` resolves itself —
+  `Menu`'s own module now composes only `Link`/`Button`/`Icon`, with zero reachable `@zanix/space`
+  dependency (confirmed by a permanent structural test,
+  `src/@tests/unit/intl/dependency-boundary.test.ts`). `icon` is unchanged and still takes
+  precedence over `visual` when both are given, the same precedence `ImgButton`'s own `icon`/`image`
+  already establishes. One related, deliberate behavior change alongside this: when a visual (`icon`
+  or `visual`) is given but `accessibleLabel` is not, the rendered `Link`/`Button` no longer gets an
+  explicit `aria-label` duplicating the visible `label` text — the accessible name now comes from
+  the element's own visible children instead, avoiding the redundant double-labeling
+  `ImgButton/render.ts`'s own doc already calls out as a legacy anti-pattern, not a capability worth
+  carrying forward.
+
+  | Was                                              | Now                                                                                                                            |
+  | ------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------ |
+  | `{ label: 'Team', image: { src: '/team.jpg' } }` | `{ label: 'Team', visual: () => <Image src='/team.jpg' alt='' /> }` (resolved server-side, outside any Comet, and passed down) |
+
+- **BREAKING: `Menu` moves from `@zanix/space-ui/runtime`/`@zanix/space-ui/runtime/preact` to the
+  default `.`/`./preact` entrypoints** — a direct consequence of the `visual` change above: `Menu`'s
+  own module no longer reaches `@zanix/space` at all (composing only `Link`/`Button`/`Icon`), so it
+  no longer qualifies for the `./runtime` split `Video`/`Image`/`RichText`/`ImgButton`/`Card` still
+  need. `mod.ts`/`mod-preact.ts`'s own doc and `docs/architecture.md` are all updated accordingly.
+  (The `./runtime` import paths in the migration table below are the ones that were current at the
+  time this entry was written — see the "runtime entrypoint split" entry further down in this same
+  `[Unreleased]` section for where each of the five remaining components actually lives now.)
+
+  | Was                                                     | Now                                             |
+  | ------------------------------------------------------- | ----------------------------------------------- |
+  | `import { Menu } from '@zanix/space-ui/runtime'`        | `import { Menu } from '@zanix/space-ui'`        |
+  | `import { Menu } from '@zanix/space-ui/runtime/preact'` | `import { Menu } from '@zanix/space-ui/preact'` |
+
+- **BREAKING: the combined `./runtime`/`./runtime/preact` entrypoint is removed entirely, replaced
+  by one subpath PER component** — `./runtime/video`, `./runtime/image`, `./runtime/rich-text`,
+  `./runtime/img-button`, `./runtime/card`, `./runtime/nav-drawer` (a `/preact` variant alongside
+  each, e.g. `./runtime/image/preact`). Root cause: a barrel export forces resolution of every
+  module it re-exports together, so `import { NavDrawer } from '@zanix/space-ui/runtime'` resolved
+  the shared `runtime.ts` file — which ALSO statically re-exported `RichText`, `Video`, `Image`,
+  `ImgButton`, and `Card` in that same file — pulling `RichText`'s own `markdown-to-jsx`/
+  `@zanix/helpers` chain (and everything else those five reach) into `NavDrawer`'s real build graph,
+  even though `NavDrawer`'s own module never imports any of them. Confirmed empirically via
+  `deno
+  info --json`, before this fix: running it against `src/runtime.ts` showed all 8 of
+  `RichText`'s own module files present in the resolved graph despite a consumer only ever naming
+  `NavDrawer` — the identical mechanism, one level in, to the bug the `Menu`/`visual` change above
+  just fixed at the root-barrel level. Each component now gets its own subpath — importing one never
+  statically or dynamically reaches any other one's own files, unless it genuinely composes it
+  (`ImgButton`/`Card` composing `Image`'s shared `render.ts`; `RichText` composing `Image`'s,
+  `Video`'s, and `ImgButton`'s). Confirmed via the same command, after this fix: running it against
+  `src/runtime/nav-drawer.ts` shows zero `RichText`/`Video`/`Image`/`ImgButton`/`Card` files
+  reachable.
+
+  **The combined barrel is removed, not kept as an opt-in convenience** — the same precedent
+  `@zanix/utils` already set for its own root-barrel cut: a barrel whose entire justification was
+  convenience, once proven to actively cause a real, confirmed circular-resolution-class bug, isn't
+  worth keeping as an "opt in if you accept the trade-off." A consumer would need to already know,
+  ahead of time, which of the six components they use share zero real composition before trusting a
+  combined import again — which defeats the barrel's own point, and silently invites the exact same
+  bug back the next time a seventh `@zanix/space`-dependent component ships. See
+  `src/runtime/video.ts`'s own `@module` doc for the full reasoning (canonical for all six; every
+  other `./runtime/*` file's own doc points back to it rather than repeating it) and
+  `src/@tests/unit/intl/dependency-boundary.test.ts`'s own table-driven suite (below) for the
+  permanent regression guard — a new `@zanix/space`-dependent component means one new row in that
+  table's `RUNTIME_COMPONENTS` array with its own EXACT expected footprint, not a shared barrel
+  entry.
+
+  | Was                                                                                                 | Now                                                                                                           |
+  | --------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
+  | `import { Video } from '@zanix/space-ui/runtime'`                                                   | `import { Video } from '@zanix/space-ui/runtime/video'`                                                       |
+  | `import { Image } from '@zanix/space-ui/runtime/preact'`                                            | `import { Image } from '@zanix/space-ui/runtime/image/preact'`                                                |
+  | `import { RichText, resolveRichTextDocument, extractRichTextProps } from '@zanix/space-ui/runtime'` | `import { RichText, resolveRichTextDocument, extractRichTextProps } from '@zanix/space-ui/runtime/rich-text'` |
+  | `import { ImgButton } from '@zanix/space-ui/runtime'`                                               | `import { ImgButton } from '@zanix/space-ui/runtime/img-button'`                                              |
+  | `import { Card } from '@zanix/space-ui/runtime'`                                                    | `import { Card } from '@zanix/space-ui/runtime/card'`                                                         |
+  | `import { NavDrawer } from '@zanix/space-ui/runtime'`                                               | `import { NavDrawer } from '@zanix/space-ui/runtime/nav-drawer'`                                              |
+
+  A consumer using more than one of these six now writes more than one import line (e.g. `Card`
+  composing `Image`), the real trade of the fix — every alternative considered still shared some
+  file across unrelated components (a per-pair barrel, a barrel keyed by which of the six a consumer
+  names) and would have needed the exact same reachability audit repeated per shape, for no real
+  savings over one subpath per component.
+
+- **`ImgButtonProps.image` restored as convenience sugar over `visual` — no longer removed, no
+  longer breaking for an `image`-only consumer** — a prior round of this same `[Unreleased]` section
+  removed `image` entirely in favor of `visual`; this reverses that. Root cause of the original
+  removal fixed at its actual source instead (see the `Video`/`Image` "Added" entries below):
+  `Image/render.ts`'s own `@zanix/space/assets-manifest` import is now OPTIONAL/injected, not
+  hardcoded, so `ImgButton/render.ts` can compose the comet-safe, root-barrel `Image` (calling
+  `createImage(h)` with no resolver) for its `image` prop without reintroducing the `'use comet'`
+  build failure the removal was originally fixing. Precedence, when more than one is given: `icon` →
+  `visual` → `image` (an explicit `visual` render-prop always wins over the `image` shorthand, same
+  as `icon` already won over both). Practically unchanged for an existing `image`-only consumer: the
+  same prop, the same shape, the same default behavior for an already-absolute `src` — with one real
+  edge case, not glossed over: a RELATIVE `image.src` no longer auto-resolves through
+  `@zanix/space`'s own manifest the way it silently did before this whole round of changes, since
+  `ImgButton`'s own `image` now always composes the root-barrel `Image` (never
+  `@zanix/space-ui/runtime/image`'s auto-resolving one). An already-absolute URL (the common case,
+  e.g. a CDN image) is entirely unaffected.
+
+  | Was (before this round)                            | Now                                                                                                                                                                                                        |
+  | -------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+  | `<ImgButton label='X' image={{ src: 'a.jpg' }} />` | `<ImgButton label='X' image={{ src: 'a.jpg' }} />` (unchanged — relative `a.jpg` no longer auto-resolves; use an absolute URL, or compose `visual` with `@zanix/space-ui/runtime/image`'s `Image` instead) |
+
+- **`CardBaseProps.image` restored as convenience sugar over `visual` — `align` stays a top-level
+  field** — the same restoration as `ImgButton` above, for the identical reason: `Card/render.ts`
+  composes the comet-safe, root-barrel `Image` (`createImage(h)`, no resolver) for its `image` prop.
+  `visual` wins when both are given. `align: 'left' | 'right'` stays exactly where the prior round
+  already moved it — a top-level `CardProps` field, independent of `image`/`visual` — that split was
+  a real improvement regardless of `image` coming back, not undone here. Same relative-path caveat
+  as `ImgButton`'s own entry above: an already-absolute `image.src` is unaffected; a relative one no
+  longer auto-resolves.
+
+  | Was (before this round)                                                  | Now                                                                                                                                                               |
+  | ------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+  | `<Card content='C' image={{ src: 'a.jpg', alt: 'A', align: 'left' }} />` | `<Card content='C' image={{ src: 'a.jpg' }} align='left' />` (`alt` is no longer part of `image` — always built as `''`, same as `icon`'s own decorative default) |
+
+- **BREAKING: `ImgButton`/`Card` move from
+  `@zanix/space-ui/runtime`/`@zanix/space-ui/runtime/preact` (or, depending on when a consumer last
+  upgraded, `@zanix/space-ui/runtime/img-button`/ `@zanix/space-ui/runtime/card`) to the default
+  `.`/`./preact` entrypoints** — this import-path relocation is the one piece of the original
+  `image`→`visual` change that stays breaking even now that `image` itself is restored: neither
+  component's own module reaches `@zanix/space` at all (each composes only zero-`@zanix/space`-
+  dependency components internally, `Image`'s own comet-safe root-barrel binding included), so
+  neither qualifies for the `./runtime` split `RichText` still needs. A consumer who already updated
+  their import path in a prior upgrade is unaffected by this entry; one who hasn't yet still needs
+  to. `mod.ts`/ `mod-preact.ts`'s own doc, `src/runtime/video.ts`'s own canonical `@module` doc,
+  `README.md`, and `docs/architecture.md` are all updated accordingly. The
+  `./runtime/img-button`/`./runtime/card` subpaths and their `deno.jsonc` `exports` entries are
+  removed entirely — this is a second, independent breaking change from the `image`→`visual` prop
+  change above, since a consumer who already migrated their `image` usage to `visual` still needs to
+  update their import path.
+
+  | Was                                                                     | Now                                                  |
+  | ----------------------------------------------------------------------- | ---------------------------------------------------- |
+  | `import { ImgButton } from '@zanix/space-ui/runtime/img-button'`        | `import { ImgButton } from '@zanix/space-ui'`        |
+  | `import { ImgButton } from '@zanix/space-ui/runtime/img-button/preact'` | `import { ImgButton } from '@zanix/space-ui/preact'` |
+  | `import { Card } from '@zanix/space-ui/runtime/card'`                   | `import { Card } from '@zanix/space-ui'`             |
+  | `import { Card } from '@zanix/space-ui/runtime/card/preact'`            | `import { Card } from '@zanix/space-ui/preact'`      |
+
+- **`src/@tests/unit/intl/dependency-boundary.test.ts`'s table-driven suite updated for the
+  `ImgButton`/`Card` move** — both added to `ROOT_BARREL_COMPONENTS`; both removed from
+  `RUNTIME_COMPONENTS`/`ALL_RUNTIME_COMPONENTS`. `RichText`'s own row keeps its
+  `zanixSpaceSubpaths`/`composes` unchanged (`['Image', 'Video']`) — the real
+  `RichText/tags.ts`→`ImgButton/render.ts` composition for the `ibtn` tag is itself unchanged (only
+  `ImgButton`'s own export subpath moved), but `composes` specifically means "a sibling
+  `./runtime/*` component genuinely reached" and `ImgButton` is no longer a `./runtime/*` sibling at
+  all, so it's no longer meaningful to list there — see that file's own updated header comment on
+  Table 2 for the full reasoning, confirmed via `deno info --json` rather than assumed.
+
+- **`src/@tests/unit/intl/dependency-boundary.test.ts` generalized into a single, table-driven suite
+  covering every component this package exports** — previously a handful of bespoke tests (`intl`'s
+  own boundaries, plus one narrow addition for `Menu` specifically). Now two tables: every
+  `mod.ts`/`mod-preact.ts` (root barrel) component is checked, via its OWN entry file directly (not
+  through the shared barrel), for zero `@zanix/space` reachability; every `./runtime/*` component is
+  checked against an explicit, human-reviewed EXACT expected footprint (which `@zanix/space`
+  subpaths it resolves, and which sibling runtime components it genuinely composes — every other
+  sibling is asserted completely unreachable). Adding a future component now means adding one row to
+  a table, never writing a new bespoke test — the whole point being that a future accidental
+  re-consolidation into a shared barrel, or a new component skipping this check, fails loudly and
+  immediately instead of shipping the same class of bug a third time. One exception was tracked here
+  as known-and-deliberately-not-"fixed" rather than hidden — `RichText` reaching
+  `@zanix/utils/helpers`'s own `WorkerManager`/`Logger` chain, a separate gap in `@zanix/utils`'s
+  own barrel discipline (that barrel bundled two pure helper functions, `isPlainObject`/
+  `sanitizeUrl`, alongside a full worker/logger implementation) this package's `./runtime` split
+  couldn't fix on its own. **Closed upstream in `@zanix/utils@4.4.0`** (`cron.ts`/`masking/hard.ts`
+  now log through a minimal, browser-safe `modules/logger/internal.ts` instead of the full
+  `modules/logger/mod.ts`) — this package's own `@zanix/helpers`/`@zanix/utils` floor is bumped to
+  `^4.4.0` accordingly, and the test itself now asserts the INVERSE (RichText never reaches that
+  chain), a permanent regression guard rather than a documented exception.
+
+- **`src/@tests/unit/intl/dependency-boundary.test.ts` updated for `Video`/`Image` now shipping from
+  BOTH the root barrel and `./runtime/*`** — a real, structural addition to the suite's own shape (a
+  component can now legitimately appear in both tables, not just one): `Video`/`Image` are added to
+  `ROOT_BARREL_COMPONENTS` (checked, via their own `index.ts`/`index.preact.ts`, for zero
+  `@zanix/space/assets-manifest` reachability — the one real, `'server-only'`-flagged dependency) —
+  their existing `RUNTIME_COMPONENTS` rows (`./runtime/video`, `./runtime/image`) are unchanged,
+  still asserting the exact same `zanixSpaceSubpaths` as before. `Video`'s own root-barrel row is
+  NOT held to the same "zero `@zanix/space`, full stop" bar the rest of `ROOT_BARREL_COMPONENTS`
+  gets, deliberately: `@zanix/space/video-source` (`detectVideoSource`/`buildProviderEmbedUrl`)
+  stays a real, unconditional dependency of `Video/render.ts` even in the comet-safe binding — it's
+  core classification logic, not an asset-resolution nicety, and it carries no `'server-only'`
+  directive (confirmed by reading `video-source.ts` directly), so a Comet's own build never rejects
+  it. `Video`'s root-barrel row instead asserts its exact `zanixSpaceSubpaths` footprint is
+  `['video-source']` only, never `assets-manifest` — the real, checkable invariant this whole change
+  is actually protecting, verified via `deno info --json` the same way every other row in this suite
+  is, not a grep over `deno.jsonc`. `RichText`'s own row/composition is unaffected (still composes
+  `Image`'s/`Video`'s shared `render.ts` directly; `RichText/tags.ts` now explicitly injects
+  `resolveAssetHref` into its own `createImage`/`createVideo` calls, matching the factories' new
+  resolver parameter, so its `img`/`video` tags keep auto-resolving exactly as before).
+  `ImgButton`/`Card` re-verified with zero `@zanix/space` reachability from their own entry files
+  after reintroducing the `Image/render.ts` import for the restored `image` prop (safe precisely
+  because that import no longer statically reaches `@zanix/space` itself).
+
+### Added
+
+- **`Video`/`Image` now ALSO ship from the default `.`/`./preact` entrypoints — comet-safe,
+  absolute-URL-only, purely additive** — `Video/render.ts`/`Image/render.ts`'s own hardcoded
+  `import { resolveAssetHref } from '@zanix/space/assets-manifest'` is now an OPTIONAL, injected
+  parameter (`createImage(h, resolveHref?)`/`createVideo(h, resolveHref?)`) instead — the root cause
+  of why neither component could be used inside a `'use comet'` file at all, even for an
+  already-absolute `src` that never actually needed the resolver. `resolveFileSrc`'s own try/catch
+  around `new URL(src)` already passed an absolute URL through untouched; a static ES import is
+  unconditionally hoisted regardless of runtime branching, so the mere presence of the import — not
+  any real runtime behavior — was what broke a Comet build. Two real bindings now exist from the
+  exact same shared factory: `components/Image/index.ts`/`Video/index.ts` (exported from
+  `.`/`./preact`) call `createImage(h)`/`createVideo(h)` with NO resolver — zero
+  `@zanix/space/assets-manifest` reachability, correct for any already-absolute
+  `src`/`sources[].src`/`placeholder`/`poster`/`track.src` (a CDN image, a YouTube/Vimeo/
+  generic-iframe video, any external URL — the common case for a Comet author today); a relative
+  local asset path is left exactly as given, a predictable, documented degradation, never a throw.
+  `@zanix/space-ui/runtime/image`/`@zanix/space-ui/runtime/video` (and their `/preact` variants)
+  keep injecting `resolveAssetHref` themselves — byte-for-byte the SAME auto-resolving behavior
+  these two components have always had, SSR-only, unchanged. `Video`'s own video-source
+  classification dependency (imported from `@zanix/space`, `detectVideoSource`/
+  `buildProviderEmbedUrl`, real classification logic every branch needs, not an asset-resolution
+  nicety) stays a real, unconditional import even in the comet-safe binding — confirmed safe because
+  that module carries no `'server-only'` directive (unlike `assets-manifest.ts`) and is documented
+  as "pure and synchronous — never throws, never does I/O or network access", so a Comet's own build
+  never rejects it. This is two bindings, same component name, at two different subpaths, by design
+  — the same precedent already established for a `./runtime/*` variant carrying strictly more
+  capability than its root-barrel counterpart, at the cost of the `@zanix/space` dependency; not a
+  naming collision to avoid.
+
+- **`RichText`'s `'markdown'` mode gains `markdownTags` — the same kind of `img`/`video` override
+  hatch `'icu'` mode's own `tags` prop has always had** — purely additive: a caller not passing
+  `markdownTags` sees no behavior change at all, `renderMarkdown`'s own built-in `Image`/`Video`
+  composition is unchanged. Closes a real, narrower asymmetry between the two content formats: an
+  `'icu'`-mode caller could already override the built-in `img`/`video` tags via `tags`;
+  `'markdown'` mode had no equivalent — `renderMarkdown` hard-coded its own `Image`/`Video` calls
+  with no injection point at all. A new `markdownTags` prop (`img`/`video`, both optional;
+  `RichText/markdown.ts`'s own `MarkdownTags<Node>`, exported from the `./runtime/rich-text`
+  subpath, a `/preact` variant alongside) closes it, keyed by the same `img`/`video` names `'icu'`
+  mode's own built-in table uses. Deliberately NOT the same TYPE `'icu'` mode's own `tags` prop has
+  (a record of `RichTextTagFn`, FormatJS's own chunks-based rich-text tag dispatch signature) — a
+  real structural divergence, confirmed by reading both call sites directly, not an inconsistency: a
+  `RichTextTagFn` receives a tag's own parsed CHILDREN, since an ICU tag has no attribute syntax of
+  its own, so its `src`/etc. live in a NESTED `<props>` tag inside its own `chunks`, read back out
+  via `extractRichTextProps`. A markdown `![alt](src)` node has no children/chunks at all:
+  `src`/`alt`/`title`/any `_props[...]`-namespaced extra prop are already flat, resolved values by
+  the time its own handler runs, so a markdown tag override receives that exact same
+  already-resolved props object directly instead. `link` gets no override, deliberately: `Link`
+  already has zero `@zanix/space` dependency of its own, so there's no reason to need one — the same
+  reasoning that justifies `img`/`video` here doesn't extend to it.
+
+  **Not a comet-safety mechanism, for either `tags` or `markdownTags`** — both remain pure SSR
+  rendering customizations; `RichText` stays exactly as `./runtime`-only as before, never importable
+  from a `'use comet'` file, with or without either override. `RichText/tags.ts`'s/`markdown.ts`'s
+  own fallback `import { resolveAssetHref } from '@zanix/space/assets-manifest'` (used whenever an
+  override isn't given for a particular tag/node) stays a real, UNCONDITIONAL dependency of those
+  files regardless of whether any given instance's own props ever exercise it — a static ES import
+  is hoisted no matter what a caller passes. Confirmed directly, not assumed: running
+  `deno info --json` against `src/runtime/rich-text.ts` resolves the identical three `@zanix/space`
+  files (`assets-manifest`, `video-source`, and `video-source`'s own transitive `content-type.ts`)
+  before and after this change — zero difference in `RichText`'s own module graph. A caller's
+  override function MAY compose the comet-safe root-barrel `Image`/`Video` for what it renders, but
+  that only affects one SSR call's own output, never which modules `RichText`'s own files reach.
+
+  | Was                                           | Now (additive — `img` shown, `video` symmetric)                                                                                                   |
+  | --------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+  | _(no override possible in `'markdown'` mode)_ | `<RichText content={md} contentFormat="markdown" markdownTags={{ img: ({ key, src, alt }) => <Image key={key} src={src} alt={alt ?? ''} /> }} />` |
+
+- **`NavDrawer`** (`@zanix/space-ui/runtime/nav-drawer`,
+  `@zanix/space-ui/runtime/nav-drawer/preact`) — a ready-made, hamburger-triggered navigation
+  drawer, shipped as a real `'use comet'` Comet (`@zanix/space/comet`'s `defineComet`). Composes
+  this package's own `Button` (the toggle), `Drawer` (the sliding panel — `side` defaults to
+  `'left'`, `nonce`, `closeOnEscape`), and `Menu` (`toggle: false`, always rendered) — inherits
+  every one of their own `data-space-ui` hooks, adds none of its own. Lives in its own
+  `./runtime/nav-drawer`/`./runtime/nav-drawer/preact` subpath, not the default barrel: it imports
+  `@zanix/space/comet`'s `defineComet` directly, a real, direct dependency on `@zanix/space` (see
+  `src/runtime/video.ts`'s own `@module` doc for why that's the same condition
+  `Video`/`Image`/`RichText`/`ImgButton`/`Card` are already held to, even though the specific
+  `@zanix/space` module reached differs — and the "runtime entrypoint split" entry further down this
+  section for why it's its own subpath rather than sharing one with those five). Its own
+  `NavDrawerItem[]` deliberately omit `Menu`'s own `visual` render-prop — a Comet's own props cross
+  the server/client boundary as plain JSON, and a function isn't JSON-serializable — so `icon`
+  (already-JSON `IconProps`) is the only decorative-visual path available on a `NavDrawer` item.
+  Always uncontrolled (no `open`/`onOpenChange` escape hatch, for the same JSON-boundary reason) and
+  closes itself automatically the instant a real navigation link inside it is activated (plain DOM
+  click delegation, never a router/URL read). See `docs/architecture.md`'s own build-order table
+  (row 20) and `README.md`'s "Current status" for the full contract.
 
 ## [1.0.1] - 2026-09-05
 

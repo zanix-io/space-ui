@@ -4,14 +4,33 @@ import { useIntl } from 'intl/index.ts'
 import type { RichTextTagFn } from 'intl/formatter.ts'
 import type { CreateElement } from 'typings/renderer.ts'
 import { createRichText } from './render.ts'
+import type { MarkdownTags } from './markdown.ts'
 import type { RichTextBaseProps } from './types.ts'
 
 /** {@linkcode RichTextBaseProps} plus the React-specific tag overrides. */
 export type RichTextProps = RichTextBaseProps & {
   /** Extra ICU rich-text tags, merged over (and able to override) the built-in table
    * `RichText/tags.ts` provides — the same extensibility react-intl's own `defaultRichTextElements`
-   * already had. Has no effect in `'markdown'` mode. */
+   * already had. Has no effect in `'markdown'` mode; see {@linkcode markdownTags} for that mode's
+   * own equivalent. A pure SSR rendering customization — see {@linkcode markdownTags}'s own doc for
+   * why this is never a comet-safety mechanism of any kind, `RichText` remains `./runtime`-only
+   * regardless of whether either override is used. */
   tags?: Record<string, RichTextTagFn<ReactNode>>
+  /** `'markdown'`-mode-only analog of {@linkcode tags} — an additive, opt-in override for
+   * markdown's own built-in `img`/`video` node handling. Typical uses: composing a caller-owned
+   * `Image`/`Video`-shaped element, enforcing a stricter policy (e.g. rejecting any relative URL
+   * outright for untrusted CMS content) than the built-in auto-resolve default, or swapping in an
+   * entirely different visual. See `markdown.ts`'s own `MarkdownTags` doc for the full contract, and
+   * why its shape necessarily differs from `RichTextTagFn`. No effect in `'icu'` mode.
+   *
+   * **Not a comet-safety mechanism** — this only changes what a single SSR call renders, never
+   * which modules `RichText`'s own files reach: `RichText/tags.ts`/`markdown.ts` keep their own
+   * unconditional `resolveAssetHref` import as the fallback used whenever an override isn't given,
+   * a static ES import hoisted regardless of any instance's own props. `RichText` stays
+   * `./runtime`-only, never importable from a `'use comet'` file, with or without this prop — see
+   * `src/runtime/rich-text.ts`'s own module doc for the full reasoning and the `deno info --json`
+   * confirmation. */
+  markdownTags?: MarkdownTags<ReactNode>
 }
 
 /**
@@ -50,6 +69,34 @@ export type RichTextProps = RichTextBaseProps & {
  * instead of a restringified marker regex has to re-find — the two confirmed real bugs that came
  * from that round-trip (a literal `$` breaking the marker, plain text silently misparsed as
  * querystring) are structurally impossible here, not just patched.
+ *
+ * ## `markdownTags` — `'markdown'` mode's own override hatch, the analog of `tags`
+ *
+ * `'icu'` mode has always let a caller override the built-in `img`/`video` tags via `tags`;
+ * `'markdown'` mode gets the equivalent capability via `markdownTags` — additive, opt-in, no effect
+ * on any caller not using it. See `markdown.ts`'s own `MarkdownTags` doc for why its shape is a
+ * props object rather than `RichTextTagFn`'s chunks array (a real structural divergence from ICU's
+ * own tag-dispatch mechanism, not an inconsistency).
+ *
+ * **Neither `tags` nor `markdownTags` makes `RichText` usable inside a `'use comet'` file** — both
+ * are pure SSR rendering customizations. The example below happens to compose the comet-safe
+ * root-barrel `Image` inside the override function, purely because that's a convenient, correct
+ * choice for whatever gets rendered — it does NOT mean this `RichText` call itself becomes
+ * comet-safe: `RichText/markdown.ts`'s own fallback `resolveAssetHref` import (used whenever
+ * `markdownTags.img` isn't given) stays a real, unconditional dependency of this component's own
+ * module regardless, confirmed via `deno info --json` — see `src/runtime/rich-text.ts`'s own module
+ * doc for the full reasoning.
+ *
+ * @example
+ * ```tsx
+ * <RichText
+ *   content={markdownSource}
+ *   contentFormat="markdown"
+ *   markdownTags={{
+ *     img: ({ key, src, alt }) => <Image key={key} src={src} alt={alt ?? ''} />,
+ *   }}
+ * />
+ * ```
  */
 export const RichText: (props: RichTextProps) => ReactElement = createRichText<
   ReactElement,

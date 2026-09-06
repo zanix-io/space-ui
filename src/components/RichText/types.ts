@@ -23,7 +23,8 @@ import type { FormatMessageValues } from 'intl/formatter.ts'
 export type RichTextContentFormat = 'icu' | 'markdown'
 
 /** Props shared by both renderer bindings — see each binding's own `index.ts`/`index.preact.ts`
- * for the renderer-bound `tags` prop, which needs the concrete `ReactNode`/Preact node type. */
+ * for the renderer-bound `tags`/`markdownTags` props, which need the concrete `ReactNode`/Preact
+ * node type. */
 export type RichTextBaseProps = {
   /**
    * In `'icu'` mode (the default): a message id, or literal ICU-tagged text used as its own

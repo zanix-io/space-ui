@@ -3,13 +3,16 @@ import { assert, assertEquals, assertStringIncludes } from '@std/assert'
 import { render as renderDOM } from 'preact'
 import { act } from 'preact/test-utils'
 import { render } from 'preact-render-to-string'
-import { setAssetsManifestState } from '@zanix/space/assets-manifest'
 import { Video } from 'components/Video/index.preact.ts'
 
 // Called as a plain function, not via JSX — see `icon-preact.test.tsx`'s own doc for why. The
 // `assert(vnode, ...)` calls below narrow `VNode | null` to `VNode` for `render()` — a real,
 // justified assertion (these test cases all pass a source `Video` is known to render), not a
 // blind non-null cast — same reasoning `social-networks-preact.test.tsx`'s own `assert` calls use.
+//
+// This is the comet-safe, root-barrel `Video` (`createVideo(h)`, no `resolveAssetHref` injected) —
+// a relative file/poster/track path is left exactly as given here. See
+// `video-runtime-preact.test.tsx` for the OTHER binding (`@zanix/space-ui/runtime/video/preact`).
 
 Deno.test('Video (preact): a YouTube URL renders an IFrame with the real embed URL', () => {
   const vnode = Video({ src: 'https://youtu.be/abcdefghijk', title: 'Song' })
@@ -60,17 +63,12 @@ Deno.test('Video (preact): a generic embeddable URL renders an IFrame with src a
   assertEquals(html.includes('autoplay'), false)
 })
 
-Deno.test('Video (preact): a local file path resolves via resolveAssetHref', () => {
-  setAssetsManifestState({ manifest: { 'clip.mp4': '/assets/clip-abc123.mp4' } })
-  try {
-    const vnode = Video({ src: 'clip.mp4', title: 'Demo' })
-    assert(vnode)
-    const html = render(vnode)
-    assertStringIncludes(html, '<video')
-    assertStringIncludes(html, 'src="/assets/clip-abc123.mp4"')
-  } finally {
-    setAssetsManifestState(undefined)
-  }
+Deno.test('Video (preact): a local file path renders a real <video>, UNRESOLVED (root barrel)', () => {
+  const vnode = Video({ src: 'clip.mp4', title: 'Demo' })
+  assert(vnode)
+  const html = render(vnode)
+  assertStringIncludes(html, '<video')
+  assertStringIncludes(html, 'src="clip.mp4"')
 })
 
 // --- data-space-ui: own root for the file case, inherited from IFrame otherwise ------------
@@ -178,11 +176,11 @@ Deno.test('Video (preact): onError has no effect on a YouTube (provider) source'
   assertEquals(props.onError, undefined)
 })
 
-Deno.test('Video (preact): poster is resolved through resolveAssetHref', () => {
+Deno.test('Video (preact): poster passes through UNRESOLVED (root barrel)', () => {
   const vnode = Video({ src: 'clip.mp4', title: 'Demo', poster: 'poster.jpg' })
   assert(vnode)
 
-  assertStringIncludes(render(vnode), 'poster="/assets/poster.jpg"')
+  assertStringIncludes(render(vnode), 'poster="poster.jpg"')
 })
 
 Deno.test('Video (preact): an absolute poster URL passes through untouched', () => {
@@ -222,7 +220,7 @@ Deno.test('Video (preact): tracks render as real <track> elements', () => {
   const html = render(vnode)
 
   assertStringIncludes(html, '<track')
-  assertStringIncludes(html, 'src="/assets/captions-en.vtt"')
+  assertStringIncludes(html, 'src="captions-en.vtt"')
   assertStringIncludes(html, 'srclang="en"')
 })
 
@@ -235,7 +233,7 @@ Deno.test(
     assert(vnode)
     const html = render(vnode)
 
-    assertStringIncludes(html, 'src="/assets/clip.mp4"')
+    assertStringIncludes(html, 'src="clip.mp4"')
     assertEquals(html.includes('<source'), false)
   },
 )
@@ -245,7 +243,7 @@ Deno.test('Video (preact): an explicit empty sources array behaves like omitting
   assert(vnode)
   const html = render(vnode)
 
-  assertStringIncludes(html, 'src="/assets/clip.mp4"')
+  assertStringIncludes(html, 'src="clip.mp4"')
   assertEquals(html.includes('<source'), false)
 })
 
@@ -266,7 +264,7 @@ Deno.test('Video (preact): a single source renders as a real <source> element', 
   assert(vnode)
   const html = render(vnode)
 
-  assertStringIncludes(html, '<source src="/assets/clip-hd.mp4"/>')
+  assertStringIncludes(html, '<source src="clip-hd.mp4"/>')
 })
 
 Deno.test('Video (preact): multiple sources preserve the given order', () => {
@@ -295,7 +293,7 @@ Deno.test('Video (preact): sources with media present renders the media attribut
   assert(vnode)
   const html = render(vnode)
 
-  assertStringIncludes(html, '<source media="(min-width: 1441px)" src="/assets/clip-dlg.mp4"/>')
+  assertStringIncludes(html, '<source media="(min-width: 1441px)" src="clip-dlg.mp4"/>')
 })
 
 Deno.test('Video (preact): sources with no media omits the attribute entirely', () => {
@@ -307,7 +305,7 @@ Deno.test('Video (preact): sources with no media omits the attribute entirely', 
   assert(vnode)
   const html = render(vnode)
 
-  assertStringIncludes(html, '<source src="/assets/clip.webm" type="video/webm"/>')
+  assertStringIncludes(html, '<source src="clip.webm" type="video/webm"/>')
 })
 
 Deno.test('Video (preact): sources with type present renders the type attribute verbatim', () => {
@@ -345,19 +343,8 @@ Deno.test('Video (preact): sources combining media and type together renders bot
 
   assertStringIncludes(
     html,
-    '<source media="(min-width: 1441px)" src="/assets/clip-dlg.webm" type="video/webm"/>',
+    '<source media="(min-width: 1441px)" src="clip-dlg.webm" type="video/webm"/>',
   )
-})
-
-Deno.test('Video (preact): a relative source src resolves through resolveAssetHref', () => {
-  setAssetsManifestState({ manifest: { 'clip-hd.mp4': '/assets/clip-hd-abc123.mp4' } })
-  try {
-    const vnode = Video({ src: 'clip.mp4', title: 'Demo', sources: [{ src: 'clip-hd.mp4' }] })
-    assert(vnode)
-    assertStringIncludes(render(vnode), 'src="/assets/clip-hd-abc123.mp4"')
-  } finally {
-    setAssetsManifestState(undefined)
-  }
 })
 
 Deno.test('Video (preact): an absolute source src passes through untouched', () => {
@@ -382,7 +369,7 @@ Deno.test(
     const html = render(vnode)
 
     const dlgIndex = html.indexOf('clip-dlg.mp4')
-    const fallbackIndex = html.indexOf('<source src="/assets/clip.mp4"/>')
+    const fallbackIndex = html.indexOf('<source src="clip.mp4"/>')
     assertEquals(dlgIndex > -1 && fallbackIndex > dlgIndex, true)
   },
 )
@@ -397,8 +384,8 @@ Deno.test('Video (preact): sources combines correctly with poster', () => {
   assert(vnode)
   const html = render(vnode)
 
-  assertStringIncludes(html, 'poster="/assets/poster.jpg"')
-  assertStringIncludes(html, '<source src="/assets/clip-hd.mp4"/>')
+  assertStringIncludes(html, 'poster="poster.jpg"')
+  assertStringIncludes(html, '<source src="clip-hd.mp4"/>')
 })
 
 Deno.test(

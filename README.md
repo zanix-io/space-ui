@@ -64,30 +64,39 @@ ahead of time:
   real accessibility guarantee, never optional. `loading="lazy"` is browser-native, no
   `IntersectionObserver` involved; `sandbox` is supported.
 - ✅ **`Video`** — YouTube, Vimeo, a generic embeddable URL, or a local/CDN file, one component:
-  classified by `@zanix/space`'s own `detectVideoSource`, rendered via `IFrame` (embeds) or a real
-  native `<video>` (files, via `@zanix/space`'s `resolveAssetHref`). Native `controls`/`autoPlay`/
-  `loop`/`muted`/`playsInline`/`preload`/`tracks` for the file case; the same four playback options
-  thread through the provider's own real embed URL for YouTube/Vimeo. `sources?: VideoSourceProps[]`
-  (file case only) renders real `<source media type src>` children — the browser selects among them
-  once, at load time, with no JavaScript and no reactive re-selection on resize; a video already
-  playing is never interrupted by responsive logic. No pretty-controls, no custom lazy-loading —
-  headless, same as every other component here. Renders nothing for an undetectable/unsupported
-  source (e.g. an `.m3u8` HLS manifest — `@zanix/space` doesn't support HLS). This package's first
-  real runtime dependency on `@zanix/space` — see `Video/render.ts`'s own doc for the full contract.
+  classified by `@zanix/space`'s own `detectVideoSource` (a real, unconditional dependency — see
+  below), rendered via `IFrame` (embeds) or a real native `<video>` (files). Native
+  `controls`/`autoPlay`/`loop`/`muted`/`playsInline`/`preload`/`tracks` for the file case; the same
+  four playback options thread through the provider's own real embed URL for YouTube/Vimeo.
+  `sources?: VideoSourceProps[]` (file case only) renders real `<source media type src>` children —
+  the browser selects among them once, at load time, with no JavaScript and no reactive re-selection
+  on resize; a video already playing is never interrupted by responsive logic. No pretty-controls,
+  no custom lazy-loading — headless, same as every other component here. Renders nothing for an
+  undetectable/unsupported source (e.g. an `.m3u8` HLS manifest — `@zanix/space` doesn't support
+  HLS). Ships in TWO forms, same name: the default `.`/`./preact` export is comet-safe (an
+  already-absolute file/poster/track path works as-is; a relative one is left unresolved, since
+  `@zanix/space/assets-manifest`'s own `resolveAssetHref` is never injected here) — the
+  `./runtime/video` subpath is the byte-for-byte identical, auto-resolving sibling (relative paths
+  resolve via `resolveAssetHref`, SSR-only, not comet-safe). `@zanix/space/video-source`'s own
+  classification stays a real, unconditional dependency in BOTH forms (safe for a Comet — no
+  `'server-only'` directive) — see `Video/render.ts`'s own doc for the full contract.
 - ✅ **`Image`** — a real `<img>`, or a `<picture>` with art-direction `<source>`s when `sources` is
-  given. `src`, each `sources[].src`, and the optional `placeholder` all resolve through
-  `@zanix/space`'s own `resolveAssetHref`, the same mechanism `Video.src`/`Video.poster` already use
-  — any generated image file (e.g. a video thumbnail) registered as a normal asset is just an
-  ordinary `src`/`placeholder` here, with no special-casing on either side. Native
-  `loading`/`decoding`/`fetchPriority`/`crossOrigin`/`referrerPolicy` only; no custom lazy-loading
-  machinery. `placeholder` shows a fallback image while the real one loads (a real independent
-  capability, not a lazy-loading detail — it works the same regardless of `loading`) via CSS
-  `background-image` on the `<img>` itself, since `<img>` has no native `poster`-equivalent
+  given. Native `loading`/`decoding`/`fetchPriority`/`crossOrigin`/`referrerPolicy` only; no custom
+  lazy-loading machinery. `placeholder` shows a fallback image while the real one loads (a real
+  independent capability, not a lazy-loading detail — it works the same regardless of `loading`) via
+  CSS `background-image` on the `<img>` itself, since `<img>` has no native `poster`-equivalent
   attribute. Applies no `object-fit` (or any other visual) default of its own — a consumer gets a
   fill-and-cover look, with full control (`contain` included), via plain CSS on `className`.
   `id`/`className`/`data-space-ui="image"` always render on the `<img>` itself, never on the
-  `<picture>` wrapper (`object-fit`/sizing only ever apply to the replaced `<img>` element) — see
-  `Image/render.ts`'s own doc for the full set of design decisions behind this component.
+  `<picture>` wrapper (`object-fit`/sizing only ever apply to the replaced `<img>` element). Ships
+  in TWO forms, same name, same as `Video` above: the default `.`/`./preact` export is comet-safe —
+  an already-absolute `src`/`sources[].src`/`placeholder` works as-is; a relative one is left
+  exactly as given, never resolved against a manifest — while `@zanix/space-ui/runtime/image`
+  auto-resolves a relative path through `@zanix/space`'s own `resolveAssetHref` (SSR-only, not
+  comet-safe, unchanged from every prior version of this component). `resolveHref` is an optional,
+  injected parameter on the shared `render.ts` factory — this is what makes both forms possible from
+  one implementation — see `Image/render.ts`'s own doc for the full set of design decisions behind
+  this component.
 - ✅ **`ProgressBar`** — a determinate (`timeout`) or indeterminate loading indicator, two nested
   elements (track + fill) with no animation of its own: real CSS in this package's optional
   `shared/behavior.css` scaffold drives it, keyed off `data-space-ui="progress-bar"` and the fill's
@@ -108,25 +117,38 @@ ahead of time:
   `data-space-ui="grid"`/`"grid-item"` on their respective roots; a consumer wanting a cell's own
   children to size directly against the grid (rather than through a wrapping box) adds a single
   declarative `[data-space-ui="grid-item"] > * { display: contents; }` rule — no JavaScript.
-- ✅ **`Card`** — a title/subtitle/content/footer/image composition built entirely on `Grid`,
-  `Image`, and `Link` — no duplicated asset resolution, `sources`/`placeholder`, or link-rendering
-  logic. Stacked (mobile) vs. side-by-side (desktop, ≥721px) is resolved entirely by an optional CSS
-  file (`shared/card.css`) — `Card` itself runs no viewport detection of any kind and renders one
-  fixed structure either way, in the correct order (title, subtitle, content, footer, image) with or
-  without that CSS loaded. `align: 'left' | 'right'` on `image` controls which column it sits in
-  once side-by-side; `stacked?: boolean` overrides the automatic choice at every viewport when set,
-  via `data-align`/`data-stacked` on the root — the media query, `align`, and `stacked` variants all
-  resolve purely through CSS `grid-template-areas` (the one grid property `Grid` itself never sets
-  inline), so nothing here ever needs `!important` to win. See `Card/render.ts`'s own doc for the
-  full mechanism, including why `Grid`/`GridItem` needed zero changes to support it.
-- ✅ **`ImgButton`** — a labeled `Icon` or `Image` composed onto either a real `Link` (`href` given)
-  or a real `Button` (no `href`), never a new interactive-element implementation of its own.
-  `onClick` works on either branch; `label` is the one accessible name on the interactive element —
-  the inner `Icon`/`Image` is always decorative (`Image`'s `alt` is forced to `""`, never a
-  configurable prop here). `icon` and `image` reuse `IconProps`/`ImageProps` verbatim, so every
-  capability either already has (sprite refs, `sources`, `placeholder`, `loading`) carries over with
-  no duplicated logic; `icon` wins if both are given. An optional `caption` renders as a trailing
-  `<span>`. No wrapping element of its own — the root **is** the `Link` or `Button`.
+- ✅ **`Card`** — a title/subtitle/content/footer/visual composition built entirely on `Grid` and
+  `Link` — no duplicated link-rendering logic. Stacked (mobile) vs. side-by-side (desktop, ≥721px)
+  is resolved entirely by an optional CSS file (`shared/card.css`) — `Card` itself runs no viewport
+  detection of any kind and renders one fixed structure either way, in the correct order (title,
+  subtitle, content, footer, visual) with or without that CSS loaded. `visual?: () => Node` is a
+  render-prop slot — the caller supplies an already-built element (their own `Image` instance, a
+  plain `<img>`, anything), never a data shape this component resolves itself; `image` is
+  convenience sugar on top for the common case (an `Omit<ImageProps, 'alt'>` shape) — internally
+  builds `Image({ ...image, alt: '' })` using the comet-safe, root-barrel `Image` (never the
+  `./runtime/image` subpath's auto-resolving one, so a relative `image.src` is left unresolved), and
+  loses to `visual` when both are given. Either way, this component's own module stays free of any
+  `@zanix/space` dependency (see [Design principle](#design-principle)). `align: 'left' | 'right'`,
+  its own top-level prop (Card's own layout concern, never really the visual's own), controls which
+  column it sits in once side-by-side; `stacked?: boolean` overrides the automatic choice at every
+  viewport when set, via `data-align`/`data-stacked` on the root — the media query, `align`, and
+  `stacked` variants all resolve purely through CSS `grid-template-areas` (the one grid property
+  `Grid` itself never sets inline), so nothing here ever needs `!important` to win. See
+  `Card/render.ts`'s own doc for the full mechanism, including why `Grid`/`GridItem` needed zero
+  changes to support it.
+- ✅ **`ImgButton`** — a labeled `Icon` or caller-supplied visual composed onto either a real `Link`
+  (`href` given) or a real `Button` (no `href`), never a new interactive-element implementation of
+  its own. `onClick` works on either branch; `label` is the one accessible name on the interactive
+  element — the inner `Icon`/visual/`image` is always decorative. `icon` reuses `IconProps`
+  verbatim, so every capability `Icon` already has carries over with no duplicated logic;
+  `visual?: () => Node` is a render-prop slot for anything else (an already-built `Image` instance,
+  a plain `<img>`, anything); `image` (an `Omit<ImageProps, 'alt'>` shape) is convenience sugar on
+  top, building `Image({ ...image, alt: '' })` via the comet-safe, root-barrel `Image` (a relative
+  `image.src` is left unresolved there — an already-absolute URL works as expected). Precedence when
+  more than one is given: `icon` → `visual` → `image`. Composing `Image` this way is what keeps this
+  component's own module free of any `@zanix/space` dependency, since `Image/render.ts` no longer
+  hardcodes that import (see [Design principle](#design-principle)). An optional `caption` renders
+  as a trailing `<span>`. No wrapping element of its own — the root **is** the `Link` or `Button`.
 - ✅ **`Counter`** — a number that animates from `0` up to `target` the first time it becomes
   visible, and never again (`IntersectionObserver`, `threshold: 0.05`, disconnected after the first
   intersection). This package's first component with real interactive state — a full, independent
@@ -151,9 +173,13 @@ ahead of time:
   focus — never mouse-only), or `'onRender'` (always expanded, no trigger). Every open submenu is
   independent — opening one never closes a sibling — and closes on its own trigger, outside click,
   or `Escape` (closing only the innermost open level and returning focus to the control that opened
-  it). This package's second component with real interactive state, after `Counter` — a full,
-  independent React/Preact implementation composing the already-built
-  `Link`/`Button`/`ImgButton`/`Icon`/`Image`.
+  it). This package's second component with real interactive state, after `Counter` — a shared
+  `render.ts` factory (`createMenu(h, hooks, Fragment)`) composing the already-built
+  `Link`/`Button`/`Icon`. Each item's decorative visual is `icon` (`IconProps`, wins when both are
+  given) or a `visual` render-prop (an already-built element the caller supplies — their own
+  `Image`/`ImgButton` instance, a plain `<img>`, anything) — never `Image`/`ImgButton` composed
+  internally, which is what keeps this component's own module free of any `@zanix/space` dependency
+  (see [Design principle](#design-principle)).
 - ✅ **`Slider`** — a carousel: one slide visible at a time, advanced by arrows, dots, keyboard, or
   autoplay. The WAI-ARIA Carousel pattern — `role="region"` + `aria-roledescription="carousel"` —
   never `role="slider"` (a single-value range-input widget role, not a carousel's), and a fixed
@@ -420,7 +446,21 @@ ahead of time:
   name for a data table; `emptyState` renders as a single row spanning every column when there are
   no rows to show.
 
-All thirty-eight ship for **both React and Preact** (see [Installation](#installation)).
+- ✅ **`NavDrawer`** — a ready-made, hamburger-triggered navigation drawer, shipped as a real
+  `'use comet'` Comet (`@zanix/space/comet`'s `defineComet`) — import from
+  `@zanix/space-ui/runtime/nav-drawer`/`@zanix/space-ui/runtime/nav-drawer/preact`, not the default
+  barrel, and not a shared `./runtime` barrel either (removed — see the
+  [CHANGELOG](./CHANGELOG.md)). Composes the toggle `Button`, the sliding `Drawer` (`side` defaults
+  to `'left'`, unlike bare `Drawer`'s own no-default), and `Menu` (`toggle: false`, always rendered
+  — `Drawer` itself is what's shown or hidden) — inherits every one of their own `data-space-ui`
+  hooks, adds none of its own. Its own `items: NavDrawerItem[]` deliberately omit `Menu`'s own
+  `visual` render-prop: a Comet's props cross the server/client boundary as plain JSON, and a
+  function isn't JSON-serializable, so `icon` (already-JSON `IconProps`) is the only
+  decorative-visual path available here. Always uncontrolled — no `open`/`onOpenChange` escape
+  hatch, for the same JSON-boundary reason — and closes itself automatically the instant a real
+  navigation link inside it is clicked, plain DOM click delegation, never a router/URL read.
+
+All thirty-nine ship for **both React and Preact** (see [Installation](#installation)).
 
 Also included, though not a rendering component: **`IntlProvider`/`useIntl`/`createFormatter`** —
 this package's own ICU message-formatting runtime (`formatMessage(id, values)` for plain messages,
@@ -444,16 +484,31 @@ concern (or `@zanix/space`'s, once it has them). That keeps `@zanix/space-ui` ge
 versioned independently of the rendering engine it's meant to sit on top of — an app can use
 `@zanix/space` without ever installing this package.
 
-The exceptions are `Video`, `Image`, `RichText`, `ImgButton`, `Card`, and `Menu`: `Video`/`Image`
-resolve `src`/`poster`/track `src`/`sources[].src` through `@zanix/space`'s own `resolveAssetHref`
-directly — a local file needs its real, possibly content-hashed build URL, and forcing every caller
-to resolve that themselves before handing it to `Video`/`Image` would just be `resolveAssetHref(x)`
-repeated at every call site; `RichText` resolves it directly too (for `resolveRichTextDocument`) and
-also composes `Image`/`Video` for its built-in tags; `ImgButton` and `Card` each compose `Image`;
-`Menu` composes both `Image` and `ImgButton`. Because of that real runtime dependency, all six are
-exported from a separate `./runtime`/`./runtime/preact` entrypoint instead of the default
-`.`/`./preact` barrel — see the [CHANGELOG](./CHANGELOG.md) for the exact import paths and why the
-split exists.
+The exceptions are `RichText` and `NavDrawer`: `RichText` resolves a relative asset path embedded in
+its own dynamic, caller-uncontrolled content through `@zanix/space`'s own `resolveAssetHref`
+directly (`resolveRichTextDocument`, plus its own `img`/`video` tags injecting the same resolver
+into `Image`/`Video`'s shared `render.ts`) — there's no single prop a caller could pre-resolve the
+way a plain `src` prop allows; `NavDrawer` is a real Comet, importing `@zanix/space/comet`'s own
+`defineComet` directly. Because of that real runtime dependency, each is exported from its OWN
+`./runtime/<name>`/`./runtime/<name>/preact` subpath (`./runtime/rich-text`, `./runtime/nav-drawer`)
+instead of the default `.`/`./preact` barrel — never a shared combined `./runtime` barrel either
+(removed; see the [CHANGELOG](./CHANGELOG.md) for the exact import paths and why one subpath per
+component, rather than a shared one, is what actually closes the underlying bug).
+
+`Video`/`Image` are a narrower case: `resolveAssetHref` is an OPTIONAL, injected parameter on their
+shared `render.ts` factories now, not a hardcoded import, so each ships in TWO forms under the SAME
+name — the default `.`/`./preact` barrel (comet-safe, no resolver injected, an already-absolute
+`src`/`poster`/`sources[].src`/track `src` works as-is, a relative one is left unresolved) and
+`./runtime/video`/`./runtime/image` (the `/preact` variant alongside each — `resolveAssetHref`
+injected, auto-resolving, SSR-only, byte-for-byte unchanged from every prior version of either
+component). `Video`'s own `@zanix/space/video-source` classification dependency stays real and
+unconditional in BOTH forms — it's core logic every branch needs, not an asset-resolution nicety,
+and it's genuinely safe for a Comet (no `'server-only'` directive, confirmed by reading the module
+directly). `Menu`, `ImgButton`, and `Card` each compose only zero-`@zanix/space`-dependency
+components internally via their own `visual` render-prop — `ImgButton`'s and `Card`'s own `image`
+convenience prop composes the comet-safe, root-barrel `Image` (never `./runtime/image`'s
+auto-resolving one), which is what keeps them dependency-free despite composing `Image` at all — so
+all three ship from the default barrel, alongside every other dependency-free component.
 
 **React and Preact both work, with no `preact/compat` shim.** A presentational component with no
 per-renderer hook usage has its real logic written once against `React.createElement`/`Preact.h`'s

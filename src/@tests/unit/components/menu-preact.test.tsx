@@ -6,7 +6,7 @@ import { act } from 'preact/test-utils'
 import { render as renderToString } from 'preact-render-to-string'
 import { assertEquals, assertStringIncludes } from '@std/assert'
 import { Menu } from 'components/Menu/index.preact.ts'
-import type { MenuItem, MenuProps } from 'components/Menu/types.ts'
+import type { MenuItem, MenuProps } from 'components/Menu/index.preact.ts'
 
 // Unlike every hookless Preact component in this package, `Menu` uses real hooks — built with
 // `h(Menu, props)` and rendered through Preact's own pipeline, not called as a plain function.

@@ -3,7 +3,7 @@ import { act } from 'react'
 import { createRoot } from 'react-dom/client'
 import { assertEquals } from '@std/assert'
 import { Menu } from 'components/Menu/index.ts'
-import type { MenuItem } from 'components/Menu/types.ts'
+import type { MenuItem } from 'components/Menu/index.ts'
 
 /**
  * Real cross-component composition: `Menu` (`components/Menu/index.ts`) composes real `Button`

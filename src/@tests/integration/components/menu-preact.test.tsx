@@ -3,7 +3,7 @@ import { h, render as renderDOM } from 'preact'
 import { act } from 'preact/test-utils'
 import { assertEquals } from '@std/assert'
 import { Menu } from 'components/Menu/index.preact.ts'
-import type { MenuItem, MenuProps } from 'components/Menu/types.ts'
+import type { MenuItem, MenuProps } from 'components/Menu/index.preact.ts'
 
 // See `menu.test.tsx`'s own doc (same directory) for why these live in `integration/` rather than
 // `unit/`. Preact binding — same contract, same rendered behavior as the React version.

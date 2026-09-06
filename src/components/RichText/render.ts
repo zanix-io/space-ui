@@ -1,6 +1,7 @@
 import type { CreateElement } from 'typings/renderer.ts'
 import type { Formatter, RichTextTagFn } from 'intl/formatter.ts'
 import { renderMarkdown } from './markdown.ts'
+import type { MarkdownTags } from './markdown.ts'
 import { createRichTextTags } from './tags.ts'
 import type { RichTextBaseProps } from './types.ts'
 
@@ -24,6 +25,10 @@ export type RichTextHooks = {
  * `RichTextProps`, with `ReactNode`/`ComponentChildren`. */
 export type RichTextRenderProps<Node> = RichTextBaseProps & {
   tags?: Record<string, RichTextTagFn<Node>>
+  /** `'markdown'` mode's own analog of {@linkcode tags} — see `markdown.ts`'s own `MarkdownTags`
+   * doc for the full contract and why its shape necessarily differs from `RichTextTagFn`. No
+   * effect in `'icu'` mode. */
+  markdownTags?: MarkdownTags<Node>
 }
 
 /**
@@ -58,13 +63,13 @@ export function createRichText<E, Node>(
   const hNode = h as unknown as CreateElement<Node>
 
   return function RichText(props: RichTextRenderProps<Node>): E {
-    const { content, contentFormat = 'icu', values, tags: customTags } = props
+    const { content, contentFormat = 'icu', values, tags: customTags, markdownTags } = props
     const { formatRichText } = hooks.useIntl()
 
     const builtInTags = hooks.useMemo(() => createRichTextTags<Node>(hNode), [])
 
     if (contentFormat === 'markdown') {
-      return hAny(Fragment, {}, ...renderMarkdown(hNode, content))
+      return hAny(Fragment, {}, ...renderMarkdown(hNode, content, markdownTags))
     }
 
     const allTags = { ...builtInTags, ...customTags }

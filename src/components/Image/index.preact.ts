@@ -6,7 +6,8 @@ import type { ImageProps } from './types.ts'
 
 /**
  * A real `<img>` (or a `<picture>` with art-direction `<source>`s) — see `index.ts`'s own doc for
- * the full description. Preact binding, same props, same rendered markup; import from
+ * the full description, including "Comet-safe, root barrel — relative asset paths are NOT
+ * auto-resolved here". Preact binding, same props, same rendered markup; import from
  * `@zanix/space-ui` (no subpath) for the React one.
  */
 // Same overload-set mismatch as `Icon/index.preact.ts`'s own cast, same reasoning.

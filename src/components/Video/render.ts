@@ -3,7 +3,6 @@ import {
   detectVideoSource,
   type YoutubeEmbedOptions,
 } from '@zanix/space/video-source'
-import { resolveAssetHref } from '@zanix/space/assets-manifest'
 import type { CreateElement } from 'typings/renderer.ts'
 import { createIFrame } from '../IFrame/render.ts'
 import type { VideoProps, VideoSourceProps } from './types.ts'
@@ -12,11 +11,23 @@ import type { VideoProps, VideoSourceProps } from './types.ts'
  * A rescue of the legacy `zjs-react-components` `Video` (`Selector.tsx` + `Main.tsx` +
  * `Sources.tsx`), built entirely on primitives this package already has, not new machinery:
  * `@zanix/space`'s `detectVideoSource`/`buildProviderEmbedUrl` classify `src` and build a
- * provider's real embed URL; `IFrame` (this package's own) renders the YouTube/Vimeo/generic
- * cases; `@zanix/space`'s `resolveAssetHref` resolves a local file/poster/track to its real,
- * possibly-hashed URL, exactly like a future `Image` component would. This is the first component
- * in this package with a REAL runtime dependency on `@zanix/space` — see `deno.jsonc`'s own
- * comment on the two-file TEMP path override this needs while `@zanix/space` is unpublished.
+ * provider's real embed URL — a real, UNCONDITIONAL `@zanix/space/video-source` dependency, kept
+ * static (never injected) because it's genuinely needed regardless of resolver: classifying
+ * `'provider'`/`'iframe'`/`'file'`/`'unknown'` is core to every branch below, not an asset-
+ * resolution nicety. Confirmed safe to keep static even for the comet-safe root-barrel binding:
+ * `video-source.ts` carries no `'server-only'` directive (unlike `assets-manifest.ts` below) and is
+ * documented as "pure and synchronous — never throws, never does I/O or network access", so a
+ * Comet's own build never rejects it.
+ *
+ * `IFrame` (this package's own) renders the YouTube/Vimeo/generic cases. `resolveHref` — an
+ * OPTIONAL, injected function, exactly like `Image/render.ts`'s own — resolves a local
+ * file/poster/track src to its real, possibly-hashed URL when given (e.g.
+ * `@zanix/space/assets-manifest`'s own `resolveAssetHref`, injected only by
+ * `src/runtime/video.ts`/`.preact.ts`); an already-absolute URL passes through untouched either
+ * way, and a relative path passes through UNRESOLVED when no resolver is given at all — the
+ * `components/Video/index.ts`/`index.preact.ts` root-barrel binding's own deliberate, documented
+ * degradation. See `Image/render.ts`'s own module doc for the fuller two-binding shape this
+ * mirrors exactly.
  *
  * `data-space-ui`: the `'provider'`/`'iframe'` branches below compose `IFrame` directly and
  * inherit its own `data-space-ui="iframe"` automatically — same "composed, not reimplemented"
@@ -120,8 +131,12 @@ import type { VideoProps, VideoSourceProps } from './types.ts'
  *   `IFrame/render.ts`'s own doc for why (confirmed empirically: React never fires it for
  *   `<iframe>`, unlike Preact).
  */
-export function createVideo<E>(h: CreateElement<E>): (props: VideoProps) => E | null {
+export function createVideo<E>(
+  h: CreateElement<E>,
+  resolveHref?: (src: string) => string,
+): (props: VideoProps) => E | null {
   const IFrame = createIFrame(h)
+  const resolveFileSrc = createResolveFileSrc(resolveHref)
 
   return function Video(props: VideoProps): E | null {
     const detected = detectVideoSource(props.src)
@@ -234,19 +249,24 @@ export function createVideo<E>(h: CreateElement<E>): (props: VideoProps) => E | 
   }
 }
 
-/** `resolveAssetHref` is documented to take a bare relative path (`'clip.mp4'`,
- * `'videos/clip.mp4'`) — handing it an ALREADY-absolute URL (a CDN URL a `'file'`-classified
- * `DetectedVideoSource` can just as easily carry) would look it up in the manifest under that
- * whole URL as a literal key, miss, and fall back to a nonsense `/assets/https://…` path. This
- * passes an absolute URL through untouched and only resolves an actual relative path — the same
- * distinction `detectVideoSource`'s own `isEmbeddableUrl` draws, checked independently here since
- * that helper isn't exported (this is a different question: "does this already have its own
- * origin", not "is this safe to iframe"). */
-function resolveFileSrc(src: string): string {
-  try {
-    new URL(src)
-    return src
-  } catch {
-    return resolveAssetHref(src)
+/** Builds this component's own `resolveFileSrc`, closing over whichever `resolveHref` (if any)
+ * `createVideo` was given — same shape as `Image/render.ts`'s own `createResolveFileSrc`,
+ * deliberately duplicated rather than shared (see that file's own doc for why). An injected
+ * resolver (e.g. `resolveAssetHref`, documented to take a bare relative path like `'clip.mp4'`,
+ * `'videos/clip.mp4'`) would look an ALREADY-absolute URL (a CDN URL a `'file'`-classified
+ * `DetectedVideoSource` can just as easily carry) up in the manifest under that whole URL as a
+ * literal key, miss, and fall back to a nonsense `/assets/https://…` path — so an absolute URL
+ * always passes through untouched, checked the same way `detectVideoSource`'s own (unexported)
+ * `isEmbeddableUrl` does (a different question: "does this already have its own origin", not "is
+ * this safe to iframe"). With no `resolveHref` injected at all, a relative path passes through
+ * exactly as given. */
+function createResolveFileSrc(resolveHref?: (src: string) => string): (src: string) => string {
+  return function resolveFileSrc(src: string): string {
+    try {
+      new URL(src)
+      return src
+    } catch {
+      return resolveHref ? resolveHref(src) : src
+    }
   }
 }

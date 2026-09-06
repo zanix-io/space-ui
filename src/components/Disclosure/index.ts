@@ -21,7 +21,8 @@ export type DisclosureProps = DisclosureBaseProps & {
  * legacy equivalent — new, grounded in the
  * {@link https://www.w3.org/WAI/ARIA/apg/patterns/disclosure/ WAI-ARIA APG pattern} directly, and in
  * this package's own already-shipped `Menu` (which builds an identical trigger shape for its own
- * submenu disclosures — see `Menu/index.ts:260-282`).
+ * submenu disclosures — see `Menu/render.ts`'s own `MenuItemRow`, the "one control: both the
+ * item's own visual and its disclosure trigger" branch).
  *
  * ## Why `trigger` is content, not an element
  *

@@ -1,14 +1,24 @@
-import { resolveAssetHref } from '@zanix/space/assets-manifest'
 import type { CreateElement } from 'typings/renderer.ts'
 import type { ImageProps, ImageSourceProps } from './types.ts'
 
 /**
- * `@zanix/space`'s `resolveAssetHref` resolves a local `src` (each art-direction
- * {@linkcode ImageSourceProps.src}, and {@linkcode ImageProps.placeholder}) to its real, possibly
- * content-hashed build URL — an absolute URL passes through untouched — the same mechanism
- * `Video.src`/`Video.poster` already use.
+ * `resolveHref` is an OPTIONAL, injected function — this file itself carries no static or
+ * type-level reference to `@zanix/space` at all anymore. When given, it resolves a local `src`
+ * (each art-direction {@linkcode ImageSourceProps.src}, and {@linkcode ImageProps.placeholder}) to
+ * its real, possibly content-hashed build URL — an absolute URL passes through untouched either
+ * way, resolver or not. When omitted, a relative path passes through UNRESOLVED — a predictable,
+ * documented degradation, never a throw. This is what makes TWO real bindings possible from this
+ * exact same shared factory:
+ * - `components/Image/index.ts`/`index.preact.ts` (the root barrel, `.`/`./preact`) call
+ *   `createImage(h)` with NO resolver — comet-safe (zero `@zanix/space` reachability), correct for
+ *   any already-absolute `src`/`sources[].src`/`placeholder` (a CDN URL, the common case for a
+ *   Comet author today), but a relative local asset path is left exactly as given.
+ * - `src/runtime/image.ts`/`.preact.ts` (`./runtime/image`, `./runtime/image/preact`) inject
+ *   `@zanix/space/assets-manifest`'s own `resolveAssetHref` — byte-for-byte the same
+ *   auto-resolving behavior this component has always had, SSR-only, `@zanix/space`-dependent by
+ *   design.
  *
- * All three of these props are plain strings, never a bespoke `Asset` type: whatever produced the
+ * All three resolved props are plain strings, never a bespoke `Asset` type: whatever produced the
  * file at that path — the same responsive-image pipeline that produces `src`'s own final variant, a
  * separate thumbnail-extraction step for a video, anything else — is not this component's concern.
  * The moment a generated file is registered as a normal asset, it's indistinguishable from any other
@@ -104,7 +114,12 @@ import type { ImageProps, ImageSourceProps } from './types.ts'
  * prop-derived inline `style` string, computed identically on every render with no client-only state
  * — the same server and client output every time, same as every other prop this component has.
  */
-export function createImage<E>(h: CreateElement<E>): (props: ImageProps) => E {
+export function createImage<E>(
+  h: CreateElement<E>,
+  resolveHref?: (src: string) => string,
+): (props: ImageProps) => E {
+  const resolveFileSrc = createResolveFileSrc(resolveHref)
+
   return function Image(props: ImageProps): E {
     const {
       src,
@@ -161,18 +176,23 @@ export function createImage<E>(h: CreateElement<E>): (props: ImageProps) => E {
   }
 }
 
-/** `resolveAssetHref` is documented to take a bare relative path — handing it an already-absolute
- * URL would look it up in the manifest under that whole URL as a literal key, miss, and fall back
- * to a nonsense `/assets/https://…` path. This passes an absolute URL through untouched and only
- * resolves an actual relative path. Deliberately duplicated from `Video/render.ts`'s own identical
- * helper (not imported from a shared module) — this package's `render.ts` files are independently
- * reviewable/movable by design; a ~6-line function used at two call sites doesn't justify a new
- * shared-helpers precedent. */
-function resolveFileSrc(src: string): string {
-  try {
-    new URL(src)
-    return src
-  } catch {
-    return resolveAssetHref(src)
+/** Builds this component's own `resolveFileSrc`, closing over whichever `resolveHref` (if any)
+ * `createImage` was given. An already-absolute URL always passes through untouched — handing an
+ * injected resolver (e.g. `@zanix/space/assets-manifest`'s own `resolveAssetHref`, documented to
+ * take a bare relative path) an already-absolute URL would look it up under that whole URL as a
+ * literal key, miss, and fall back to a nonsense `/assets/https://…` path. With no `resolveHref`
+ * injected at all, a relative path passes through exactly as given — the deliberate, documented
+ * root-barrel degradation (see this file's own module doc). Deliberately duplicated from
+ * `Video/render.ts`'s own identical helper (not imported from a shared module) — this package's
+ * `render.ts` files are independently reviewable/movable by design; a ~10-line function used at two
+ * call sites doesn't justify a new shared-helpers precedent. */
+function createResolveFileSrc(resolveHref?: (src: string) => string): (src: string) => string {
+  return function resolveFileSrc(src: string): string {
+    try {
+      new URL(src)
+      return src
+    } catch {
+      return resolveHref ? resolveHref(src) : src
+    }
   }
 }

@@ -2,13 +2,24 @@ import type { CreateElement } from 'typings/renderer.ts'
 import { createGrid, createGridItem } from '../Grid/render.ts'
 import { createImage } from '../Image/render.ts'
 import { createLink } from '../Link/render.ts'
-import type { CardProps } from './types.ts'
+import type { CardBaseProps } from './types.ts'
+
+/** {@linkcode CardBaseProps} plus `visual`, generic over the renderer's own node type —
+ * `index.ts`/`index.preact.ts` each instantiate this as their own public `CardProps`.
+ *
+ * `visual` is a render-prop slot — same calling convention as `Menu`'s own `MenuRenderItem.visual`
+ * and `ImgButton`'s own `visual` (`() => Node`, the caller supplies an already-built element rather
+ * than a data shape this component resolves itself). Wins over {@linkcode CardBaseProps.image} when
+ * both are given — see this file's own doc for the full precedence. */
+export type CardRenderProps<Node> = CardBaseProps & {
+  visual?: () => Node
+}
 
 /**
- * A title/subtitle/content/footer/image composition over `Grid`, reusing `Image`/`Link` exactly
- * as already built — no duplicated asset-resolution, `sources`/`placeholder`, or link-rendering
- * logic of any kind. No hooks, no state, no viewport detection: `useResolution`, `window`,
- * `resize`, `matchMedia`, and `IntersectionObserver` are all absent from this file.
+ * A title/subtitle/content/footer/visual composition over `Grid`, reusing `Link` exactly as
+ * already built — no duplicated link-rendering logic of any kind. No hooks, no state, no viewport
+ * detection: `useResolution`, `window`, `resize`, `matchMedia`, and `IntersectionObserver` are all
+ * absent from this file.
  *
  * ## The stacked/side-by-side layout is CSS, not JavaScript
  *
@@ -44,10 +55,10 @@ import type { CardProps } from './types.ts'
  *   itself carries no new behavior of any kind, deliberately (`Grid`/`GridItem` are unchanged from
  *   what's already shipped — this file imports and calls their existing factories, nothing more).
  * - `card.css`'s default rule (no media query) lays every area out in one visual column, in DOM
- *   order — title, subtitle, content, footer, then image last, always, regardless of `align` —
+ *   order — title, subtitle, content, footer, then the visual last, always, regardless of `align` —
  *   matching the stacked case exactly. `@media (min-width: 721px)` — the exact same threshold
  *   `useResolution('dsm')` used — replaces it with a two-column layout: `align="left"` puts the
- *   image in the first column, anything else (including omitted) puts it in the second, read from
+ *   visual in the first column, anything else (including omitted) puts it in the second, read from
  *   `data-align` on the `Card` root, matching the row-order-independent semantics `align` already
  *   had.
  * - `stacked` explicit overrides (`data-stacked="true"|"false"` on the `Card` root) use a
@@ -62,33 +73,64 @@ import type { CardProps } from './types.ts'
  * component-specific needed to detect or special-case a missing item.
  *
  * `card.css` is genuinely optional, exactly like `shared/behavior.css`: without it, `Card` still
- * renders fully valid markup — every item present, in the correct DOM order, with `Image`'s own
- * headless behavior (including `sources`/`placeholder`) working exactly as it does standalone —
- * just without the two-column desktop reflow, since nothing else on this page can provide it. No
- * JavaScript ever attempts to reproduce what the CSS would have done.
+ * renders fully valid markup — every item present, in the correct DOM order — just without the
+ * two-column desktop reflow, since nothing else on this page can provide it. No JavaScript ever
+ * attempts to reproduce what the CSS would have done.
  *
- * No visual decision is introduced here beyond what's strictly needed to reproduce the layout —
- * no `object-fit`, no forced `aspect-ratio`, no dimensions on the image beyond what `image` itself
- * already carries as plain `ImageProps`.
+ * ## `visual` (render-prop) and `image` (convenience sugar over the comet-safe `Image`)
+ *
+ * `visual` is a render-prop slot (see {@linkcode CardRenderProps.visual}'s own doc) — the caller
+ * supplies an already-built element (their own `Image` instance, resolved server-side outside a
+ * Comet, a plain `<img>`, anything at all) rather than a data shape this component resolves
+ * itself. `image` ({@linkcode CardBaseProps.image}) is convenience sugar on top: when `visual` is
+ * absent, this internally builds the visual as `Image({ ...image, alt: '' })` — the comet-safe,
+ * root-barrel `Image` from `../Image/render.ts`'s own now-resolver-agnostic `createImage` factory,
+ * called here with NO resolver injected (see that file's own module doc for the full two-binding
+ * shape). This is safe precisely BECAUSE `Image/render.ts` no longer has a hardcoded `@zanix/space`
+ * import: a static ES import is unconditionally hoisted regardless of runtime branching, so
+ * composing `Image` here reaches `@zanix/space`'s own `resolveAssetHref` only if this file's own
+ * `createImage(h, resolveHref)` call actually passes one — it doesn't, so `Card` stays fully
+ * comet-safe with `image` composed. `visual` wins when both are given — an explicit render-prop
+ * always beats the convenience shorthand, since the caller opted into more control. `align` stays a
+ * top-level `CardProps` field, independent of either (see `types.ts`'s own `CardBaseProps.align`
+ * doc) — it was always Card's own layout concern, never really a property of the visual itself.
+ *
+ * No visual decision is introduced here beyond what's strictly needed to reproduce the layout — no
+ * `object-fit`, no forced `aspect-ratio`, no dimensions imposed on whatever the resolved visual is.
  *
  * A known, accepted trade-off: React's dev-mode console warns about a missing `key` on the item
  * list this passes to `Grid`. `GridItem`'s own `render.ts` never accepts or forwards a `key` (and,
  * per this component's own scope, isn't being changed to) — the array itself is entirely rebuilt
- * from props on every render, with no internal state of its own in any item (`Image`/`Link`/
- * `GridItem` are all stateless), so the real risk that warning exists to flag — reconciliation
- * misattributing a stateful child across a reordered list — doesn't apply here. This is a
- * diagnostic-only warning, not a correctness bug, and fixing it would mean either an extra
- * wrapping element around every item (breaking the direct-grid-child structure `card.css` depends
- * on) or a React-specific `cloneElement` call in this otherwise fully renderer-agnostic file.
+ * from props on every render, with no internal state of its own in any item (`visual()`'s own
+ * result, `Link`, `GridItem` are all stateless from this component's own perspective), so the real
+ * risk that warning exists to flag — reconciliation misattributing a stateful child across a
+ * reordered list — doesn't apply here. This is a diagnostic-only warning, not a correctness bug,
+ * and fixing it would mean either an extra wrapping element around every item (breaking the
+ * direct-grid-child structure `card.css` depends on) or a React-specific `cloneElement` call in
+ * this otherwise fully renderer-agnostic file.
  */
-export function createCard<E>(h: CreateElement<E>): (props: CardProps) => E {
+export function createCard<E>(h: CreateElement<E>): (props: CardRenderProps<E>) => E {
   const Grid = createGrid(h)
   const GridItem = createGridItem(h)
-  const Image = createImage(h)
   const Link = createLink(h)
+  // No resolver injected — the comet-safe, root-barrel `Image` (see this function's own doc for
+  // why that's what keeps `Card` itself comet-safe with `image` composed).
+  const Image = createImage(h)
 
-  return function Card(props: CardProps): E {
-    const { type = 'div', title, subtitle, content, footer, image, stacked, id, className } = props
+  return function Card(props: CardRenderProps<E>): E {
+    const {
+      type = 'div',
+      title,
+      subtitle,
+      content,
+      footer,
+      visual,
+      image,
+      align,
+      stacked,
+      id,
+      className,
+    } = props
 
     const cell = (dataSpaceUi: string, child: E) =>
       GridItem({ children: h('div', { 'data-space-ui': dataSpaceUi }, child) })
@@ -101,9 +143,9 @@ export function createCard<E>(h: CreateElement<E>): (props: CardProps) => E {
     if (footer?.length) {
       items.push(cell('card-footer', h('div', null, ...footer.map((link) => Link(link)))))
     }
-    if (image) {
-      const { align: _align, ...imageProps } = image
-      items.push(cell('card-image', Image(imageProps)))
+    const resolvedVisual = visual ? visual() : image ? Image({ ...image, alt: '' }) : undefined
+    if (resolvedVisual !== undefined) {
+      items.push(cell('card-image', resolvedVisual))
     }
 
     return h(
@@ -112,7 +154,7 @@ export function createCard<E>(h: CreateElement<E>): (props: CardProps) => E {
         id,
         className,
         'data-space-ui': 'card',
-        'data-align': image?.align === 'left' ? 'left' : undefined,
+        'data-align': align === 'left' ? 'left' : undefined,
         'data-stacked': stacked === undefined ? undefined : String(stacked),
       },
       Grid({ templateColumns: '1fr 1fr', templateRows: 'repeat(5, auto)', children: items }),

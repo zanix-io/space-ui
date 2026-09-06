@@ -1,9 +1,9 @@
 import { assertEquals, assertStringIncludes } from '@std/assert'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { ImgButton } from 'components/ImgButton/index.ts'
+import { Image } from 'components/Image/index.ts'
 
 const icon = { href: '/sprite.svg', name: 'cart', viewBox: '0 0 24 24' }
-const image = { src: 'photo.jpg' }
 
 // --- Link vs Button dispatch --------------------------------------------------------------
 
@@ -83,7 +83,7 @@ Deno.test('ImgButton: the icon inside never receives its own label — it is dec
   assertEquals(occurrences, 1)
 })
 
-// --- icon vs image -------------------------------------------------------------------------
+// --- icon vs visual -------------------------------------------------------------------------
 
 Deno.test('ImgButton: icon renders a real Icon, unmodified', () => {
   const html = renderToStaticMarkup(<ImgButton href='/x' label='X' icon={icon} />)
@@ -93,50 +93,116 @@ Deno.test('ImgButton: icon renders a real Icon, unmodified', () => {
   assertStringIncludes(html, 'viewBox="0 0 24 24"')
 })
 
-Deno.test('ImgButton: image renders a real Image, with alt forced to empty', () => {
-  const html = renderToStaticMarkup(<ImgButton href='/x' label='X' image={image} />)
+Deno.test('ImgButton: visual renders whatever caller-built element it is given', () => {
+  const html = renderToStaticMarkup(
+    <ImgButton href='/x' label='X' visual={() => <Image src='photo.jpg' alt='' />} />,
+  )
 
   assertStringIncludes(html, 'data-space-ui="image"')
-  assertStringIncludes(html, 'src="/assets/photo.jpg"')
+  // `visual` composes the caller's OWN `Image` instance verbatim — a relative `src` here is left
+  // unresolved, same root-barrel `Image` behavior `image.test.tsx` covers directly.
+  assertStringIncludes(html, 'src="photo.jpg"')
   assertStringIncludes(html, 'alt=""')
 })
 
 Deno.test(
-  'ImgButton: image composes sources and placeholder exactly as Image does standalone',
+  'ImgButton: visual composes sources and placeholder exactly as Image does standalone',
   () => {
     const html = renderToStaticMarkup(
       <ImgButton
         href='/x'
         label='X'
-        image={{
-          src: 'photo.jpg',
-          placeholder: 'thumb.jpg',
-          sources: [{ media: '(min-width: 1441px)', src: 'photo-dlg.jpg' }],
-        }}
+        visual={() => (
+          <Image
+            src='photo.jpg'
+            alt=''
+            placeholder='thumb.jpg'
+            sources={[{ media: '(min-width: 1441px)', src: 'photo-dlg.jpg' }]}
+          />
+        )}
       />,
     )
 
     assertStringIncludes(html, '<picture>')
-    assertStringIncludes(html, 'srcSet="/assets/photo-dlg.jpg"')
+    assertStringIncludes(html, 'srcSet="photo-dlg.jpg"')
     assertStringIncludes(
       html,
-      'style="background:url(/assets/thumb.jpg) center / cover no-repeat"',
+      'style="background:url(thumb.jpg) center / cover no-repeat"',
     )
   },
 )
 
-Deno.test('ImgButton: icon wins over image when both are given', () => {
-  const html = renderToStaticMarkup(<ImgButton href='/x' label='X' icon={icon} image={image} />)
+Deno.test('ImgButton: icon wins over visual when both are given', () => {
+  const html = renderToStaticMarkup(
+    <ImgButton href='/x' label='X' icon={icon} visual={() => <Image src='photo.jpg' alt='' />} />,
+  )
 
   assertStringIncludes(html, 'data-space-ui="icon"')
   assertEquals(html.includes('data-space-ui="image"'), false)
 })
 
-Deno.test('ImgButton: without icon or image, renders no visual element', () => {
+// --- image (convenience sugar over the comet-safe, root-barrel Image) ------------------------
+
+Deno.test(
+  'ImgButton: image builds the visual as Image({ ...image, alt: "" }) using the root-barrel Image',
+  () => {
+    const html = renderToStaticMarkup(
+      <ImgButton href='/x' label='X' image={{ src: 'https://cdn.example.com/photo.jpg' }} />,
+    )
+
+    assertStringIncludes(html, 'data-space-ui="image"')
+    assertStringIncludes(html, 'src="https://cdn.example.com/photo.jpg"')
+    assertStringIncludes(html, 'alt=""')
+  },
+)
+
+Deno.test('ImgButton: a relative image.src is left unresolved — no resolver injected', () => {
+  const html = renderToStaticMarkup(<ImgButton href='/x' label='X' image={{ src: 'photo.jpg' }} />)
+
+  assertStringIncludes(html, 'src="photo.jpg"')
+})
+
+Deno.test('ImgButton: icon wins over image when both are given', () => {
+  const html = renderToStaticMarkup(
+    <ImgButton href='/x' label='X' icon={icon} image={{ src: 'photo.jpg' }} />,
+  )
+
+  assertStringIncludes(html, 'data-space-ui="icon"')
+  assertEquals(html.includes('data-space-ui="image"'), false)
+})
+
+Deno.test('ImgButton: visual wins over image when both are given', () => {
+  const html = renderToStaticMarkup(
+    <ImgButton
+      href='/x'
+      label='X'
+      image={{ src: 'photo.jpg' }}
+      visual={() => <span data-testid='custom-visual'>*</span>}
+    />,
+  )
+
+  assertStringIncludes(html, 'data-testid="custom-visual"')
+  assertEquals(html.includes('data-space-ui="image"'), false)
+})
+
+Deno.test('ImgButton: without icon, visual, or image, renders no visual element', () => {
   const html = renderToStaticMarkup(<ImgButton href='/x' label='X' />)
 
   assertEquals(html.includes('<svg'), false)
   assertEquals(html.includes('<img'), false)
+})
+
+Deno.test('ImgButton: visual is a plain render-prop — never composes Image internally', () => {
+  const html = renderToStaticMarkup(
+    <ImgButton
+      href='/x'
+      label='X'
+      visual={() => <span data-testid='custom-visual'>*</span>}
+    />,
+  )
+
+  assertStringIncludes(html, 'data-testid="custom-visual"')
+  assertEquals(html.includes('data-space-ui="image"'), false)
 })
 
 // --- caption ---------------------------------------------------------------------------------

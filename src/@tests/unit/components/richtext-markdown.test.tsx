@@ -3,6 +3,7 @@ import type { ReactElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { assertEquals, assertStringIncludes } from '@std/assert'
 import { renderMarkdown } from 'components/RichText/markdown.ts'
+import type { MarkdownTags } from 'components/RichText/markdown.ts'
 import type { CreateElement } from 'typings/renderer.ts'
 
 // React's own `createElement` is overloaded per-tag — doesn't structurally match `CreateElement<E>`
@@ -11,8 +12,8 @@ import type { CreateElement } from 'typings/renderer.ts'
 // the identical reason.
 const h = createElement as unknown as CreateElement<ReactElement>
 
-function html(source: string): string {
-  const nodes = renderMarkdown(h, source)
+function html(source: string, tags?: MarkdownTags<ReactElement>): string {
+  const nodes = renderMarkdown(h, source, tags)
   return renderToStaticMarkup(createElement('div', {}, ...nodes))
 }
 
@@ -149,6 +150,84 @@ Deno.test(
     assertEquals(result.includes('data-space-ui="image"'), false)
   },
 )
+
+// --- tags: the markdownTags override hatch (img/video) --------------------------------------
+
+Deno.test('renderMarkdown: tags.img overrides the built-in Image composition entirely', () => {
+  const result = html('![alt text](pic.jpg)', {
+    img: ({ key, src }) => createElement('span', { key, 'data-testid': 'custom-img' }, src),
+  })
+
+  assertStringIncludes(result, 'data-testid="custom-img"')
+  assertStringIncludes(result, '>pic.jpg<')
+  assertEquals(result.includes('data-space-ui="image"'), false)
+  assertEquals(result.includes('<img'), false)
+})
+
+Deno.test('renderMarkdown: tags.img receives src/alt/key exactly as the built-in call would', () => {
+  let received: unknown
+  html('![alt text](pic.jpg?extra=1)', {
+    img: (props) => {
+      received = props
+      return createElement('span', { key: props.key })
+    },
+  })
+
+  assertEquals(received, { key: 0, alt: 'alt text', src: 'pic.jpg?extra=1' })
+})
+
+Deno.test('renderMarkdown: tags.img is NOT called for a node _props routes to Video instead', () => {
+  let imgCalled = false
+  const result = html('![caption](clip.mp4?_props[video]=true)', {
+    img: () => {
+      imgCalled = true
+      return createElement('span')
+    },
+  })
+
+  assertEquals(imgCalled, false)
+  assertStringIncludes(result, 'data-space-ui="video"')
+})
+
+Deno.test('renderMarkdown: tags.video overrides the built-in Video composition entirely', () => {
+  const result = html('![caption](clip.mp4?_props[video]=true)', {
+    video: ({ key, src }) => createElement('span', { key, 'data-testid': 'custom-video' }, src),
+  })
+
+  assertStringIncludes(result, 'data-testid="custom-video"')
+  assertStringIncludes(result, '>clip.mp4<')
+  assertEquals(result.includes('data-space-ui="video"'), false)
+  assertEquals(result.includes('<video'), false)
+})
+
+Deno.test('renderMarkdown: tags.video receives title (not alt) exactly as the built-in call would', () => {
+  let received: unknown
+  html('![a caption](clip.mp4?_props[video]=true)', {
+    video: (props) => {
+      received = props
+      return createElement('span', { key: props.key })
+    },
+  })
+
+  assertEquals(received, { key: 0, title: 'a caption', video: true, src: 'clip.mp4' })
+})
+
+Deno.test('renderMarkdown: without tags, behavior is byte-for-byte unchanged (purely additive)', () => {
+  const withoutTags = html('![alt text](pic.jpg)')
+  const withEmptyTags = html('![alt text](pic.jpg)', {})
+
+  assertEquals(withoutTags, withEmptyTags)
+  assertStringIncludes(withoutTags, 'data-space-ui="image"')
+})
+
+Deno.test('renderMarkdown: tags override applies inside a nested node (e.g. a list item)', () => {
+  const result = html('- ![alt](pic.jpg)', {
+    img: ({ key }) => createElement('span', { key, 'data-testid': 'nested-img' }),
+  })
+
+  assertStringIncludes(result, '<li')
+  assertStringIncludes(result, 'data-testid="nested-img"')
+})
 
 // --- the _props-on-URL convention -----------------------------------------------------------
 

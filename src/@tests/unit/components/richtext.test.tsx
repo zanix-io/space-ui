@@ -340,6 +340,47 @@ Deno.test('RichText: contentFormat defaults to "icu" when omitted', () => {
   assertStringIncludes(result, '>x</strong>')
 })
 
+// --- markdown mode: markdownTags override hatch -----------------------------------------------
+
+Deno.test('RichText: markdownTags overrides the built-in img handling in markdown mode', () => {
+  const result = renderToStaticMarkup(
+    <IntlProvider locale='en' messages={{}}>
+      <RichText
+        content='![alt text](pic.jpg)'
+        contentFormat='markdown'
+        markdownTags={{
+          img: ({ key, src }) => <span key={key} data-testid='custom-img'>{src}</span>,
+        }}
+      />
+    </IntlProvider>,
+  )
+  assertStringIncludes(result, 'data-testid="custom-img"')
+  assertStringIncludes(result, '>pic.jpg<')
+  assertEquals(result.includes('data-space-ui="image"'), false)
+})
+
+Deno.test('RichText: markdownTags has no effect in "icu" mode', () => {
+  const result = renderToStaticMarkup(
+    <IntlProvider locale='en' messages={{}}>
+      <RichText
+        content='<img><props>src=pic.jpg&alt=A%20picture</props></img>'
+        markdownTags={{ img: () => <span data-testid='should-not-render' /> }}
+      />
+    </IntlProvider>,
+  )
+  assertEquals(result.includes('should-not-render'), false)
+  assertStringIncludes(result, 'data-space-ui="image"')
+})
+
+Deno.test('RichText: without markdownTags, markdown mode behavior is unchanged', () => {
+  const result = renderToStaticMarkup(
+    <IntlProvider locale='en' messages={{}}>
+      <RichText content='![alt text](pic.jpg)' contentFormat='markdown' />
+    </IntlProvider>,
+  )
+  assertStringIncludes(result, 'data-space-ui="image"')
+})
+
 // --- IntlProvider requirement -------------------------------------------------------------------
 
 Deno.test('RichText: throws when rendered outside an IntlProvider', () => {

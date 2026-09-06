@@ -1,11 +1,9 @@
 import type { CreateElement } from 'typings/renderer.ts'
 import { createButton } from '../Button/render.ts'
 import { createIcon } from '../Icon/render.ts'
-import { createImage } from '../Image/render.ts'
-import { createImgButton } from '../ImgButton/render.ts'
 import { createLink } from '../Link/render.ts'
 import { createEscapeToCloseHandler } from 'shared/escape-to-close.ts'
-import type { MenuItem, MenuOpenMode, MenuProps } from './types.ts'
+import type { MenuBaseProps, MenuItemFields, MenuOpenMode } from './types.ts'
 
 /**
  * The subset of hooks/primitives this component's shared body needs, injected alongside `h` — same
@@ -37,18 +35,45 @@ export type MenuHooks = {
 type MenuFocusEvent = { relatedTarget: EventTarget | null }
 
 /**
+ * One `Menu` entry, generic over the renderer's own node type — {@linkcode MenuItemFields} (every
+ * field whose type doesn't depend on the renderer) plus `visual`/`submenu`, which do.
+ * `index.ts`/`index.preact.ts` each instantiate this with `ReactNode`/`ComponentChildren` as their
+ * own public `MenuItem`.
+ *
+ * `visual` is a render-prop slot — same calling convention as `Table.cell`'s own
+ * `(row, rowIndex) => Node`: the caller supplies an already-built element (their own `Image`/
+ * `ImgButton` instance, resolved server-side outside a Comet exactly as `@zanix/space`'s own
+ * `formatServerOnlyViolation` guidance already directs, a plain `<img>`, anything at all) rather
+ * than a data shape this component resolves itself. This is what lets `Menu` compose only
+ * `Link`/`Button`/`Icon` internally — never `Image`/`ImgButton` — so its own module has zero
+ * reachable dependency on `@zanix/space` (see `index.ts`'s own doc, "Zero `@zanix/space`
+ * dependency, by construction", for the full story). Wins over nothing, loses to `icon`: `icon`
+ * takes precedence when both are given, the same precedence `ImgButton` already establishes
+ * between its own `icon`/`visual`.
+ */
+export type MenuRenderItem<Node> = MenuItemFields & {
+  visual?: () => Node
+  submenu?: MenuRenderItem<Node>[]
+}
+
+/** {@linkcode MenuBaseProps} plus `items`, generic over the renderer's own node type — `index.ts`/
+ * `index.preact.ts` each instantiate this as their own public `MenuProps`. */
+export type MenuRenderProps<Node> = MenuBaseProps & { items: MenuRenderItem<Node>[] }
+
+/**
  * The real implementation of `Menu`, shared identically between the React and Preact bindings —
  * same pattern as `Table/render.ts`, extended with a wider hook bag (see {@linkcode MenuHooks}'s
- * own doc). Composes the real `Button`/`Link`/`ImgButton`/`Icon`/`Image` (via their own `render.ts`
- * factories, bound to the same `h`) — inherits their own `data-space-ui` hooks on the elements they
- * render, never a redundant one of its own; the root `<nav>` itself carries `data-space-ui="menu"`.
+ * own doc). Composes the real `Button`/`Link`/`Icon` (via their own `render.ts` factories, bound to
+ * the same `h`) — inherits their own `data-space-ui` hooks on the elements they render, never a
+ * redundant one of its own; the root `<nav>` itself carries `data-space-ui="menu"`. Deliberately
+ * does NOT compose `Image`/`ImgButton` — see {@linkcode MenuRenderItem}'s own `visual` doc.
  *
  * ## `Fragment`, applied unconditionally
  *
  * The component this was extracted from wrapped `primary` in a keyed `Fragment` specifically to
  * silence a React-only dev-mode "missing key" console warning (`primary` comes from several
  * different branches, none of which accept a `key` prop through their own already-closed types);
- * Preact never warns for that shape, so its own hand-written binding used to skip the wrapper. Both
+ * Preact never warns for that shape, so its own hand-written binding skips the wrapper. Both
  * are harmless either way (a redundant `Fragment` around one child renders identically) — so the
  * shared body here applies it unconditionally rather than needing a per-renderer branch, the same
  * resolution `space-ui-component-patterns` documents for this exact wrinkle. `Fragment` itself is
@@ -58,29 +83,26 @@ type MenuFocusEvent = { relatedTarget: EventTarget | null }
  * names for other components, done once here rather than at every call site.
  *
  * See `index.ts`'s own doc for the full public behavioral contract (structure, `toggle`, per-item
- * control shape, `ImgButton` vs. direct composition, `openMode`, closing) — not repeated here.
+ * control shape, `openMode`, closing) — not repeated here.
  */
 export function createMenu<E>(
   h: CreateElement<E>,
   hooks: MenuHooks,
   Fragment: unknown,
-): (props: MenuProps) => E {
+): (props: MenuRenderProps<E>) => E {
   const Button = createButton(h)
   const Link = createLink(h)
-  const ImgButton = createImgButton(h)
   const Icon = createIcon(h)
-  const Image = createImage(h)
   const hAny = h as unknown as (
     type: unknown,
     props: Record<string, unknown> | null,
     ...children: unknown[]
   ) => E
 
-  function MenuItemRow({ item, openMode }: { item: MenuItem; openMode: MenuOpenMode }): E {
-    const { label, url, external, rel, title, accessibleLabel, icon, image, submenu } = item
+  function MenuItemRow({ item, openMode }: { item: MenuRenderItem<E>; openMode: MenuOpenMode }): E {
+    const { label, url, external, rel, title, accessibleLabel, icon, visual, submenu } = item
     const hasSubmenu = !!submenu?.length
     const hasUrl = url !== undefined
-    const hasVisual = !!(icon || image)
     const accessibleName = accessibleLabel
 
     const submenuId = hooks.useId()
@@ -126,46 +148,25 @@ export function createMenu<E>(
       }
       : {}
 
-    const decorativeVisual = icon
-      ? Icon({ ...icon, label: undefined })
-      : image
-      ? Image({ ...image, alt: '' })
-      : null
+    const decorativeVisual = icon ? Icon({ ...icon, label: undefined }) : visual ? visual() : null
+
+    // The item's own visible content — a plain label, or the decorative visual (icon or the
+    // caller's own `visual()`) plus the label — the exact same shape regardless of whether this
+    // ends up inside a `Link`, a `Button`, or a plain `<span>` below. Never composes `ImgButton`:
+    // that would reach into a real cross-package dependency this component has no need for once
+    // the visual is already a caller-supplied element (see `MenuRenderItem.visual`'s own doc).
+    const content = decorativeVisual ? [decorativeVisual, h('span', {}, label)] : label
 
     let primary: E
     let disclosureToggle: E | null = null
 
     if (!hasSubmenu || openMode === 'onRender') {
-      if (hasUrl) {
-        primary = hasVisual
-          ? ImgButton({
-            href: url,
-            external,
-            rel,
-            title,
-            label: accessibleName ?? label,
-            icon,
-            image,
-            caption: label,
-          })
-          : Link({ href: url, external, rel, title, label: accessibleName, children: label })
-      } else {
-        primary = h('span', {}, decorativeVisual ? [decorativeVisual, label] : label)
-      }
+      primary = hasUrl
+        ? Link({ href: url, external, rel, title, label: accessibleName, children: content })
+        : h('span', {}, content)
     } else if (hasUrl) {
       // Two controls: a real navigable Link, plus a separate, bare disclosure Button.
-      primary = hasVisual
-        ? ImgButton({
-          href: url,
-          external,
-          rel,
-          title,
-          label: accessibleName ?? label,
-          icon,
-          image,
-          caption: label,
-        })
-        : Link({ href: url, external, rel, title, label: accessibleName, children: label })
+      primary = Link({ href: url, external, rel, title, label: accessibleName, children: content })
 
       disclosureToggle = h(
         'span',
@@ -187,7 +188,7 @@ export function createMenu<E>(
           label: accessibleName,
           'aria-expanded': isOpen,
           'aria-controls': submenuId,
-          children: decorativeVisual ? [decorativeVisual, h('span', {}, label)] : label,
+          children: content,
         }),
       )
     }
@@ -218,7 +219,7 @@ export function createMenu<E>(
     )
   }
 
-  return function Menu(props: MenuProps): E {
+  return function Menu(props: MenuRenderProps<E>): E {
     const {
       items,
       openMode = 'onClick',

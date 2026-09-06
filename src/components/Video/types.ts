@@ -27,7 +27,9 @@ export type VideoSourceProps = {
    * fallback, or the final unconditional entry). */
   media?: string
   /** Same resolution rules as {@linkcode VideoProps.src} — an absolute URL passes through
-   * untouched, a relative path resolves through `@zanix/space`'s `resolveAssetHref`. */
+   * untouched; a relative path resolves through `@zanix/space`'s `resolveAssetHref` ONLY when
+   * using `@zanix/space-ui/runtime/video` — the root-barrel `Video` leaves it exactly as given
+   * (see `render.ts`'s own module doc). */
   src: string
   /** MIME type hint, e.g. `'video/webm'`. Optional pass-through only — never inferred from `src`'s
    * extension. */
@@ -41,9 +43,13 @@ export type VideoSourceProps = {
  */
 export type VideoProps = {
   /** YouTube/Vimeo URL, some other embeddable URL, or a local/CDN video file path — classified by
-   * `detectVideoSource`, the same function `@zanix/space` exports for this exact purpose. Remains
-   * the component's base/fallback video for the file case even when {@linkcode sources} is also
-   * given — see `render.ts`'s own doc for exactly how the two combine. */
+   * `detectVideoSource`, the same function `@zanix/space` exports for this exact purpose (a real,
+   * unconditional dependency of every `Video` binding, including the comet-safe root-barrel one —
+   * see `render.ts`'s own module doc for why). Remains the component's base/fallback video for the
+   * file case even when {@linkcode sources} is also given — see `render.ts`'s own doc for exactly
+   * how the two combine. A relative local file path resolves through `@zanix/space`'s
+   * `resolveAssetHref` ONLY when using `@zanix/space-ui/runtime/video` — the root-barrel `Video`
+   * leaves it exactly as given. */
   src: string
   /** Required — same reasoning as `IFrame.title` (a real, common accessibility gap the legacy
    * `VideoProps.title` left optional). Used as `IFrame`'s own `title` for the YouTube/Vimeo/generic
@@ -55,8 +61,9 @@ export type VideoProps = {
    * Poster image, native `<video>` case only — YouTube/Vimeo/generic embeds show their own
    * provider's default thumbnail, with no equivalent attribute `IFrame` could apply on this
    * component's behalf (same as the legacy `Selector.tsx`, which never passed `poster` into either
-   * of its embed branches). Resolved through `@zanix/space`'s `resolveAssetHref` when it looks like
-   * a local/relative path — an absolute URL passes through untouched. See `render.ts`'s own doc.
+   * of its embed branches). Same resolver-optional resolution rules as {@linkcode VideoProps.src}
+   * — resolved through `@zanix/space`'s `resolveAssetHref` only via `@zanix/space-ui/runtime/video`;
+   * an absolute URL passes through untouched either way. See `render.ts`'s own doc.
    *
    * Always a single resource, deliberately — unlike `src`, there is no native `<source>`-equivalent
    * mechanism for `poster` (a media element has exactly one `poster` attribute, not a set of

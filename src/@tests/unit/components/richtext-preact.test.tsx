@@ -192,6 +192,54 @@ Deno.test('RichText (preact): contentFormat defaults to "icu" when omitted', () 
   assertStringIncludes(html('<b>x</b>'), '>x</strong>')
 })
 
+// --- markdown mode: markdownTags override hatch -----------------------------------------------
+
+Deno.test('RichText (preact): markdownTags overrides the built-in img handling', () => {
+  const result = renderToString(
+    h(
+      IntlProvider,
+      { locale: 'en', messages: {} },
+      h(RichText, {
+        content: '![alt text](pic.jpg)',
+        contentFormat: 'markdown',
+        markdownTags: {
+          img: ({ key, src }: { key: number; src: string }) =>
+            h('span', { key, 'data-testid': 'custom-img' }, src),
+        },
+      }),
+    ),
+  )
+  assertStringIncludes(result, 'data-testid="custom-img"')
+  assertStringIncludes(result, '>pic.jpg<')
+  assertEquals(result.includes('data-space-ui="image"'), false)
+})
+
+Deno.test('RichText (preact): markdownTags has no effect in "icu" mode', () => {
+  const result = renderToString(
+    h(
+      IntlProvider,
+      { locale: 'en', messages: {} },
+      h(RichText, {
+        content: '<img><props>src=pic.jpg&alt=A%20picture</props></img>',
+        markdownTags: { img: () => h('span', { 'data-testid': 'should-not-render' }) },
+      }),
+    ),
+  )
+  assertEquals(result.includes('should-not-render'), false)
+  assertStringIncludes(result, 'data-space-ui="image"')
+})
+
+Deno.test('RichText (preact): without markdownTags, markdown mode behavior is unchanged', () => {
+  const result = renderToString(
+    h(
+      IntlProvider,
+      { locale: 'en', messages: {} },
+      h(RichText, { content: '![alt text](pic.jpg)', contentFormat: 'markdown' }),
+    ),
+  )
+  assertStringIncludes(result, 'data-space-ui="image"')
+})
+
 // --- IntlProvider requirement -------------------------------------------------------------------
 
 Deno.test('RichText (preact): throws when rendered outside an IntlProvider', () => {

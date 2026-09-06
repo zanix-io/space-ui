@@ -1,4 +1,5 @@
 import type { RichTextTagFn } from 'intl/formatter.ts'
+import { resolveAssetHref } from '@zanix/space/assets-manifest'
 import { createLink } from '../Link/render.ts'
 import { createButton } from '../Button/render.ts'
 import { createCatalogIcon } from '../CatalogIcon/render.ts'
@@ -81,10 +82,17 @@ export function createRichTextTags<E>(h: CreateElement<E>): Record<string, RichT
   const Button = createButton(h)
   const Icon = createCatalogIcon(h, CATALOG_VIEWBOX)
   const SocialNetworks = createSocialNetworks(h)
-  const Image = createImage(h)
+  // `resolveAssetHref` injected explicitly — `Image`/`Video`'s own `createImage`/`createVideo`
+  // factories no longer hardcode this import (see `Image/render.ts`'s own module doc), so
+  // `RichText`'s own `img`/`video` tags need to inject it themselves to keep auto-resolving a
+  // relative asset path embedded in caller-uncontrolled content exactly as they always have.
+  // `RichText` itself is `./runtime`-only/SSR-only regardless (see `resolve.ts`'s own direct
+  // `resolveAssetHref` dependency for its own document-level resolution), so this is never
+  // comet-safe either way — no root-barrel `RichText` binding exists or is planned.
+  const Image = createImage(h, resolveAssetHref)
   const ImgButton = createImgButton(h)
   const IFrame = createIFrame(h)
-  const Video = createVideo(h)
+  const Video = createVideo(h, resolveAssetHref)
   const Skeleton = createSkeleton(h)
 
   const tags: Record<string, RichTextTagFn<E>> = {

@@ -1,10 +1,14 @@
 import { assertEquals, assertStringIncludes } from '@std/assert'
 import { render } from 'preact-render-to-string'
-import { setAssetsManifestState } from '@zanix/space/assets-manifest'
 import { Image } from 'components/Image/index.preact.ts'
 
 // Called as a plain function, not via JSX — see `icon-preact.test.tsx`'s own doc for why. `Image`
 // never returns `null` (unlike `Video`), so no `assert(vnode)` narrowing is needed here.
+//
+// This is the comet-safe, root-barrel `Image` (`createImage(h)`, no resolver injected) — a
+// relative `src`/`sources[].src`/`placeholder` is left exactly as given here, never resolved
+// against `@zanix/space`'s own manifest. See `image-runtime-preact.test.tsx` for the OTHER
+// binding (`@zanix/space-ui/runtime/image/preact`), which DOES inject `resolveAssetHref`.
 
 Deno.test('Image (preact): renders a bare <img> with src and alt when sources is absent', () => {
   const html = render(Image({ src: 'photo.jpg', alt: 'A photo' }))
@@ -39,8 +43,8 @@ Deno.test(
     // preact-render-to-string self-closes void elements (`<source .../>`, unlike React's
     // `renderToStaticMarkup`, which also self-closes but was already covered by the React test's
     // own assertion style) — asserted here, not assumed.
-    assertStringIncludes(html, '<source media="(max-width: 599px)" srcset="/assets/mobile.jpg"/>')
-    assertStringIncludes(html, '<source media="(min-width: 600px)" srcset="/assets/tablet.jpg"/>')
+    assertStringIncludes(html, '<source media="(max-width: 599px)" srcset="mobile.jpg"/>')
+    assertStringIncludes(html, '<source media="(min-width: 600px)" srcset="tablet.jpg"/>')
     const pictureBody = html.slice(html.indexOf('<picture>'), html.indexOf('</picture>'))
     assertStringIncludes(pictureBody.slice(pictureBody.lastIndexOf('<source')), '<img')
   },
@@ -59,31 +63,21 @@ Deno.test('Image (preact): source type is rendered when provided, omitted when n
   )
 
   assertStringIncludes(html, 'type="image/avif"')
-  assertStringIncludes(html, '<source media="(max-width: 599px)" srcset="/assets/mobile.jpg"/>')
+  assertStringIncludes(html, '<source media="(max-width: 599px)" srcset="mobile.jpg"/>')
 })
 
 Deno.test(
-  'Image (preact): src resolves through resolveAssetHref when the manifest has an entry',
+  'Image (preact): a relative src passes through UNRESOLVED — no resolver injected (root barrel)',
   () => {
-    setAssetsManifestState({ manifest: { 'photo.jpg': '/assets/photo-abc123.jpg' } })
-    try {
-      const html = render(Image({ src: 'photo.jpg', alt: 'A photo' }))
-      assertStringIncludes(html, 'src="/assets/photo-abc123.jpg"')
-    } finally {
-      setAssetsManifestState(undefined)
-    }
+    const html = render(Image({ src: 'photo.jpg', alt: 'A photo' }))
+
+    assertStringIncludes(html, 'src="photo.jpg"')
   },
 )
 
-Deno.test('Image (preact): src falls back to /assets/<path> when unresolved', () => {
-  const html = render(Image({ src: 'photo.jpg', alt: 'A photo' }))
-
-  assertStringIncludes(html, 'src="/assets/photo.jpg"')
-})
-
-Deno.test('Image (preact): sources[].src also resolves through resolveAssetHref', () => {
-  setAssetsManifestState({ manifest: { 'mobile.jpg': '/assets/mobile-abc123.jpg' } })
-  try {
+Deno.test(
+  'Image (preact): a relative sources[].src also passes through UNRESOLVED — same as src',
+  () => {
     const html = render(
       Image({
         src: 'desktop.jpg',
@@ -91,11 +85,9 @@ Deno.test('Image (preact): sources[].src also resolves through resolveAssetHref'
         sources: [{ media: '(max-width: 599px)', src: 'mobile.jpg' }],
       }),
     )
-    assertStringIncludes(html, 'srcset="/assets/mobile-abc123.jpg"')
-  } finally {
-    setAssetsManifestState(undefined)
-  }
-})
+    assertStringIncludes(html, 'srcset="mobile.jpg"')
+  },
+)
 
 Deno.test('Image (preact): an absolute src URL passes through untouched', () => {
   const html = render(Image({ src: 'https://cdn.example.com/photo.jpg', alt: 'A photo' }))
@@ -217,33 +209,23 @@ Deno.test('Image (preact): without width/height, neither attribute is rendered',
 // needs a real browser to confirm (that the background-image request isn't deferred by
 // `loading='lazy'` on the same element — grounded here in spec text, not a live browser trace).
 
-Deno.test('Image (preact): placeholder renders as a background style on the bare <img>', () => {
-  const html = render(Image({ src: 'photo.jpg', alt: 'A photo', placeholder: 'thumb.jpg' }))
+Deno.test(
+  'Image (preact): placeholder renders as a background style on the bare <img>, UNRESOLVED',
+  () => {
+    const html = render(Image({ src: 'photo.jpg', alt: 'A photo', placeholder: 'thumb.jpg' }))
 
-  assertStringIncludes(
-    html,
-    'style="background:url(/assets/thumb.jpg) center / cover no-repeat;"',
-  )
-})
+    assertStringIncludes(
+      html,
+      'style="background:url(thumb.jpg) center / cover no-repeat;"',
+    )
+  },
+)
 
 Deno.test('Image (preact): without placeholder, no style attribute is rendered', () => {
   const html = render(Image({ src: 'photo.jpg', alt: 'A photo' }))
 
   assertEquals(html.includes('style='), false)
 })
-
-Deno.test(
-  'Image (preact): placeholder resolves through resolveAssetHref when the manifest has an entry',
-  () => {
-    setAssetsManifestState({ manifest: { 'thumb.jpg': '/assets/thumb-abc123.jpg' } })
-    try {
-      const html = render(Image({ src: 'photo.jpg', alt: 'A photo', placeholder: 'thumb.jpg' }))
-      assertStringIncludes(html, 'background:url(/assets/thumb-abc123.jpg)')
-    } finally {
-      setAssetsManifestState(undefined)
-    }
-  },
-)
 
 Deno.test('Image (preact): an absolute placeholder URL passes through untouched', () => {
   const html = render(
@@ -266,7 +248,7 @@ Deno.test('Image (preact): placeholder renders on the <img> when sources is also
   assertStringIncludes(html, '<picture>')
   assertStringIncludes(
     html,
-    'style="background:url(/assets/thumb.jpg) center / cover no-repeat;"',
+    'style="background:url(thumb.jpg) center / cover no-repeat;"',
   )
   assertEquals(html.includes('<picture style='), false)
 })
@@ -333,7 +315,7 @@ Deno.test('Image (preact): a realistic multi-prop example renders well-formed ma
   )
 
   assertStringIncludes(html, '<picture><source media="(max-width: 599px)"')
-  assertStringIncludes(html, 'src="/assets/hero-desktop.jpg"')
+  assertStringIncludes(html, 'src="hero-desktop.jpg"')
   assertStringIncludes(html, 'alt="A mountain at sunrise"')
   assertStringIncludes(html, 'width="1200"')
   assertStringIncludes(html, 'height="630"')

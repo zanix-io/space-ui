@@ -4,7 +4,7 @@ import { createRoot } from 'react-dom/client'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { assertEquals, assertStringIncludes } from '@std/assert'
 import { Menu } from 'components/Menu/index.ts'
-import type { MenuItem } from 'components/Menu/types.ts'
+import type { MenuItem } from 'components/Menu/index.ts'
 
 const items: MenuItem[] = [
   { label: 'Home', url: '/' },
@@ -226,7 +226,7 @@ Deno.test('Menu: an item with url and no submenu is a plain navigable Link', () 
   assertEquals(html.includes('aria-expanded'), false)
 })
 
-Deno.test('Menu: an item with url and icon composes ImgButton, plain navigation', () => {
+Deno.test('Menu: an item with url and icon renders a Link with the icon as its child', () => {
   const html = renderToStaticMarkup(
     <Menu
       items={[{
@@ -279,7 +279,7 @@ Deno.test('Menu: an item with url AND submenu renders two separate controls', ()
 })
 
 Deno.test(
-  'Menu: an item with url AND submenu AND an icon composes ImgButton for the link control',
+  'Menu: an item with url AND submenu AND an icon renders the icon inside the link control',
   () => {
     const html = renderToStaticMarkup(
       <Menu
@@ -293,8 +293,8 @@ Deno.test(
       />,
     )
 
-    // Same "two separate controls" shape as the plain (no-icon) case, but the link control is
-    // composed via `ImgButton` (icon + caption) rather than a bare `Link`.
+    // Same "two separate controls" shape as the plain (no-icon) case, but the link control's own
+    // children now include the decorative icon alongside the visible label.
     assertStringIncludes(html, 'data-space-ui="icon"')
     assertStringIncludes(html, 'href="/sprite.svg#gear"')
     assertStringIncludes(html, 'href="/services"')
@@ -303,20 +303,43 @@ Deno.test(
 )
 
 Deno.test(
-  'Menu: an item with neither url nor submenu, but an image, renders the image as decoration',
+  'Menu: an item with neither url nor submenu, but a visual render-prop, renders it as decoration',
   () => {
     const html = renderToStaticMarkup(
       <Menu
-        items={[{ label: 'Team', image: { src: '/team.jpg' } }]}
+        items={[{ label: 'Team', visual: () => <img src='/team.jpg' alt='' /> }]}
         label='Main'
       />,
     )
 
     assertEquals(html.includes('<a '), false)
     assertEquals(html.includes('<button'), false)
-    assertStringIncludes(html, 'data-space-ui="image"')
     assertStringIncludes(html, 'team.jpg')
     assertStringIncludes(html, 'Team')
+  },
+)
+
+Deno.test(
+  'Menu: visual is a plain render-prop — never composes Image/ImgButton internally',
+  () => {
+    const calls: string[] = []
+    const html = renderToStaticMarkup(
+      <Menu
+        items={[{
+          label: 'Team',
+          url: '/team',
+          visual: () => {
+            calls.push('called')
+            return <span data-testid='custom-visual'>*</span>
+          },
+        }]}
+        label='Main'
+      />,
+    )
+
+    assertEquals(calls, ['called'])
+    assertStringIncludes(html, 'data-testid="custom-visual"')
+    assertEquals(html.includes('data-space-ui="image"'), false)
   },
 )
 

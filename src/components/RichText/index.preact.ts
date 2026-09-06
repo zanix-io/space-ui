@@ -5,11 +5,17 @@ import { useIntl } from 'intl/index.preact.ts'
 import type { RichTextTagFn } from 'intl/formatter.ts'
 import type { CreateElement } from 'typings/renderer.ts'
 import { createRichText } from './render.ts'
+import type { MarkdownTags } from './markdown.ts'
 import type { RichTextBaseProps } from './types.ts'
 
 /** {@linkcode RichTextBaseProps} plus the Preact-specific tag overrides. */
 export type RichTextProps = RichTextBaseProps & {
+  /** ICU-mode-only — see `index.ts`'s own `RichTextProps.tags` doc. No effect in `'markdown'`
+   * mode; see {@linkcode markdownTags} for that mode's own equivalent. */
   tags?: Record<string, RichTextTagFn<ComponentChildren>>
+  /** `'markdown'`-mode-only — see `markdown.ts`'s own `MarkdownTags` doc for the full contract.
+   * No effect in `'icu'` mode. */
+  markdownTags?: MarkdownTags<ComponentChildren>
 }
 
 /**

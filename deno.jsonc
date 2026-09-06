@@ -1,6 +1,6 @@
 {
   "name": "@zanix/space-ui",
-  "version": "1.0.1",
+  "version": "2.0.0",
   "zanix": {
     "project": "library"
   },
@@ -57,7 +57,7 @@
       "src/@tests/functional/space-integration/fixtures/render-pipeline.ts"
     ],
     "plugins": [
-      "jsr:@zanix/utils@^4.1.0/linter/deno-zanix-plugin"
+      "jsr:@zanix/utils@^4.4.0/linter/deno-zanix-plugin"
     ],
     "report": "pretty"
   },
@@ -84,14 +84,26 @@
     "shared/": "./src/shared/",
     "@zanix/space/video-source": "jsr:@zanix/space@^1.0.0/video-source",
     "@zanix/space/assets-manifest": "jsr:@zanix/space@^1.0.0/assets-manifest",
-    "@zanix/helpers": "jsr:@zanix/utils@^4.1.0/helpers",
+    // `NavDrawer`'s own dependency — `defineComet`, `CometBoundaryComponent`, `CometProps`. Never
+    // reaches `assets-manifest` itself (confirmed via `deno info`), but it's still a real, direct
+    // dependency on the `@zanix/space` package, which is what puts `NavDrawer` in its own
+    // `./runtime/nav-drawer`/`./runtime/nav-drawer/preact` subpath, alongside (never bundled
+    // together with) `Video`/`Image`/`RichText`'s own subpaths — see `src/runtime/video.ts`'s own
+    // `@module` doc. `ImgButton`/`Card` used to be here too, until each got its own `visual`
+    // render-prop (same fix `Menu` already got) and moved to the default `.`/`./preact` barrel.
+    "@zanix/space/comet": "jsr:@zanix/space@^1.0.0/comet",
+    // Floor bumped to `^4.4.0` — the version that stopped `cron.ts`/`masking/hard.ts` (both
+    // reachable through this very barrel) from dragging `WorkerManager`/the full `Logger` into
+    // every consumer, `RichText` included. See `src/@tests/unit/intl/dependency-boundary.test.ts`'s
+    // own `RichText` test for the now-closed regression this floor guarantees.
+    "@zanix/helpers": "jsr:@zanix/utils@^4.4.0/helpers",
     // The browser-safe entry only — `Modal`/`Drawer`'s own `render.ts` (via `shared/client-logger.ts`)
     // is the one place in this package that needs a `Logger` at all, and never the full,
     // server-capable `@zanix/utils/logger` (see that shared module's own doc for the real,
     // reproduced regression pulling that entry into a browser bundle caused: `WorkerManager`,
     // `Deno.readTextFile`-backed storage, and remote `https://jsr.io/...` fetches for
     // `@std/fmt/colors`/`@std/path` on every page load).
-    "@zanix/utils/logger/client": "jsr:@zanix/utils@^4.1.0/logger/client",
+    "@zanix/utils/logger/client": "jsr:@zanix/utils@^4.4.0/logger/client",
     "@std/fmt": "jsr:@std/fmt@0.224",
     "@std/path": "jsr:@std/path@0.224",
     "react": "npm:react@^19.2.0",
@@ -133,17 +145,42 @@
       // `happy-dom`, not `jsdom` — same real-DOM bootstrap role, zero transitive dependencies
       // (`jsdom` pulled in the now-deprecated `whatwg-encoding`/`glob@10` via `html-encoding-sniffer`).
       "happy-dom": "npm:happy-dom@^20.11.2",
-      "@std/assert": "jsr:@std/assert@0.224"
+      "@std/assert": "jsr:@std/assert@0.224",
+      // `NavDrawer`'s own Comet-wiring integration test needs these: `defineComet`'s boundary
+      // resolves its `createElement` from a per-renderer registry that only `@zanix/space/react`/
+      // `@zanix/space/preact` populate (as a real side effect of importing either) — real
+      // `NavDrawer` usage inside an actual `@zanix/space` app already imports one of these from its
+      // own main module, so this mirrors that, scoped to the one test file that needs it rather
+      // than every consumer of `./runtime/nav-drawer`.
+      "@zanix/space/react": "jsr:@zanix/space@^1.0.0/react",
+      "@zanix/space/preact": "jsr:@zanix/space@^1.0.0/preact"
     }
   },
   "exports": {
     ".": "./mod.ts",
     "./preact": "./mod-preact.ts",
-    // The six components with a REAL runtime dependency on `@zanix/space` — split out of the
-    // barrel above entirely, never re-exported from there. See `src/runtime.ts`'s own `@module`
-    // doc for why.
-    "./runtime": "./src/runtime.ts",
-    "./runtime/preact": "./src/runtime-preact.ts"
+    // The components with a REAL runtime dependency on `@zanix/space` — split out of the barrel
+    // above entirely, never re-exported from there. See `src/runtime/video.ts`'s own `@module` doc
+    // for why (`RichText` via `resolveAssetHref`, plus `NavDrawer`, a Comet, via `defineComet`).
+    // Each gets its OWN subpath, never a shared combined barrel (the combined `./runtime`/
+    // `./runtime/preact` this replaces was removed entirely — see `src/runtime/video.ts`'s own doc
+    // and the CHANGELOG's `[Unreleased]` entry for why): importing one never statically or
+    // dynamically reaches another's own files, unless it genuinely composes it (`RichText`
+    // composing both `Image`'s and `Video`'s shared render logic). `ImgButton`/`Card` used to be
+    // here too (composing `Image`'s shared render logic) — each moved to the default `.`/`./preact`
+    // barrel once it got its own `visual` render-prop instead (same fix `Menu` already got).
+    // `Video`/`Image` themselves are now BOTH here AND in the default `.`/`./preact` barrel — two
+    // distinct bindings of the same component name (this one auto-resolving via `resolveAssetHref`,
+    // the barrel one comet-safe and absolute-URL-only) — see `src/runtime/video.ts`'s own "Two
+    // bindings, same name, additive" doc.
+    "./runtime/video": "./src/runtime/video.ts",
+    "./runtime/video/preact": "./src/runtime/video.preact.ts",
+    "./runtime/image": "./src/runtime/image.ts",
+    "./runtime/image/preact": "./src/runtime/image.preact.ts",
+    "./runtime/rich-text": "./src/runtime/rich-text.ts",
+    "./runtime/rich-text/preact": "./src/runtime/rich-text.preact.ts",
+    "./runtime/nav-drawer": "./src/runtime/nav-drawer.ts",
+    "./runtime/nav-drawer/preact": "./src/runtime/nav-drawer.preact.ts"
   },
   "nodeModulesDir": "auto",
   "publish": {

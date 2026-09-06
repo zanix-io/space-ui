@@ -6,7 +6,8 @@ import type { VideoProps } from './types.ts'
 
 /**
  * YouTube, Vimeo, a generic embeddable URL, or a local/CDN video file — see `index.ts`'s own doc
- * for the full description. Preact binding, same props, same rendered markup; import from
+ * for the full description, including "Comet-safe, root barrel — relative file/poster/track paths
+ * are NOT auto-resolved here". Preact binding, same props, same rendered markup; import from
  * `@zanix/space-ui` (no subpath) for the React one.
  */
 // Same overload-set mismatch as `Icon/index.preact.ts`'s own cast, same reasoning.
