@@ -448,11 +448,29 @@ interface RuntimeComponentExpectation {
   reactEntry: string
   preactEntry: string
   /** The exact, reviewed set of `@zanix/space` subpaths this component's own module directly
-   * resolves — see `zanixSpaceSubpaths`'s own doc for why only the raw, direct specifier counts. */
-  zanixSpaceSubpaths: readonly string[]
+   * resolves — see `zanixSpaceSubpaths`'s own doc for why only the raw, direct specifier counts.
+   * A plain array when both renderer entries reach the identical set (the common case — an
+   * `assets-manifest`/`video-source` resolver call is the same specifier regardless of active
+   * renderer); `{ react, preact }` when the two entries genuinely differ, e.g. `NavDrawer`'s own
+   * `useCometStableId` import, which is a real, DIFFERENT subpath per renderer
+   * (`comet/react`/`comet/preact`). */
+  zanixSpaceSubpaths: readonly string[] | { react: readonly string[]; preact: readonly string[] }
   /** Sibling `./runtime/*` components genuinely, intentionally composed — real coupling, not a
    * barrel accident. Every sibling NOT listed here must be completely unreachable. */
   composes: readonly string[]
+}
+
+/** Resolves one component's own expected subpath set for `renderer` — see
+ * {@linkcode RuntimeComponentExpectation.zanixSpaceSubpaths}'s own doc for the two shapes this
+ * reads. */
+function expectedSubpathsFor(
+  component: RuntimeComponentExpectation,
+  renderer: 'React' | 'Preact',
+): readonly string[] {
+  const { zanixSpaceSubpaths } = component
+  if (Array.isArray(zanixSpaceSubpaths)) return zanixSpaceSubpaths
+  const perRenderer = zanixSpaceSubpaths as { react: readonly string[]; preact: readonly string[] }
+  return renderer === 'React' ? perRenderer.react : perRenderer.preact
 }
 
 const ALL_RUNTIME_COMPONENTS = ['Video', 'Image', 'RichText', 'NavDrawer']
@@ -492,7 +510,10 @@ const RUNTIME_COMPONENTS: readonly RuntimeComponentExpectation[] = [
     // A real Comet — `defineComet` from `@zanix/space/comet` directly, never `resolveAssetHref`.
     // Composes `Button`/`Drawer`/`Menu` (all three root-barrel, zero-`@zanix/space` components,
     // so they're not part of THIS table) — explicitly none of the other runtime components.
-    zanixSpaceSubpaths: ['comet'],
+    // `comet/react`/`comet/preact` diverge per renderer: `useCometStableId` for `panelId` (see
+    // `NavDrawer/render.ts`'s own `NavDrawerHooks` doc), each renderer entry importing only its
+    // own.
+    zanixSpaceSubpaths: { react: ['comet', 'comet/react'], preact: ['comet', 'comet/preact'] },
     composes: [],
   },
 ]
@@ -502,9 +523,18 @@ for (const component of RUNTIME_COMPONENTS) {
     (dir) => dir !== component.name && !component.composes.includes(dir),
   )
 
+  // Both renderers' own expected sets, deduplicated, purely for the test's own title — the
+  // assertion itself always compares against the RIGHT renderer's own set (`expectedSubpathsFor`).
+  const describedSubpaths = [
+    ...new Set([
+      ...expectedSubpathsFor(component, 'React'),
+      ...expectedSubpathsFor(component, 'Preact'),
+    ]),
+  ]
+
   Deno.test(
     `./runtime/* — ${component.name}: reaches exactly @zanix/space/{${
-      component.zanixSpaceSubpaths.join(', ')
+      describedSubpaths.join(', ')
     }}, never a shared barrel`,
     async () => {
       const [react, preact] = await Promise.all([
@@ -514,7 +544,7 @@ for (const component of RUNTIME_COMPONENTS) {
       for (const [renderer, graph] of [['React', react], ['Preact', preact]] as const) {
         assertSetEquals(
           zanixSpaceSubpaths(graph.code),
-          component.zanixSpaceSubpaths,
+          expectedSubpathsFor(component, renderer),
           `${component.name} (${renderer})'s real @zanix/space subpath footprint drifted from ` +
             'the reviewed expectation in this table — update the table if the drift is intentional',
         )

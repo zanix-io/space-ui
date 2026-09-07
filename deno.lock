@@ -15,15 +15,15 @@
     "jsr:@std/path@0.224": "0.224.0",
     "jsr:@std/path@1.0.0-rc.2": "1.0.0-rc.2",
     "jsr:@std/streams@~0.224.5": "0.224.5",
-    "jsr:@zanix/server@^4.1.0": "4.2.1",
-    "jsr:@zanix/space@1": "1.4.2",
+    "jsr:@zanix/server@^4.1.0": "4.2.3",
+    "jsr:@zanix/space@1": "1.7.0",
     "jsr:@zanix/utils@^4.1.0": "4.4.0",
     "jsr:@zanix/utils@^4.4.0": "4.4.0",
     "npm:@formatjs/icu-messageformat-parser@^3.5.17": "3.5.17",
     "npm:@formatjs/intl@^4.1.19": "4.1.20",
     "npm:@types/react-dom@^19.2.0": "19.2.7_@types+react@19.2.18",
     "npm:@types/react@^19.2.0": "19.2.18",
-    "npm:happy-dom@^20.11.2": "20.12.0",
+    "npm:happy-dom@^20.11.2": "20.14.0",
     "npm:markdown-to-jsx@^9.10.2": "9.10.2_react@19.2.8",
     "npm:preact-render-to-string@^6.5.0": "6.7.0_preact@10.29.8",
     "npm:preact@^10.29.0": "10.29.8_preact-render-to-string@6.7.0",
@@ -94,22 +94,23 @@
     "@std/streams@0.224.5": {
       "integrity": "bcde7818dd5460d474cdbd674b15f6638b9cd73cd64e52bd852fba2bd4d8ec91"
     },
-    "@zanix/server@4.2.1": {
-      "integrity": "880e39db0a58012b8cc8cac26e366bd7d0d8c2069c4ad68a9cf185fec2172b45",
+    "@zanix/server@4.2.3": {
+      "integrity": "475a3b19e2bd349900948b36b41ae11d5d23506a9a588f1d5b5d768567d35fc8",
       "dependencies": [
         "jsr:@std/http",
         "jsr:@std/path@0.224",
         "jsr:@zanix/utils@^4.1.0"
       ]
     },
-    "@zanix/space@1.4.2": {
-      "integrity": "ef45328643879f8f0c46e38c86b5a27c7384503b4f0f7dab724047855c828ea7",
+    "@zanix/space@1.7.0": {
+      "integrity": "4039f7dd8a58a2d8ab6f52ebe373d3bc369eba570abad727172bff9bdf329e98",
       "dependencies": [
         "jsr:@std/path@0.224",
         "jsr:@zanix/server",
         "jsr:@zanix/utils@^4.1.0",
         "npm:@types/react",
         "npm:@types/react-dom",
+        "npm:preact",
         "npm:react",
         "npm:react-dom"
       ]
@@ -144,8 +145,8 @@
         "intl-messageformat"
       ]
     },
-    "@types/node@26.4.0": {
-      "integrity": "sha512-faiGnoIrLH/V8cibOMEAZ8pMw6oXqSukl29ra4mN8GdaB2ZewzeaLj+INpV5N+Z1eKWzY+IzaIZH2EIR6YZRNQ==",
+    "@types/node@26.4.1": {
+      "integrity": "sha512-k97ENvZWtvA6yqz5/FS6a7duDgOPEeOQOc2iKS/nY6mX6qJUKtLnWzQS+Xj6tXweyj6ZcTAK2Qecetnvi9nCLA==",
       "dependencies": [
         "undici-types"
       ]
@@ -183,8 +184,8 @@
     "entities@7.0.1": {
       "integrity": "sha512-TWrgLOFUQTH994YUyl1yT4uyavY5nNB5muff+RtWaqNVCAK408b5ZnnbNAUEWLTCpum9w6arT70i1XdQ4UeOPA=="
     },
-    "happy-dom@20.12.0": {
-      "integrity": "sha512-7uMYJu2SEwwL8vVcKp0C0lnt6d2LSGGe+T+oY79PiCJNNSgFpbxW8n5KuzpDQvrU4mt+fYiK1+Jy7Z2v39YR6g==",
+    "happy-dom@20.14.0": {
+      "integrity": "sha512-4bRh1KzRvKDnFNTlLhzT1RZTpkKhQbQDl9j+7GXszWsvuspYdo29k6OHRf4PwiM6oLb8r/pMWeYiJjkfod5AvQ==",
       "dependencies": [
         "@types/node",
         "@types/whatwg-mimetype",
