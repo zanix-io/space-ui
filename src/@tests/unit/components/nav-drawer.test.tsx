@@ -120,6 +120,35 @@ Deno.test('NavDrawer: aria-controls on the toggle matches the panel’s own id',
   unmount()
 })
 
+// The cross-render "same id, server vs. client" guarantee belongs at the REAL Comet-boundary
+// level, not here: `NavDrawer` above is the raw, un-wrapped component this file deliberately
+// exercises directly (see the top-of-file comment) — outside `defineComet`'s own
+// `CometIdScopeProvider`, `useCometStableId()` is a plain passthrough to the renderer's own
+// `useId()`, which has NO cross-render guarantee once two independent renders' hook-call ordinals
+// diverge (a real, expected difference between a server render's own position in a larger tree and
+// an isolated client root's fresh count from zero — closing that gap is a Comet boundary's own job,
+// not something the raw component can promise on its own). See
+// `integration/components/nav-drawer.test.tsx`'s own two panel-id tests (against the REAL
+// `defineComet`-wrapped default export) for the guarantee that actually matters here.
+
+Deno.test(
+  'NavDrawer: two different labels get two different auto-generated ids — never a shared ' +
+    'constant fallback that would collide when a page composes more than one NavDrawer',
+  () => {
+    const first = mount(<NavDrawer items={items} label='Main navigation' defaultOpen />)
+    const second = mount(<NavDrawer items={items} label='Footer navigation' defaultOpen />)
+
+    const firstId = must(first.container.querySelector('[data-space-ui="drawer"]'))
+      .getAttribute('id')
+    const secondId = must(second.container.querySelector('[data-space-ui="drawer"]'))
+      .getAttribute('id')
+    assertEquals(firstId === secondId, false)
+
+    first.unmount()
+    second.unmount()
+  },
+)
+
 Deno.test('NavDrawer: Escape closes the drawer by default', () => {
   const { container, unmount } = mount(
     <NavDrawer items={items} label='Main navigation' defaultOpen />,

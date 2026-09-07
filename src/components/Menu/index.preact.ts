@@ -1,6 +1,6 @@
 import { Fragment, h } from 'preact'
 import type { ComponentChildren, VNode } from 'preact'
-import { useId, useRef, useState } from 'preact/hooks'
+import { useRef, useState } from 'preact/hooks'
 import type { CreateElement } from 'typings/renderer.ts'
 import { useCloseOnOutside } from 'shared/close-on-outside.preact.ts'
 import { createMenu } from './render.ts'
@@ -32,6 +32,6 @@ export type MenuProps = MenuBaseProps & { items: MenuItem[] }
 // `ReactNode`.
 export const Menu: (props: MenuProps) => VNode = createMenu<VNode>(
   h as unknown as CreateElement<VNode>,
-  { useId, useRef, useState, useCloseOnOutside },
+  { useRef, useState, useCloseOnOutside },
   Fragment,
 ) as (props: MenuProps) => VNode

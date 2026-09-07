@@ -5,6 +5,29 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/) and this project
 adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [2.0.1] - 2026-09-06
+
+### Fixed
+
+- **`NavDrawer`'s own auto-generated panel `id` (and its toggle's matching `aria-controls`) now
+  comes from `@zanix/space`'s own `useCometStableId`, not a `label`-derived hash** —
+  `useCometStableId` scopes the id to this Comet INSTANCE (its source plus its own serialized
+  props), set up by `defineComet`'s own boundary and read back identically by the matching client
+  hydration/persist-reuse wrap, rather than to `label` alone. Requires a published `@zanix/space`
+  version carrying `useCometStableId` (`@zanix/space/comet/react`/`/preact`) — this package's own
+  `deno.jsonc` `imports` entries for those subpaths need that version to resolve.
+
+### Changed
+
+- **`Menu`'s own per-item/list ids stay on their existing `label`/`url`-derived hash
+  (`shared/stable-comet-id.ts`), deliberately NOT migrated to `useCometStableId`** — `Menu` is
+  architecturally required to stay dependency-free from `@zanix/space` (its own root-barrel
+  placement, and a permanent structural test, depend on it), so it cannot import
+  `@zanix/space/comet/react` without breaking that guarantee. Its existing hash-based approach needs
+  no Context/Provider at all, so it already stays correct under ANY nesting (inside `NavDrawer`, or
+  any future third-party Comet) — strictly more robust for a dependency-free component than a
+  Provider-based scope it structurally cannot reach.
+
 ## [2.0.0] - 2026-09-05
 
 ### Changed

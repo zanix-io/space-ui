@@ -1,6 +1,6 @@
 {
   "name": "@zanix/space-ui",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "zanix": {
     "project": "library"
   },
@@ -92,6 +92,14 @@
     // `@module` doc. `ImgButton`/`Card` used to be here too, until each got its own `visual`
     // render-prop (same fix `Menu` already got) and moved to the default `.`/`./preact` barrel.
     "@zanix/space/comet": "jsr:@zanix/space@^1.0.0/comet",
+    // `NavDrawer`'s own `panelId` — `useCometStableId`, a drop-in replacement for the renderer's
+    // own `useId()` that stays correct across NavDrawer's own isolated Comet hydration root (see
+    // `NavDrawer/render.ts`'s own `NavDrawerHooks` doc for the full "why", and `@zanix/space`'s own
+    // `comet-id-scope-react.tsx`/`-preact.tsx` for the mechanism itself). `^1.0.0` here is a
+    // placeholder floor: no published `@zanix/space` version carries this export yet, so this
+    // range needs tightening to the real version that first does.
+    "@zanix/space/comet/react": "jsr:@zanix/space@^1.0.0/comet/react",
+    "@zanix/space/comet/preact": "jsr:@zanix/space@^1.0.0/comet/preact",
     // Floor bumped to `^4.4.0` — the version that stopped `cron.ts`/`masking/hard.ts` (both
     // reachable through this very barrel) from dragging `WorkerManager`/the full `Logger` into
     // every consumer, `RichText` included. See `src/@tests/unit/intl/dependency-boundary.test.ts`'s

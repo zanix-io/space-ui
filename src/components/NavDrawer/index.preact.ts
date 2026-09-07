@@ -1,9 +1,10 @@
 'use comet'
 import { Fragment, h } from 'preact'
 import type { VNode } from 'preact'
-import { useEffect, useId, useRef, useState } from 'preact/hooks'
+import { useEffect, useRef, useState } from 'preact/hooks'
 import { defineComet } from '@zanix/space/comet'
 import type { CometBoundaryComponent, CometProps } from '@zanix/space/comet'
+import { useCometStableId } from '@zanix/space/comet/preact'
 import type { CreateElement } from 'typings/renderer.ts'
 import { useCloseOnOutside } from 'shared/close-on-outside.preact.ts'
 import { useFocusScope } from 'shared/focus-scope.preact.ts'
@@ -21,7 +22,7 @@ export type { NavDrawerItem, NavDrawerProps }
  */
 export const NavDrawer: (props: NavDrawerProps) => VNode = createNavDrawer<VNode>(
   h as unknown as CreateElement<VNode>,
-  { useId, useRef, useState, useEffect, useCloseOnOutside, useFocusScope },
+  { useCometStableId, useRef, useState, useEffect, useCloseOnOutside, useFocusScope },
   Fragment,
 )
 

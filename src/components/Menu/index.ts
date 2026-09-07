@@ -1,4 +1,4 @@
-import { createElement, Fragment, useId, useRef, useState } from 'react'
+import { createElement, Fragment, useRef, useState } from 'react'
 import type { ReactElement, ReactNode } from 'react'
 import type { CreateElement } from 'typings/renderer.ts'
 import { useCloseOnOutside } from 'shared/close-on-outside.ts'
@@ -133,6 +133,6 @@ export type MenuProps = MenuBaseProps & { items: MenuItem[] }
 // internal `E` type parameter.
 export const Menu: (props: MenuProps) => ReactElement = createMenu<ReactElement>(
   createElement as unknown as CreateElement<ReactElement>,
-  { useId, useRef, useState, useCloseOnOutside },
+  { useRef, useState, useCloseOnOutside },
   Fragment,
 ) as (props: MenuProps) => ReactElement

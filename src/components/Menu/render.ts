@@ -3,15 +3,28 @@ import { createButton } from '../Button/render.ts'
 import { createIcon } from '../Icon/render.ts'
 import { createLink } from '../Link/render.ts'
 import { createEscapeToCloseHandler } from 'shared/escape-to-close.ts'
+import { deriveStableCometId } from 'shared/stable-comet-id.ts'
 import type { MenuBaseProps, MenuItemFields, MenuOpenMode } from './types.ts'
 
 /**
  * The subset of hooks/primitives this component's shared body needs, injected alongside `h` — same
  * `render.ts`-factory technique {@linkcode createTable}'s own `TableHooks` established (see
- * `Table/render.ts`'s own doc for the full soundness reasoning, not repeated here). Wider than
- * `Table`'s bag (`useId`/`useRef` alongside `useState`), but every one of these is still only ever
- * called at this component's own top level, in the same order, every render — never conditionally,
- * never inside a loop — so the same call-order-keying argument applies unchanged.
+ * `Table/render.ts`'s own doc for the full soundness reasoning, not repeated here). No `useId` —
+ * `submenuId`/`listId` are derived from item/props identity (`stable-comet-id.ts`) instead, since
+ * this component can end up nested inside a Comet's own isolated hydration root (`NavDrawer`
+ * composes it directly), where `useId()`'s "stable within one root" guarantee doesn't hold.
+ *
+ * **Not `@zanix/space`'s own `useCometStableId`** — the more general fix `NavDrawer/render.ts`'s
+ * own `panelId` uses — because this component is deliberately dependency-free from `@zanix/space`
+ * (see `index.ts`'s own "Zero `@zanix/space` dependency, by construction" doc, and the permanent
+ * structural guard behind it): `useCometStableId` lives at `@zanix/space/comet/react`, and importing
+ * it here would give `Menu` a real runtime dependency it is built specifically not to have. The hash
+ * approach below needs no Context/Provider at all — it stays correct under nesting REGARDLESS of
+ * whether the surrounding tree happens to be a Comet, which is strictly more robust for a
+ * zero-dependency component than a Provider-based scope it structurally cannot reach.
+ * `useRef`/`useState` are still only ever called at this component's own top level, in the same
+ * order, every render — never conditionally, never inside a loop — so the same call-order-keying
+ * argument `Table/render.ts` makes still applies to them unchanged.
  *
  * `useCloseOnOutside` is itself injected too, not imported directly — it's already a per-renderer
  * pair (`shared/close-on-outside.ts`/`.preact.ts`, each built on that renderer's own
@@ -19,7 +32,6 @@ import type { MenuBaseProps, MenuItemFields, MenuOpenMode } from './types.ts'
  * the same way each passes its own `useState`.
  */
 export type MenuHooks = {
-  useId: () => string
   useRef: <T>(initial: T) => { current: T }
   useState: <T>(initial: T) => [T, (value: T | ((current: T) => T)) => void]
   useCloseOnOutside: (
@@ -105,7 +117,10 @@ export function createMenu<E>(
     const hasUrl = url !== undefined
     const accessibleName = accessibleLabel
 
-    const submenuId = hooks.useId()
+    // Derived from the item's own identity (`url ?? label`, the SAME disambiguation `key` below
+    // already uses for these siblings), never `hooks.useId()`/`useCometStableId()` — see
+    // `MenuHooks`' own doc above for why this component stays on the dependency-free hash instead.
+    const submenuId = deriveStableCometId(item.url ?? item.label, 'menu-submenu')
     const [isOpen, setIsOpen] = hooks.useState(openMode === 'onRender')
     const containerRef = hooks.useRef<HTMLLIElement | null>(null)
     const triggerWrapperRef = hooks.useRef<HTMLSpanElement | null>(null)
@@ -231,7 +246,8 @@ export function createMenu<E>(
       id,
       className,
     } = props
-    const listId = hooks.useId()
+    // Derived from `label` (Menu's own required accessible name) — same reasoning as `submenuId`.
+    const listId = deriveStableCometId(label, 'menu-list')
     const isControlled = controlledOpen !== undefined
     const [internalOpen, setInternalOpen] = hooks.useState(defaultOpen)
     const isOpen = !toggle || (isControlled ? controlledOpen : internalOpen)

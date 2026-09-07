@@ -9,12 +9,20 @@ import type { NavDrawerItem, NavDrawerProps } from './types.ts'
 /**
  * The hooks this component's shared body needs, injected alongside `h` — the union of
  * {@linkcode DrawerHooks} and {@linkcode MenuHooks} (both `createDrawer`/`createMenu` themselves
- * need in full), plus this component's own top-level `open` state, which reuses the same
- * `useState`/`useId` already present via `MenuHooks`. Same call-order-keying soundness argument
- * `Menu/render.ts`'s own `MenuHooks` doc already makes — repeated for a wider bag here, not a new
- * reasoning.
+ * need in full), plus this component's own top-level `open` state (`useState`, already present via
+ * `MenuHooks`) and its own `useCometStableId` for `panelId`.
+ *
+ * `useCometStableId` lives HERE, not on `MenuHooks` — `Menu` is deliberately dependency-free from
+ * `@zanix/space` (see `Menu/index.ts`'s own "Zero `@zanix/space` dependency" doc), while `NavDrawer`
+ * already has a real, direct one (`defineComet`, imported by `index.ts`), so it can safely import
+ * `@zanix/space/comet/react`'s own `useCometStableId` for its OWN `panelId`: `NavDrawer` is a real
+ * `'use comet'` Comet, and `panelId` needs to stay identical between the server render and the
+ * client's own isolated hydration of it — see `useCometStableId`'s own doc for the full mechanism
+ * (a Context-provided scope, unlike `Menu`'s own props-derived hash, which needs no such scope).
+ * Same call-order-keying soundness argument `Menu/render.ts`'s own `MenuHooks` doc already makes —
+ * repeated for a wider bag here, not a new reasoning.
  */
-export type NavDrawerHooks = DrawerHooks & MenuHooks
+export type NavDrawerHooks = DrawerHooks & MenuHooks & { useCometStableId: () => string }
 
 /** Minimal structural shape both a React `MouseEvent` and a native `MouseEvent` satisfy — this
  * file never imports React or Preact, same reasoning `shared/escape-to-close.ts`'s own
@@ -84,8 +92,13 @@ export function createNavDrawer<E>(
     } = props
 
     const [open, setOpen] = hooks.useState(defaultOpen)
-    const generatedId = hooks.useId()
-    const panelId = id ?? generatedId
+    // Called unconditionally, every render, regardless of whether `id` ends up used — a real hook,
+    // so it must follow the same fixed call-order every other hook here does; `id ?? ...` only
+    // decides which VALUE wins, never whether this call happens. See `NavDrawerHooks`' own doc for
+    // why this is `@zanix/space/comet/react`'s own `useCometStableId`, not `Menu`'s dependency-free
+    // hash.
+    const generatedPanelId = hooks.useCometStableId()
+    const panelId = id ?? generatedPanelId
 
     const handlePanelClick = (event: NavDrawerClickEvent) => {
       const target = event.target as (Element & { closest?: Element['closest'] }) | null

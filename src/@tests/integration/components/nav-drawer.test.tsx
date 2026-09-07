@@ -60,3 +60,46 @@ Deno.test('NavDrawer Comet: comet="none" renders the raw component, no marker at
   assertEquals(html.includes('data-comet='), false)
   assertStringIncludes(html, 'data-space-ui="button"')
 })
+
+/** Extracts the panel's own `id`, regardless of where that attribute falls in the opening tag —
+ * `Drawer/render.ts` places `id` BEFORE `data-space-ui` in its own props object, so this reads the
+ * whole tag first and finds `id` within it, never assuming either attribute's position. */
+function extractPanelId(html: string): string {
+  const panelTag = /<div\b[^>]*\bdata-space-ui="drawer"[^>]*>/.exec(html)?.[0] ?? ''
+  const idMatch = /\bid="([^"]+)"/.exec(panelTag)
+  if (!idMatch) throw new Error(`Expected a panel id in: ${html}`)
+  return idMatch[1]
+}
+
+Deno.test(
+  "NavDrawer Comet: the panel's own auto-generated id is deterministic across two independent " +
+    "renders of the REAL Comet boundary (defineComet's own instance scope, not the raw " +
+    "component) — this is what actually needs to match between the server's whole-document " +
+    "render and NavDrawer's own isolated client hydration; see @zanix/space's own " +
+    '`comet-id-scope.test.tsx` for the identical guarantee at the general mechanism level',
+  () => {
+    const htmlA = renderToStaticMarkup(
+      NavDrawerComet({ items, label: 'Main navigation', defaultOpen: true }),
+    )
+    const htmlB = renderToStaticMarkup(
+      NavDrawerComet({ items, label: 'Main navigation', defaultOpen: true }),
+    )
+
+    assertEquals(extractPanelId(htmlA), extractPanelId(htmlB))
+  },
+)
+
+Deno.test(
+  'NavDrawer Comet: two Comet instances with DIFFERENT props (label) get different auto-generated ' +
+    'ids — never a shared constant that would collide when a page composes more than one NavDrawer',
+  () => {
+    const htmlA = renderToStaticMarkup(
+      NavDrawerComet({ items, label: 'Main navigation', defaultOpen: true }),
+    )
+    const htmlB = renderToStaticMarkup(
+      NavDrawerComet({ items, label: 'Footer navigation', defaultOpen: true }),
+    )
+
+    assertEquals(extractPanelId(htmlA) === extractPanelId(htmlB), false)
+  },
+)
