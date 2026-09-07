@@ -5,6 +5,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/) and this project
 adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [2.0.2] - 2026-09-07
+
+### Fixed
+
+- **`NavDrawer`'s own Comet (`./runtime/nav-drawer`, `./runtime/nav-drawer/preact`) failed to
+  hydrate in a real production build, with no console output at all** — `NavDrawer` is a named
+  function _expression_ `createNavDrawer` returns (`render.ts`), not a top-level declaration, so
+  `zanix space build`'s default minification and its `--obfuscate` pass could each strip its runtime
+  `.name`, the one thing `defineComet`'s own dynamic client-side `import()` needs to resolve the
+  right export back out of `NavDrawer`'s bundled chunk. The initial server-rendered HTML looked
+  correct (every `data-comet-*` attribute present), but the client chunk's own `defineComet(...)`
+  call threw during that chunk's own module evaluation, so hydration never completed and the
+  drawer's toggle never responded to a click. Fixed by passing the export name explicitly
+  (`defineComet(NavDrawer, import.meta.url, 'NavDrawer')`), removing any dependency on
+  `NavDrawer.name` surviving the build. `@zanix/space/comet`'s own import floor is bumped to
+  `^1.8.0` — the first published `@zanix/space` version whose `defineComet` accepts this third
+  argument.
+
 ## [2.0.1] - 2026-09-06
 
 ### Fixed

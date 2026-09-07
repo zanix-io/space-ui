@@ -78,8 +78,11 @@ export const NavDrawer: (props: NavDrawerProps) => ReactElement = createNavDrawe
  * inference: `defineComet`'s own generic return type is too complex for JSR's fast-check publish
  * step to infer through a bare default-export expression, the same reasoning `@zanix/space`'s own
  * ready-made Comets (`form-draft-persistence-react.tsx`, …) already document for this exact `as`
- * clause.
+ * clause. `defineComet`'s third argument names the export explicitly rather than relying on
+ * `NavDrawer.name`: `NavDrawer` is a named function expression `createNavDrawer` returns
+ * (`render.ts`), not a top-level declaration, so nothing protects its runtime `.name` from a
+ * production build's minifier/obfuscator the way a top-level export's name is protected.
  */
-export default defineComet(NavDrawer, import.meta.url) as CometBoundaryComponent<
+export default defineComet(NavDrawer, import.meta.url, 'NavDrawer') as CometBoundaryComponent<
   NavDrawerProps & CometProps
 >

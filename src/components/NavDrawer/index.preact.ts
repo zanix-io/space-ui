@@ -30,6 +30,6 @@ export const NavDrawer: (props: NavDrawerProps) => VNode = createNavDrawer<VNode
  * {@linkcode NavDrawer}, wrapped as a real Comet boundary — see `index.ts`'s own default-export doc
  * for the full reasoning (identical here, Preact binding).
  */
-export default defineComet(NavDrawer, import.meta.url) as CometBoundaryComponent<
+export default defineComet(NavDrawer, import.meta.url, 'NavDrawer') as CometBoundaryComponent<
   NavDrawerProps & CometProps
 >
