@@ -17,7 +17,6 @@
     "jsr:@std/streams@~0.224.5": "0.224.5",
     "jsr:@zanix/server@^4.1.0": "4.2.3",
     "jsr:@zanix/space@1": "1.8.0",
-    "jsr:@zanix/space@^1.7.0": "1.7.0",
     "jsr:@zanix/space@^1.8.0": "1.8.0",
     "jsr:@zanix/utils@^4.1.0": "4.4.0",
     "jsr:@zanix/utils@^4.4.0": "4.4.0",
@@ -102,19 +101,6 @@
         "jsr:@std/http",
         "jsr:@std/path@0.224",
         "jsr:@zanix/utils@^4.1.0"
-      ]
-    },
-    "@zanix/space@1.7.0": {
-      "integrity": "4039f7dd8a58a2d8ab6f52ebe373d3bc369eba570abad727172bff9bdf329e98",
-      "dependencies": [
-        "jsr:@std/path@0.224",
-        "jsr:@zanix/server",
-        "jsr:@zanix/utils@^4.1.0",
-        "npm:@types/react",
-        "npm:@types/react-dom",
-        "npm:preact",
-        "npm:react",
-        "npm:react-dom"
       ]
     },
     "@zanix/space@1.8.0": {
@@ -275,7 +261,6 @@
       "jsr:@std/fmt@0.224",
       "jsr:@std/path@0.224",
       "jsr:@zanix/space@1",
-      "jsr:@zanix/space@^1.7.0",
       "jsr:@zanix/space@^1.8.0",
       "jsr:@zanix/utils@^4.4.0",
       "npm:@formatjs/icu-messageformat-parser@^3.5.17",
