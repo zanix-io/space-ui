@@ -311,6 +311,17 @@ export type {
   DatePickerBaseProps,
 } from 'components/DatePicker/types.ts'
 
+// See the default entrypoint's own comment on `MultiSelect` — zero `@zanix/space` dependency, same
+// reasoning, Preact binding.
+export { MultiSelect } from 'components/MultiSelect/index.preact.ts'
+export type { MultiSelectProps } from 'components/MultiSelect/index.preact.ts'
+export type {
+  /** See `components/MultiSelect/types.ts`'s own `MultiSelectBaseProps` for the full doc. */
+  MultiSelectBaseProps,
+  /** See `components/MultiSelect/types.ts`'s own `MultiSelectOption` for the full doc. */
+  MultiSelectOption,
+} from 'components/MultiSelect/types.ts'
+
 export { SocialNetworks } from 'components/SocialNetworks/index.preact.ts'
 export type {
   /** See `components/SocialNetworks/types.ts`'s own `SocialNetworkIcon` for the full doc. */

@@ -423,6 +423,32 @@ ahead of time:
   dependency (pure calendar arithmetic plus native `Intl`, never `@formatjs/intl`) — ships from the
   root barrel, same as `Select`/`Combobox`.
 
+- ✅ **`MultiSelect`** — a multi-value tag/chip input, filling the real gap `Select`/`Combobox`
+  leave (both single-select only, `value: string | null`, never `values: string[]`): a text input
+  paired with a filterable listbox (the same WAI-ARIA "combobox with multi-select" pattern), plus a
+  removable chip for each committed value. One `allowCustomValue` prop picks the mode: `false`
+  (default) is a closed set, `Select`-shaped — typing only filters `options`, `Enter`/a click only
+  ever commits an EXISTING option; `true` is a suggested set, `Combobox`-shaped — typing still
+  filters `options`, but text matching no option's own label commits as a new free-text chip on
+  `Enter` or losing focus, while text that DOES exactly match a label selects that option instead of
+  duplicating it. Already-committed values are excluded from the listbox entirely (not just visually
+  marked) — the listbox doesn't render at all once nothing is left to offer, or once an optional
+  `max` cap is reached (removing a chip is never blocked by `max`). Each chip composes a real
+  `Button` for its own remove control (`aria-label="Remove {label}"`, inherits
+  `data-space-ui="button"`, never a redundant hook) with `shared/close-button-icon.ts`'s own default
+  "X" glyph; `Backspace` on an already-empty input removes the last committed chip, the common
+  tag-input convention. Real DOM focus never leaves the input — `aria-activedescendant` via
+  `shared/roving-focus.ts`'s own `getNextRovingIndex`, exactly `Combobox`'s own model, never roving
+  tabindex. A visually-hidden "N items selected" description (`shared/live-region.ts`'s own
+  `VISUALLY_HIDDEN_STYLE`) is referenced via the input's own `aria-describedby`. Controlled
+  `values`/`inputValue`/`open`, each with an uncontrolled fallback, same seam every stateful
+  component here keeps. Shareable-body `render.ts` factory (`Select`/`Input`'s own shape), the one
+  isolable `onChange`/`onInput` divergence handled the same narrow way `Input/render.ts` already
+  established (a computed `changeEventProp`, not a full second implementation) — not a `Combobox`
+  composition internally, since the tight coupling a real composition would need (intercepting
+  `Combobox`'s own internally-owned `Enter`/blur handling from outside it) would be fragile in a way
+  owning the input directly isn't.
+
 - ✅ **`RichText`** — renders ICU rich-text content (the default) or literal Markdown
   (`contentFormat: 'markdown'`) into real component output, built on `useIntl().formatRichText` —
   the same native `@formatjs/intl` mechanism, exposed directly, rather than a hand-rolled tag

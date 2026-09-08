@@ -328,6 +328,7 @@ const ROOT_BARREL_COMPONENTS = [
   'Link',
   'Menu',
   'Modal',
+  'MultiSelect',
   'Pagination',
   'Popover',
   'ProgressBar',
