@@ -394,6 +394,61 @@ ahead of time:
   a disclosed, not guessed-at, scope limit, same spirit as `Combobox`'s own `noOptionsMessage`
   omission.
 
+- ✅ **`DatePicker`** — a single-date picker: a trigger `Button` showing the formatted selected
+  date, opening a positioned popup with a day grid — plus a dedicated YEAR-selection view (a paged,
+  12-per-page grid, fixed page boundaries) reachable by clicking the currently-displayed year, the
+  single most important behavior this component exists for: picking a date decades in the past (a
+  date of birth) never means paging back one month at a time. Clicking the month name does the same
+  one level down (a 12-month grid), a nice-to-have. Closest sibling: `Select` (same
+  trigger-`Button` + positioned-popup shape, same controlled `value`/`open` contracts) — copied
+  verbatim wherever this component didn't have a genuinely new problem to solve. The day grid is a
+  real WAI-ARIA `role="grid"` with roving `tabIndex` (unlike `Select`'s/`Combobox`'s own
+  `aria-activedescendant`) — `ArrowLeft`/`Right`/`Up`/`Down` (one day/one week), `PageUp`/`PageDown`
+  (one month), `Shift+PageUp`/`PageDown` (one year), `Enter`/`Space` commits; days outside
+  `min`/`max` stay visible and focusable, `aria-disabled`, just not committable — the same "can be
+  highlighted, only selecting it no-ops" model `Combobox`'s own disabled option already establishes.
+  Month/year grid cells are plain, individually Tab-reachable `<button>`s, deliberately NOT
+  roving-tabindex, same reasoning `Accordion`'s own headers already establish. Never a free-text
+  field — this is a picker, not typed date entry, sidestepping the well-known date-string parsing
+  ambiguity entirely. `withTime?: boolean` (default `false`) opts into an additional `Hour`/`Minute`
+  section — `value` carries `'YYYY-MM-DDTHH:mm'` (minute precision, 24h by default,
+  `hourCycle: 'h12'` for AM/PM) instead of a bare `'YYYY-MM-DD'`; each control is a real
+  `role="spinbutton"` (arrow-key adjust, wrapping at the boundary), never a bare
+  `<input type="number">` — picking a day no longer auto-closes the popup in this mode (time still
+  needs setting), a "Done" button closes explicitly instead. `locale` (BCP-47, default `'en'`) is a
+  plain prop — native `Intl.DateTimeFormat` formats the trigger's own value and the weekday/month
+  names, so this component works standalone, unlike `RichText`, with no `<IntlProvider>`
+  requirement. Deterministic first render (seam 6): an empty, freshly-opened picker's own "today"
+  starts `null`, resolved only after mount, the same `Counter`/`Showcase` idiom. Zero `@zanix/space`
+  dependency (pure calendar arithmetic plus native `Intl`, never `@formatjs/intl`) — ships from the
+  root barrel, same as `Select`/`Combobox`.
+
+- ✅ **`MultiSelect`** — a multi-value tag/chip input, filling the real gap `Select`/`Combobox`
+  leave (both single-select only, `value: string | null`, never `values: string[]`): a text input
+  paired with a filterable listbox (the same WAI-ARIA "combobox with multi-select" pattern), plus a
+  removable chip for each committed value. One `allowCustomValue` prop picks the mode: `false`
+  (default) is a closed set, `Select`-shaped — typing only filters `options`, `Enter`/a click only
+  ever commits an EXISTING option; `true` is a suggested set, `Combobox`-shaped — typing still
+  filters `options`, but text matching no option's own label commits as a new free-text chip on
+  `Enter` or losing focus, while text that DOES exactly match a label selects that option instead of
+  duplicating it. Already-committed values are excluded from the listbox entirely (not just visually
+  marked) — the listbox doesn't render at all once nothing is left to offer, or once an optional
+  `max` cap is reached (removing a chip is never blocked by `max`). Each chip composes a real
+  `Button` for its own remove control (`aria-label="Remove {label}"`, inherits
+  `data-space-ui="button"`, never a redundant hook) with `shared/close-button-icon.ts`'s own default
+  "X" glyph; `Backspace` on an already-empty input removes the last committed chip, the common
+  tag-input convention. Real DOM focus never leaves the input — `aria-activedescendant` via
+  `shared/roving-focus.ts`'s own `getNextRovingIndex`, exactly `Combobox`'s own model, never roving
+  tabindex. A visually-hidden "N items selected" description (`shared/live-region.ts`'s own
+  `VISUALLY_HIDDEN_STYLE`) is referenced via the input's own `aria-describedby`. Controlled
+  `values`/`inputValue`/`open`, each with an uncontrolled fallback, same seam every stateful
+  component here keeps. Shareable-body `render.ts` factory (`Select`/`Input`'s own shape), the one
+  isolable `onChange`/`onInput` divergence handled the same narrow way `Input/render.ts` already
+  established (a computed `changeEventProp`, not a full second implementation) — not a `Combobox`
+  composition internally, since the tight coupling a real composition would need (intercepting
+  `Combobox`'s own internally-owned `Enter`/blur handling from outside it) would be fragile in a way
+  owning the input directly isn't.
+
 - ✅ **`RichText`** — renders ICU rich-text content (the default) or literal Markdown
   (`contentFormat: 'markdown'`) into real component output, built on `useIntl().formatRichText` —
   the same native `@formatjs/intl` mechanism, exposed directly, rather than a hand-rolled tag
@@ -460,7 +515,26 @@ ahead of time:
   hatch, for the same JSON-boundary reason — and closes itself automatically the instant a real
   navigation link inside it is clicked, plain DOM click delegation, never a router/URL read.
 
-All thirty-nine ship for **both React and Preact** (see [Installation](#installation)).
+- ✅ **`SocialLinksInput`** — the editable counterpart to the display-only `SocialNetworks` above: a
+  form control for adding, editing, and removing a user's own social links one at a time. Each row
+  is a URL text field plus a remove ("×") button; a trailing "+" button appends one new, empty row
+  and moves focus into it automatically. `values`/`onValuesChange` (controlled) with an uncontrolled
+  `defaultValues` fallback, same seam every stateful component here keeps — each `SocialLinkEntry`
+  is `{ id, url, network }`, `network` auto-detected from `url`'s own hostname (Instagram, X,
+  Facebook, LinkedIn, TikTok, YouTube, WhatsApp, Telegram by domain, `'website'` for anything else
+  parseable, `null` for empty/unparseable) on every change — a pure, synchronous hostname parse, no
+  debounce needed. `renderIcon?: (entry) => Node | null` hands back the already-detected network for
+  the caller to resolve into whatever icon it already has — a render-prop, not a bundled icon
+  catalog, the same reasoning `Menu.visual` uses to avoid a static asset dependency this component's
+  own module would otherwise carry unconditionally; omit it and a row simply shows no icon. No
+  manual network-override control in this first version (hostname detection can be wrong for a
+  shortened/redirecting URL) — a disclosed v1 scope cut, not a silent omission. Composes
+  `Input`/`Button` (inherits their own `data-space-ui` hooks); each row's URL field gets its own
+  uniquely-suffixed `name` (`name="socialLinks"` → `socialLinks_0`, `socialLinks_1`, ...) rather
+  than a single repeated field name, so a plain `<form method="post">` submission collects every
+  entry correctly.
+
+All forty ship for **both React and Preact** (see [Installation](#installation)).
 
 Also included, though not a rendering component: **`IntlProvider`/`useIntl`/`createFormatter`** —
 this package's own ICU message-formatting runtime (`formatMessage(id, values)` for plain messages,

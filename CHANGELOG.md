@@ -5,6 +5,62 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/) and this project
 adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [2.1.0] - 2026-09-08
+
+### Added
+
+- **`DatePicker`** — a single-date picker: a trigger `Button` showing the formatted selected date,
+  opening a positioned popup with a day grid plus a dedicated YEAR-selection view (a paged,
+  12-per-page grid) reachable by clicking the currently-displayed year — picking a date decades in
+  the past (a date of birth) never means paging back one month at a time. Clicking the month name
+  does the same one level down. The day grid is a real WAI-ARIA `role="grid"` with roving
+  `tabIndex`: full arrow-key/`PageUp`/`PageDown`/`Shift+PageUp`/`PageDown`/`Home`/`End` navigation,
+  `Enter`/`Space` commits; days outside `min`/`max` stay visible and focusable, `aria-disabled`,
+  just not committable. Never a free-text field — the trigger is a real `<button>`, sidestepping
+  date-string parsing ambiguity entirely. `withTime?: boolean` (default `false`, purely additive)
+  opts into an `Hour`/`Minute` section (real `role="spinbutton"` controls, never a bare
+  `<input type="number">`) — `value` then carries `'YYYY-MM-DDTHH:mm'` instead of a bare
+  `'YYYY-MM-DD'`; `hourCycle` (`'h12'`/`'h24'`, default `'h24'`) controls both the spinbutton
+  display and the trigger's own formatted value, and a "Done" button closes the popup explicitly
+  since picking a day no longer auto-closes it in this mode. `locale` (BCP-47, default `'en'`) is a
+  plain prop — native `Intl.DateTimeFormat` formats the trigger's value and the weekday/month names,
+  so this component works standalone with no `<IntlProvider>` requirement. Zero `@zanix/space`
+  dependency (pure calendar arithmetic plus native `Intl`) — ships from the default `.`/`./preact`
+  barrel, same as `Select`/`Combobox`. See `docs/architecture.md`'s build-order table (row 21) and
+  `README.md`'s "Current status" for the full contract.
+
+- **`MultiSelect`** — a multi-value tag/chip input, filling the gap `Select`/`Combobox` leave (both
+  single-select only): a text input paired with a filterable listbox, plus a removable chip for each
+  committed value. `allowCustomValue` (default `false`) picks the mode: a closed set,
+  `Select`-shaped (typing only filters `options`, `Enter`/a click only ever commits an EXISTING
+  option), or `true` for a suggested set, `Combobox`-shaped (typing still filters `options`, but
+  text matching no option commits as a new free-text chip on `Enter` or losing focus; text that DOES
+  exactly match an option's label selects that option instead of duplicating it). Already-committed
+  values are excluded from the listbox entirely; an optional `max` caps further commits. Each chip
+  composes a real `Button` for its own remove control (`aria-label="Remove {label}"`); `Backspace`
+  on an empty input removes the last committed chip. Controlled `values`/`inputValue`/`open`, each
+  with an uncontrolled fallback, same seam every stateful component here keeps. Zero `@zanix/space`
+  dependency — ships from the default `.`/`./preact` barrel. See `docs/architecture.md`'s
+  build-order table (row 22) and `README.md`'s "Current status" for the full contract.
+
+- **`SocialLinksInput`** — the editable counterpart to the display-only `SocialNetworks`: a form
+  control for adding, editing, and removing a user's own social links one at a time, each row a URL
+  text field plus a remove ("×") button, with a trailing "+" button that appends one new, empty row
+  and moves focus into it automatically. Controlled `values`/`onValuesChange` with an uncontrolled
+  `defaultValues` fallback; each `SocialLinkEntry` (`{ id, url, network }`) has its own `network`
+  re-detected from `url`'s own hostname on every change (Instagram, X, Facebook, LinkedIn, TikTok,
+  YouTube, WhatsApp, Telegram by domain, `'website'` for anything else parseable, `null` for
+  empty/unparseable input). `renderIcon?: (entry) => Node | null` hands the detected network back to
+  the caller to resolve into whatever icon it already has (its own sprite, a `createCatalogIcon`-
+  built component, an `<img>`) — a render-prop, not a bundled icon catalog, since this package's own
+  curated `CatalogIcon` set has no network-representative glyphs to offer. Each row's URL field gets
+  its own uniquely-suffixed `name` (`name="socialLinks"` → `socialLinks_0`, `socialLinks_1`, ...)
+  rather than a single repeated field name, sidestepping a real bug in some server-side form-parsing
+  paths where a repeated `<input name="...">` silently keeps only the last value; `network` is never
+  itself a submitted field. Zero `@zanix/space` dependency (composes only `Input`/`Button`) — ships
+  from the default `.`/`./preact` barrel. See `docs/architecture.md`'s build-order table (row 23)
+  and `README.md`'s "Current status" for the full contract.
+
 ## [2.0.2] - 2026-09-07
 
 ### Fixed

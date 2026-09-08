@@ -303,6 +303,25 @@ export type {
   SelectOption,
 } from 'components/Select/types.ts'
 
+// Zero `@zanix/space` dependency — see `mod.ts`'s own comment at this same spot.
+export { DatePicker } from 'components/DatePicker/index.preact.ts'
+export type { DatePickerProps } from 'components/DatePicker/index.preact.ts'
+export type {
+  /** See `components/DatePicker/types.ts`'s own `DatePickerBaseProps` for the full doc. */
+  DatePickerBaseProps,
+} from 'components/DatePicker/types.ts'
+
+// See the default entrypoint's own comment on `MultiSelect` — zero `@zanix/space` dependency, same
+// reasoning, Preact binding.
+export { MultiSelect } from 'components/MultiSelect/index.preact.ts'
+export type { MultiSelectProps } from 'components/MultiSelect/index.preact.ts'
+export type {
+  /** See `components/MultiSelect/types.ts`'s own `MultiSelectBaseProps` for the full doc. */
+  MultiSelectBaseProps,
+  /** See `components/MultiSelect/types.ts`'s own `MultiSelectOption` for the full doc. */
+  MultiSelectOption,
+} from 'components/MultiSelect/types.ts'
+
 export { SocialNetworks } from 'components/SocialNetworks/index.preact.ts'
 export type {
   /** See `components/SocialNetworks/types.ts`'s own `SocialNetworkIcon` for the full doc. */
@@ -314,6 +333,21 @@ export type {
   /** See `components/SocialNetworks/types.ts`'s own `SocialNetworksProps` for the full doc. */
   SocialNetworksProps,
 } from 'components/SocialNetworks/types.ts'
+
+// The editable counterpart to the display-only `SocialNetworks` above — composes only `Input`/
+// `Button`, zero `@zanix/space` dependency, so it ships from here too.
+export { SocialLinksInput } from 'components/SocialLinksInput/index.preact.ts'
+export type { SocialLinksInputProps } from 'components/SocialLinksInput/index.preact.ts'
+export type {
+  /** See `components/SocialLinksInput/types.ts`'s own `SocialLinkEntry` for the full doc. */
+  SocialLinkEntry,
+  /** See `components/SocialLinksInput/types.ts`'s own `SocialLinkEntryPayload` for the full doc. */
+  SocialLinkEntryPayload,
+  /** See `components/SocialLinksInput/types.ts`'s own `SocialLinksInputBaseProps` for the full doc. */
+  SocialLinksInputBaseProps,
+  /** See `components/SocialLinksInput/types.ts`'s own `SocialNetworkName` for the full doc. */
+  SocialNetworkName,
+} from 'components/SocialLinksInput/types.ts'
 
 // See the default entrypoint's own comment on `StructuredData` for why this subpath, and the
 // Preact `VNode` return type every binding here has, are accepted slow-types exceptions.

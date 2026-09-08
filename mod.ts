@@ -184,6 +184,19 @@ export { Select } from 'components/Select/index.ts'
 export type { SelectProps } from 'components/Select/index.ts'
 export type { SelectBaseProps, SelectOption } from 'components/Select/types.ts'
 
+// Zero `@zanix/space` dependency — pure calendar arithmetic (`date-utils.ts`) plus native
+// `Intl.DateTimeFormat`, never `@formatjs/intl` — so this ships from the root barrel, same as
+// `Select`/`Combobox`, not any `./runtime/*` subpath.
+export { DatePicker } from 'components/DatePicker/index.ts'
+export type { DatePickerProps } from 'components/DatePicker/index.ts'
+export type { DatePickerBaseProps } from 'components/DatePicker/types.ts'
+
+// A multi-value tag/chip input over the same `Combobox`/`Select` input pattern — zero
+// `@zanix/space` dependency, lives here with the rest of this barrel.
+export { MultiSelect } from 'components/MultiSelect/index.ts'
+export type { MultiSelectProps } from 'components/MultiSelect/index.ts'
+export type { MultiSelectBaseProps, MultiSelectOption } from 'components/MultiSelect/types.ts'
+
 export { SocialNetworks } from 'components/SocialNetworks/index.ts'
 export type {
   SocialNetworkIcon,
@@ -191,6 +204,17 @@ export type {
   SocialNetworkLogo,
   SocialNetworksProps,
 } from 'components/SocialNetworks/types.ts'
+
+// The editable counterpart to the display-only `SocialNetworks` above — composes only `Input`/
+// `Button`, zero `@zanix/space` dependency, so it ships from here too.
+export { SocialLinksInput } from 'components/SocialLinksInput/index.ts'
+export type { SocialLinksInputProps } from 'components/SocialLinksInput/index.ts'
+export type {
+  SocialLinkEntry,
+  SocialLinkEntryPayload,
+  SocialLinksInputBaseProps,
+  SocialNetworkName,
+} from 'components/SocialLinksInput/types.ts'
 
 // `StructuredData`/`StructuredDataProps`/`resolveStructuredData` reference `schema-dts`'s own
 // `Thing`/`WithContext` in their public signature (and `Icon`/`SocialNetworks`/`StructuredData`'s
