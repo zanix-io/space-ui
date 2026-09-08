@@ -515,7 +515,26 @@ ahead of time:
   hatch, for the same JSON-boundary reason — and closes itself automatically the instant a real
   navigation link inside it is clicked, plain DOM click delegation, never a router/URL read.
 
-All thirty-nine ship for **both React and Preact** (see [Installation](#installation)).
+- ✅ **`SocialLinksInput`** — the editable counterpart to the display-only `SocialNetworks` above: a
+  form control for adding, editing, and removing a user's own social links one at a time. Each row
+  is a URL text field plus a remove ("×") button; a trailing "+" button appends one new, empty row
+  and moves focus into it automatically. `values`/`onValuesChange` (controlled) with an uncontrolled
+  `defaultValues` fallback, same seam every stateful component here keeps — each `SocialLinkEntry`
+  is `{ id, url, network }`, `network` auto-detected from `url`'s own hostname (Instagram, X,
+  Facebook, LinkedIn, TikTok, YouTube, WhatsApp, Telegram by domain, `'website'` for anything else
+  parseable, `null` for empty/unparseable) on every change — a pure, synchronous hostname parse, no
+  debounce needed. `renderIcon?: (entry) => Node | null` hands back the already-detected network for
+  the caller to resolve into whatever icon it already has — a render-prop, not a bundled icon
+  catalog, the same reasoning `Menu.visual` uses to avoid a static asset dependency this component's
+  own module would otherwise carry unconditionally; omit it and a row simply shows no icon. No
+  manual network-override control in this first version (hostname detection can be wrong for a
+  shortened/redirecting URL) — a disclosed v1 scope cut, not a silent omission. Composes
+  `Input`/`Button` (inherits their own `data-space-ui` hooks); each row's URL field gets its own
+  uniquely-suffixed `name` (`name="socialLinks"` → `socialLinks_0`, `socialLinks_1`, ...) rather
+  than a single repeated field name, so a plain `<form method="post">` submission collects every
+  entry correctly.
+
+All forty ship for **both React and Preact** (see [Installation](#installation)).
 
 Also included, though not a rendering component: **`IntlProvider`/`useIntl`/`createFormatter`** —
 this package's own ICU message-formatting runtime (`formatMessage(id, values)` for plain messages,

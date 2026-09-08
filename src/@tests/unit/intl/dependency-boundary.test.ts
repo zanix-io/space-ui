@@ -338,6 +338,7 @@ const ROOT_BARREL_COMPONENTS = [
   'Showcase',
   'Skeleton',
   'Slider',
+  'SocialLinksInput',
   'SocialNetworks',
   'StructuredData',
   'Table',

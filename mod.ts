@@ -205,6 +205,17 @@ export type {
   SocialNetworksProps,
 } from 'components/SocialNetworks/types.ts'
 
+// The editable counterpart to the display-only `SocialNetworks` above — composes only `Input`/
+// `Button`, zero `@zanix/space` dependency, so it ships from here too.
+export { SocialLinksInput } from 'components/SocialLinksInput/index.ts'
+export type { SocialLinksInputProps } from 'components/SocialLinksInput/index.ts'
+export type {
+  SocialLinkEntry,
+  SocialLinkEntryPayload,
+  SocialLinksInputBaseProps,
+  SocialNetworkName,
+} from 'components/SocialLinksInput/types.ts'
+
 // `StructuredData`/`StructuredDataProps`/`resolveStructuredData` reference `schema-dts`'s own
 // `Thing`/`WithContext` in their public signature (and `Icon`/`SocialNetworks`/`StructuredData`'s
 // Preact bindings reference Preact's own `VNode`) — JSR's slow-types checker wants every type
