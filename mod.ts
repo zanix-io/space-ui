@@ -184,6 +184,13 @@ export { Select } from 'components/Select/index.ts'
 export type { SelectProps } from 'components/Select/index.ts'
 export type { SelectBaseProps, SelectOption } from 'components/Select/types.ts'
 
+// Zero `@zanix/space` dependency — pure calendar arithmetic (`date-utils.ts`) plus native
+// `Intl.DateTimeFormat`, never `@formatjs/intl` — so this ships from the root barrel, same as
+// `Select`/`Combobox`, not any `./runtime/*` subpath.
+export { DatePicker } from 'components/DatePicker/index.ts'
+export type { DatePickerProps } from 'components/DatePicker/index.ts'
+export type { DatePickerBaseProps } from 'components/DatePicker/types.ts'
+
 export { SocialNetworks } from 'components/SocialNetworks/index.ts'
 export type {
   SocialNetworkIcon,

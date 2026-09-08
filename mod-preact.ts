@@ -303,6 +303,14 @@ export type {
   SelectOption,
 } from 'components/Select/types.ts'
 
+// Zero `@zanix/space` dependency — see `mod.ts`'s own comment at this same spot.
+export { DatePicker } from 'components/DatePicker/index.preact.ts'
+export type { DatePickerProps } from 'components/DatePicker/index.preact.ts'
+export type {
+  /** See `components/DatePicker/types.ts`'s own `DatePickerBaseProps` for the full doc. */
+  DatePickerBaseProps,
+} from 'components/DatePicker/types.ts'
+
 export { SocialNetworks } from 'components/SocialNetworks/index.preact.ts'
 export type {
   /** See `components/SocialNetworks/types.ts`'s own `SocialNetworkIcon` for the full doc. */

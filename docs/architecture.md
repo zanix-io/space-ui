@@ -165,7 +165,10 @@ confirmed gap once it existed, rather than being queued from the start alongside
 `NavDrawer` (row 20) is a fifth such addition — a ready-made, hamburger-triggered navigation drawer
 Comet, added once `Menu` itself became comet-safe (zero `@zanix/space` dependency — see
 `src/runtime/video.ts`'s own `@module` doc) and two real consumers (`external-console`'s own
-hand-rolled workaround, `@zanix/console` planned next) needed exactly this composition.
+hand-rolled workaround, `@zanix/console` planned next) needed exactly this composition. `DatePicker`
+(row 21) is a sixth such addition — a real gap reported from a consumer (`@presenza/web`, a date-of-
+birth field), added once that concrete need existed; `Select` (row 15) is its own closest sibling,
+copied verbatim wherever this component didn't have a genuinely new problem to solve.
 
 | #  | Component                          | Status     | Depends on                                                                                                                                    | Notes                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
 | -- | ---------------------------------- | ---------- | --------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -210,6 +213,79 @@ own boundary needs the active renderer's element factory registered
 (`@zanix/space/react`/`@zanix/space/preact`, imported once from a real app's own main module) to
 actually render — this package's own test suite scopes that dependency to the one integration test
 file that needs it (`deno.jsonc`'s own `scopes` entry), never the published package itself. |
+
+| 21 | `DatePicker` | ✅ Shipped | `Select` (closest sibling — trigger `Button` + positioned-popup
+shape, controlled `value`/`open` contracts, copied verbatim), `Button` (composed) | Beyond the
+original plan (see this section's own intro) — a real gap reported from a consumer (`@presenza/web`,
+replacing a plain `<input type="number">` "age" field with a real date-of-birth picker). The single
+most important requirement: picking the YEAR must be easy, not a tedious one-arrow-click-at-a-time
+affair — clicking the currently-displayed year opens a dedicated, paged (12-per-page, fixed
+boundaries) year-selection grid; picking a year returns to the day view for that year, keeping the
+previously-viewed month. Clicking the month name does the same one level down (a nice-to-have, not
+core to the ask). The day grid is a REAL WAI-ARIA `role="grid"` with roving `tabIndex` — a genuine
+divergence from `Select`'s/`Combobox`'s own `aria-activedescendant` pattern, since the requirement
+this is built from explicitly asks for "each day cell a real, focusable gridcell": full arrow-key/
+`PageUp`/`PageDown`/`Shift+PageUp`/`PageDown`/`Home`/`End` navigation, `Enter`/`Space` commits: a
+disabled day (outside `min`/`max`) CAN still be focused/navigated onto, only committing it no-ops —
+the same "can be highlighted, only selecting it no-ops" model `Combobox`'s own disabled option
+already establishes, not `Select`'s own "skip disabled during arrow nav" automatic-activation model
+(inapplicable here since navigating never itself commits). Month/year grid cells are deliberately
+plain, individually Tab-reachable `<button>`s, NOT roving-tabindex — the same reasoning
+`Accordion`'s own headers already establish: roving tabindex with no accompanying arrow-key handler
+moving real focus would make every `tabIndex={-1}` cell permanently unreachable by keyboard except
+the active one, a real accessibility regression this component's own requirement doesn't ask for.
+One internal "cursor" (`CalendarDate`, never part of the public controlled contract) does double
+duty as both the day grid's own roving-focus target and which month/year is currently displayed —
+re-derived fresh from `value` (falling back to the real local "today") every time the popup
+transitions from closed to open, the same "derive from current value, don't let stale internal state
+leak across sessions" reasoning `Select`'s own `activeIndex` derivation already follows. Never a
+free-text field, extended to time too — the trigger is a real `<button>`, exactly like `Select`'s
+own trigger, sidestepping the well-known date-string parsing ambiguity entirely; a picker, not typed
+date entry. Deterministic first render (seam 6): "today" starts `null`, resolved only by a
+mount-only effect (`date-utils.ts`'s own `getTodayLocal`) — the same `Counter`/`Showcase` "start
+from an explicit no-data-yet state, refine after mount" idiom, needed here because an empty picker
+conventionally opens showing the current month, and reading `new Date()` during render would make
+the server's render and the client's first paint genuinely disagree for the one narrow case where
+the popup is already open on the very first render. Ids: derived from a hash of this component's own
+props (`shared/stable-comet-id.ts`'s own `deriveStableCometId`, the same technique `Menu` already
+established), never a bare `useId()` — this component has zero `@zanix/space` dependency (root
+barrel, not `./runtime/*`), so it can't reach for `@zanix/space`'s own `useCometStableId` either,
+and bare `useId()` is unsound the moment ANY component ends up composed inside some Comet's own
+isolated hydration root, present or future, regardless of that component's own
+`@zanix/space`-dependency status. `withTime?: boolean` (default `false`, purely additive — the
+date-of-birth use case this component was built for needs no time component, so nothing changes for
+it) opts into an `Hour`/ `Minute` section: `value` carries `'YYYY-MM-DDTHH:mm'` (minute precision,
+never seconds — there's no UI here for selecting seconds) instead of a bare `'YYYY-MM-DD'`; each
+control is a real `role="spinbutton"`
+(`aria-valuemin`/`aria-valuemax`/`aria-valuenow`/`aria-valuetext`, `ArrowUp`/`ArrowDown` wraps at
+the boundary, `Home`/`End` jumps to min/max), never a bare `<input type="number">` stepper —
+extending the base grid's own "picker, not typed entry" philosophy to time. Disabled until a real
+day is already selected — adjusting a time with nothing to attach it to has no value to commit, a
+deliberate, disclosed scope choice. Picking a day no longer auto-closes the popup in this mode (time
+still needs setting); a "Done" button closes and refocuses the trigger explicitly instead.
+`hourCycle` (`'h12'`/`'h24'`, default `'h24'`, no locale-derived default) controls both the
+spinbutton display and the trigger's own formatted value. `locale` (BCP-47, default `'en'`) is a
+plain, explicit prop, NOT read from `useIntl()` — checked directly against `intl/formatter.ts`'s own
+`Formatter` interface: it exposes `formatMessage`/`formatRichText` only, no `formatDate` and no way
+to read the raw `locale` string `IntlProvider` was given back out either; extending `Formatter`'s
+own public contract to add either is a separate, wider change than this component's own addition
+should force, the same "disclosed, not guessed at" scope-limit precedent `Select`'s own missing
+`aria-describedby` passthrough already establishes — flagged as a real design question for a
+maintainer, not worked around by expanding this component's own scope. Native `Intl.DateTimeFormat`
+formats the trigger's own value and the weekday/month names instead, so this component works
+standalone (unlike `RichText`, no `<IntlProvider>` requirement). Pure calendar arithmetic/ISO
+parsing lives in its own colocated, directly-unit-tested `date-utils.ts` — the same "extract the
+arithmetic, test it exhaustively" discipline `get-pagination-items.ts`/ `get-next-table-sort.ts`
+already establish, always working in UTC internally (a calendar date is a label, not an instant)
+except the one deliberate "today" exception. Zero `@zanix/space` dependency (confirmed via this
+package's own `dependency-boundary.test.ts`, extended with a `DatePicker` row in its own
+table-driven `ROOT_BARREL_COMPONENTS` list) — ships from the root barrel, same as
+`Select`/`Combobox`, not any `./runtime/*` subpath. No `aria-describedby`/`aria-invalid`/
+`aria-label`/`aria-labelledby` passthrough in this first version — the trigger composes `Button`
+verbatim and inherits the identical disclosed gap `Select` already has (`Button`'s own closed prop
+API has no such passthrough today); `label` (accessible-name override) is the one lever available,
+same as `Select`. Date RANGE selection and non-Gregorian calendars are explicitly out of scope for
+this version, not a hidden gap. |
 
 ## RichText — a real legacy rescue, built on `formatRichText`
 

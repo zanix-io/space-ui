@@ -394,6 +394,35 @@ ahead of time:
   a disclosed, not guessed-at, scope limit, same spirit as `Combobox`'s own `noOptionsMessage`
   omission.
 
+- ✅ **`DatePicker`** — a single-date picker: a trigger `Button` showing the formatted selected
+  date, opening a positioned popup with a day grid — plus a dedicated YEAR-selection view (a paged,
+  12-per-page grid, fixed page boundaries) reachable by clicking the currently-displayed year, the
+  single most important behavior this component exists for: picking a date decades in the past (a
+  date of birth) never means paging back one month at a time. Clicking the month name does the same
+  one level down (a 12-month grid), a nice-to-have. Closest sibling: `Select` (same
+  trigger-`Button` + positioned-popup shape, same controlled `value`/`open` contracts) — copied
+  verbatim wherever this component didn't have a genuinely new problem to solve. The day grid is a
+  real WAI-ARIA `role="grid"` with roving `tabIndex` (unlike `Select`'s/`Combobox`'s own
+  `aria-activedescendant`) — `ArrowLeft`/`Right`/`Up`/`Down` (one day/one week), `PageUp`/`PageDown`
+  (one month), `Shift+PageUp`/`PageDown` (one year), `Enter`/`Space` commits; days outside
+  `min`/`max` stay visible and focusable, `aria-disabled`, just not committable — the same "can be
+  highlighted, only selecting it no-ops" model `Combobox`'s own disabled option already establishes.
+  Month/year grid cells are plain, individually Tab-reachable `<button>`s, deliberately NOT
+  roving-tabindex, same reasoning `Accordion`'s own headers already establish. Never a free-text
+  field — this is a picker, not typed date entry, sidestepping the well-known date-string parsing
+  ambiguity entirely. `withTime?: boolean` (default `false`) opts into an additional `Hour`/`Minute`
+  section — `value` carries `'YYYY-MM-DDTHH:mm'` (minute precision, 24h by default,
+  `hourCycle: 'h12'` for AM/PM) instead of a bare `'YYYY-MM-DD'`; each control is a real
+  `role="spinbutton"` (arrow-key adjust, wrapping at the boundary), never a bare
+  `<input type="number">` — picking a day no longer auto-closes the popup in this mode (time still
+  needs setting), a "Done" button closes explicitly instead. `locale` (BCP-47, default `'en'`) is a
+  plain prop — native `Intl.DateTimeFormat` formats the trigger's own value and the weekday/month
+  names, so this component works standalone, unlike `RichText`, with no `<IntlProvider>`
+  requirement. Deterministic first render (seam 6): an empty, freshly-opened picker's own "today"
+  starts `null`, resolved only after mount, the same `Counter`/`Showcase` idiom. Zero `@zanix/space`
+  dependency (pure calendar arithmetic plus native `Intl`, never `@formatjs/intl`) — ships from the
+  root barrel, same as `Select`/`Combobox`.
+
 - ✅ **`RichText`** — renders ICU rich-text content (the default) or literal Markdown
   (`contentFormat: 'markdown'`) into real component output, built on `useIntl().formatRichText` —
   the same native `@formatjs/intl` mechanism, exposed directly, rather than a hand-rolled tag

@@ -313,6 +313,7 @@ const ROOT_BARREL_COMPONENTS = [
   'CatalogIcon',
   'Combobox',
   'Counter',
+  'DatePicker',
   'Disclosure',
   'Drawer',
   'Field',
