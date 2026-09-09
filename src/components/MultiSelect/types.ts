@@ -70,4 +70,9 @@ export type MultiSelectBaseProps = {
   'aria-invalid'?: boolean
   'aria-label'?: string
   'aria-labelledby'?: string
+  /** Formats the visually-hidden running-count description text (see `index.ts`'s own doc) —
+   * receives the current `values.length`. Defaults to an English `"N item(s) selected"` string;
+   * override this for a localized consumer, since this component has no i18n mechanism of its
+   * own to derive one from. */
+  getSelectionDescription?: (count: number) => string
 }

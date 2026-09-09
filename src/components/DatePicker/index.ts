@@ -151,6 +151,14 @@ export type DatePickerProps = DatePickerBaseProps
  * this component's own addition shouldn't force on its own. `label` (accessible-name override,
  * `Select.label`/`Button.label`'s own convention) is the one accessible-name lever available, same
  * as `Select`.
+ *
+ * ## An optional trigger icon — the same composition `ImgButton.icon`/`.caption` already
+ * establishes
+ *
+ * `icon` (real `IconProps`, passed straight through to `Icon`) renders alongside the trigger's own
+ * text rather than replacing it — a date field commonly wants a calendar glyph next to its
+ * formatted value/placeholder. Omitted, the trigger renders exactly as it always has (plain text,
+ * no icon markup at all).
  */
 export const DatePicker: (props: DatePickerProps) => ReactElement = createDatePicker<ReactElement>(
   createElement as unknown as CreateElement<ReactElement>,

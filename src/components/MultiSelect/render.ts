@@ -104,6 +104,7 @@ export function createMultiSelect<E>(
       'aria-invalid': ariaInvalid,
       'aria-label': ariaLabel,
       'aria-labelledby': ariaLabelledBy,
+      getSelectionDescription = (count) => `${count} item${count === 1 ? '' : 's'} selected`,
     } = props
 
     const baseId = hooks.useId()
@@ -306,11 +307,13 @@ export function createMultiSelect<E>(
     // "reasonable addition" `index.ts`'s own doc names, reusing `shared/live-region.ts`'s own
     // `VISUALLY_HIDDEN_STYLE` (plain hidden-but-announced styling, not an `aria-live` region — this
     // is a static description, not a transient announcement, so `liveRegionProps` itself doesn't
-    // apply here).
+    // apply here). Text comes from `getSelectionDescription` — this component has no i18n
+    // mechanism of its own, so a localized consumer overrides it rather than patching a fixed
+    // English string.
     const description = h(
       'span',
       { key: 'description', id: descriptionId, style: VISUALLY_HIDDEN_STYLE },
-      `${values.length} item${values.length === 1 ? '' : 's'} selected`,
+      getSelectionDescription(values.length),
     )
 
     const input = h('input', {

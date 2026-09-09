@@ -1,4 +1,5 @@
 import type { Placement } from 'shared/positioning.ts'
+import type { IconProps } from '../Icon/types.ts'
 
 /** Props for {@linkcode DatePicker}. */
 export type DatePickerBaseProps = {
@@ -41,6 +42,12 @@ export type DatePickerBaseProps = {
    * `Select.label`/`Button.label`, since the trigger composes a real `Button` and inherits that
    * exact convention. */
   label?: string
+  /** An optional icon shown on the trigger, alongside its text — the real `IconProps` `Icon`
+   * itself takes, passed straight through unmodified (same "composed, not reimplemented" contract
+   * `ImgButton.icon` already establishes). Typically decorative (omit `icon.label` and it renders
+   * `aria-hidden`, the same as any other `Icon` usage) — the trigger's own `label` prop above is
+   * never forwarded into it. */
+  icon?: IconProps
   /**
    * Opts into an additional hour/minute selector alongside the day grid — see this component's own
    * `index.ts` doc, "Time-of-day selection (`withTime`)", for the full contract (the ISO datetime

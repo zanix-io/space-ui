@@ -155,6 +155,10 @@ export { FileInput } from 'components/FileInput/index.ts'
 export type { FileInputProps } from 'components/FileInput/index.ts'
 export type { FileInputBaseProps } from 'components/FileInput/types.ts'
 
+export { Textarea } from 'components/Textarea/index.ts'
+export type { TextareaProps } from 'components/Textarea/index.ts'
+export type { TextareaBaseProps, TextareaWrap } from 'components/Textarea/types.ts'
+
 export { ToastProvider, useToast } from 'components/Toast/index.ts'
 export type { ToastApi } from 'components/Toast/index.ts'
 export type {

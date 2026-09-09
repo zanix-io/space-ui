@@ -54,6 +54,24 @@ Deno.test('DatePicker (preact): a selected value formats onto the trigger, local
   assertStringIncludes(html, 'January 15, 2000')
 })
 
+Deno.test('DatePicker (preact): icon renders a decorative <use> on the trigger, alongside the text', () => {
+  const html = renderToString(
+    element({
+      placeholder: 'Choose a date',
+      icon: { name: 'calendar', href: '/assets/icons/catalog.svg', viewBox: '0 0 512 512' },
+    }),
+  )
+
+  assertStringIncludes(html, 'Choose a date')
+  assertStringIncludes(html, 'href="/assets/icons/catalog.svg#calendar"')
+  assertStringIncludes(html, 'aria-hidden="true"')
+})
+
+Deno.test('DatePicker (preact): no icon given renders no <use> at all', () => {
+  const html = renderToString(element({ placeholder: 'Choose a date' }))
+  assertEquals(html.includes('<use'), false)
+})
+
 // --- day grid --------------------------------------------------------------------------------
 
 Deno.test('DatePicker (preact): clicking the trigger opens the panel with a day grid', () => {

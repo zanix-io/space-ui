@@ -336,6 +336,17 @@ ahead of time:
   selection) reuses the same shape `Recaptcha`/`HCaptcha`/`Turnstile`'s own `resetTrigger` already
   established for an analogous platform constraint.
 
+- ✅ **`Textarea`** — a thin, accessible wrapper around a native `<textarea>`, the multi-line
+  counterpart `Input` has no equivalent for. Controlled `value`/`onValueChange` with an uncontrolled
+  `defaultValue` fallback, same seam as `Input`. `placeholder`/`disabled`/`readOnly`/
+  `required`/`autoComplete`/`maxLength`/`name` pass straight through, no reimplementation of the
+  native contract; `rows` (default `4`) and `cols`/`wrap` are the attributes a `<textarea>` actually
+  supports that an `<input>` has no equivalent for. A real, plain `<textarea>` — not a rich-text
+  editor, no resizable-widget abstraction beyond what the native element gives for free (resize
+  behavior, if any, is plain CSS on `className`). Same `Field`-composition contract as `Input`:
+  accepts exactly the props `Field`'s own render-prop hands back
+  (`id`/`aria-describedby`/`aria-invalid`).
+
 - ✅ **`ToastProvider`/`useToast`** — imperative toast notifications: `showToast(message)`/
   `closeToast(id)`, plain `useState`+`Context` like `ModalProvider` (never Zustand). Always-present
   close button, no default `timeout` (never auto-dismisses unless given one), upsert-by-`id`

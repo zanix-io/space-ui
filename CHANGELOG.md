@@ -9,6 +9,30 @@ adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- **`Textarea`** — a thin, accessible wrapper around a native `<textarea>`, the multi-line
+  counterpart `Input` (row 18) has no equivalent for — a real gap reported from a consumer
+  (`@presenza/web`, a `bio` field currently rendered through single-line `Input`). Controlled
+  `value`/`onValueChange` with an uncontrolled `defaultValue` fallback, same seam as `Input`.
+  `placeholder`/`disabled`/`readOnly`/`required`/`autoComplete`/`maxLength`/`name` pass straight
+  through, no reimplementation of the native contract; `rows` (default `4`) and `cols`/`wrap`
+  replace `Input`'s `type`/`min`/`max`/`step`/`pattern` as the attributes this element actually
+  supports (a `<textarea>` has neither). Shareable-body `render.ts` factory (`Input`'s own shape),
+  since the same real, confirmed `onChange`/`onInput` React/Preact divergence and controlled-value
+  DOM-restoration fix `Input/render.ts` already documents in full apply identically to a
+  `<textarea>`. Zero `@zanix/space` dependency — ships from the default `.`/`./preact` barrel. See
+  `docs/architecture.md`'s build-order table (row 24) and `README.md`'s "Current status" for the
+  full contract.
+- **`DatePicker.icon`** — an optional icon shown on the trigger, alongside its formatted date/
+  placeholder text, real `IconProps` passed straight to `Icon` (same "composed, not reimplemented"
+  contract `ImgButton.icon` already establishes). Omitted, the trigger renders exactly as it always
+  has. Addresses a real consumer gap (`@presenza/web`'s date-of-birth field, whose trigger had no
+  calendar glyph of any kind).
+- **`MultiSelect.getSelectionDescription`** — overrides the visually-hidden running-count text
+  (`aria-describedby`'d to the input) this component renders for its own selected-chip count.
+  Defaults to the existing fixed English `"N item(s) selected"` string — this component has no i18n
+  mechanism of its own, so a localized consumer now has a real lever instead of a hardcoded string
+  it couldn't change.
+
 - **`DatePicker`** — a single-date picker: a trigger `Button` showing the formatted selected date,
   opening a positioned popup with a day grid plus a dedicated YEAR-selection view (a paged,
   12-per-page grid) reachable by clicking the currently-displayed year — picking a date decades in
