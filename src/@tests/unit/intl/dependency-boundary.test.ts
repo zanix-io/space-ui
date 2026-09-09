@@ -343,6 +343,7 @@ const ROOT_BARREL_COMPONENTS = [
   'StructuredData',
   'Table',
   'Tabs',
+  'Textarea',
   'Toast',
   'Tooltip',
   'Turnstile',

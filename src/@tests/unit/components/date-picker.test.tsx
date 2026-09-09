@@ -44,6 +44,24 @@ Deno.test('DatePicker: a selected value formats onto the trigger, locale-aware',
   assertStringIncludes(html, 'January 15, 2000')
 })
 
+Deno.test('DatePicker: icon renders a decorative <use> on the trigger, alongside the text', () => {
+  const html = renderToStaticMarkup(
+    <DatePicker
+      placeholder='Choose a date'
+      icon={{ name: 'calendar', href: '/assets/icons/catalog.svg', viewBox: '0 0 512 512' }}
+    />,
+  )
+
+  assertStringIncludes(html, 'Choose a date')
+  assertStringIncludes(html, 'href="/assets/icons/catalog.svg#calendar"')
+  assertStringIncludes(html, 'aria-hidden="true"')
+})
+
+Deno.test('DatePicker: no icon given renders no <use> at all', () => {
+  const html = renderToStaticMarkup(<DatePicker placeholder='Choose a date' />)
+  assertEquals(html.includes('<use'), false)
+})
+
 Deno.test('DatePicker: clicking the trigger opens the panel with a day grid', () => {
   const { container, unmount } = mount(<DatePicker value='2024-05-10' />)
   const trigger = openPicker(container)

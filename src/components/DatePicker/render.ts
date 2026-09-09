@@ -1,5 +1,6 @@
 import type { CreateElement } from 'typings/renderer.ts'
 import { createButton } from '../Button/render.ts'
+import { createIcon } from '../Icon/render.ts'
 import { createEscapeToCloseHandler } from 'shared/escape-to-close.ts'
 import type { ComputePositionOptions, ComputePositionResult } from 'shared/positioning.ts'
 import { deriveStableCometId } from 'shared/stable-comet-id.ts'
@@ -87,6 +88,7 @@ export function createDatePicker<E>(
   Fragment: unknown,
 ): (props: DatePickerBaseProps) => E {
   const Button = createButton(h)
+  const Icon = createIcon(h)
   // `Fragment` is injected as its own parameter (not a hook) for the same reason
   // `RadioGroup/render.ts` documents — needed so each composed `Button` inside a fixed header
   // array can still carry a real `key` (`ButtonProps` itself has no `key` field), the same
@@ -112,6 +114,7 @@ export function createDatePicker<E>(
       offset = 8,
       placeholder,
       label,
+      icon,
       withTime = false,
       hourCycle = 'h24',
       locale = 'en',
@@ -283,6 +286,14 @@ export function createDatePicker<E>(
       )
       : (placeholder ?? '')
 
+    // Same icon+text composition `ImgButton.icon`/`.caption` already establishes: given an icon,
+    // `children` becomes a short array (icon + text span) rather than the bare string — the same
+    // accepted missing-`key` trade-off that composition documents (rebuilt fresh from props on
+    // every render, no internal state either item could lose).
+    const triggerChildren = icon
+      ? [Icon(icon), h('span', { key: 'text' }, triggerText)]
+      : triggerText
+
     const trigger = h(
       'span',
       { key: 'trigger', ref: triggerWrapperRef, style: { display: 'contents' } },
@@ -293,7 +304,7 @@ export function createDatePicker<E>(
         'aria-expanded': open,
         'aria-controls': panelId,
         onClick: () => setOpen(!open),
-        children: triggerText,
+        children: triggerChildren,
       }),
     )
 

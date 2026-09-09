@@ -69,6 +69,20 @@ Deno.test('MultiSelect: SSR with values — renders one chip per value, in order
   assertStringIncludes(html, '2 items selected')
 })
 
+Deno.test('MultiSelect: getSelectionDescription overrides the default English text', () => {
+  const html = renderToStaticMarkup(
+    <MultiSelect
+      {...basicProps({
+        values: ['en', 'fr'],
+        getSelectionDescription: (count) => `${count} elementos seleccionados`,
+      })}
+    />,
+  )
+
+  assertStringIncludes(html, '2 elementos seleccionados')
+  assertEquals(html.includes('items selected'), false)
+})
+
 Deno.test('MultiSelect: aria-controls on the input cross-references the listbox id', () => {
   const { container, unmount } = mount(<MultiSelect {...basicProps()} />)
   const input = must(container.querySelector('input'))

@@ -73,6 +73,18 @@ Deno.test('MultiSelect (preact): SSR with values — renders one chip per value,
   assertStringIncludes(html, '2 items selected')
 })
 
+Deno.test('MultiSelect (preact): getSelectionDescription overrides the default English text', () => {
+  const html = renderToString(
+    element(basicProps({
+      values: ['en', 'fr'],
+      getSelectionDescription: (count) => `${count} elementos seleccionados`,
+    })),
+  )
+
+  assertStringIncludes(html, '2 elementos seleccionados')
+  assertEquals(html.includes('items selected'), false)
+})
+
 Deno.test('MultiSelect (preact): aria-controls cross-references the listbox id', () => {
   const { container, unmount } = mount(basicProps())
   const input = must(container.querySelector('input'))

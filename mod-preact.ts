@@ -245,6 +245,17 @@ export type {
   FileInputBaseProps,
 } from 'components/FileInput/types.ts'
 
+// The multi-line counterpart `Input` has no equivalent for — zero `@zanix/space` dependency, so
+// it ships from the root barrel too, same as `Input`/`FileInput`.
+export { Textarea } from 'components/Textarea/index.preact.ts'
+export type { TextareaProps } from 'components/Textarea/index.preact.ts'
+export type {
+  /** See `components/Textarea/types.ts`'s own `TextareaBaseProps` for the full doc. */
+  TextareaBaseProps,
+  /** See `components/Textarea/types.ts`'s own `TextareaWrap` for the full doc. */
+  TextareaWrap,
+} from 'components/Textarea/types.ts'
+
 export { ToastProvider, useToast } from 'components/Toast/index.preact.ts'
 export type { ToastApi } from 'components/Toast/index.preact.ts'
 export type {

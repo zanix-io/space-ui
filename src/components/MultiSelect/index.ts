@@ -69,7 +69,9 @@ export type MultiSelectProps = MultiSelectBaseProps
  * Referenced via the input's own `aria-describedby` (merged with a caller-supplied one, if given) —
  * a static description, not an `aria-live` announcement, since nothing here needs to interrupt to
  * announce a transient change; `shared/live-region.ts`'s own `VISUALLY_HIDDEN_STYLE` is reused for
- * the styling only.
+ * the styling only. The text itself comes from `getSelectionDescription` (default: a fixed English
+ * `"N item(s) selected"`) — this component has no i18n mechanism of its own, so a localized
+ * consumer passes its own formatter rather than getting a hardcoded string it can't change.
  *
  * ## Controlled `values`/`inputValue`/`open`, each with an uncontrolled fallback
  *
