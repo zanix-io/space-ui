@@ -3,9 +3,16 @@ import { act, StrictMode } from 'react'
 import type { ReactNode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { renderToStaticMarkup } from 'react-dom/server'
-import { assertEquals, assertStrictEquals, assertStringIncludes } from '@std/assert'
+import {
+  assert,
+  assertEquals,
+  assertFalse,
+  assertStrictEquals,
+  assertStringIncludes,
+} from '@std/assert'
 import logger from 'shared/client-logger.ts'
 import { Modal, ModalProvider, useModal } from 'components/Modal/index.ts'
+import { bodyScrollLockRuleExists } from './overlay-scroll-lock-test-utils.ts'
 
 function mount(element: ReturnType<typeof Modal>) {
   const container = document.createElement('div')
@@ -398,17 +405,16 @@ Deno.test('Modal: Shift+Tab at the first focusable element cycles to the last', 
 // --- scroll lock (component-level integration) ----------------------------------------------
 
 Deno.test('Modal: opening locks body scroll, closing restores it', () => {
-  document.body.style.overflow = 'auto'
   const { rerender, unmount } = mount(
     <Modal open onClose={() => {}} label='X'>
       Body
     </Modal>,
   )
 
-  assertEquals(document.body.style.overflow, 'hidden')
+  assert(bodyScrollLockRuleExists())
 
   rerender(<Modal open={false} onClose={() => {}} label='X'>Body</Modal>)
-  assertEquals(document.body.style.overflow, 'auto')
+  assertFalse(bodyScrollLockRuleExists())
 
   unmount()
 })
@@ -664,7 +670,6 @@ Deno.test('Modal + ModalProvider: declarative and global modals share one stack'
 // --- StrictMode: no phantom stack state across dev double-invocation -------------------------
 
 Deno.test('Modal: mounting under StrictMode does not leave scroll locked after unmount', () => {
-  document.body.style.overflow = 'auto'
   const container = document.createElement('div')
   document.body.appendChild(container)
   const root = createRoot(container)
@@ -679,11 +684,11 @@ Deno.test('Modal: mounting under StrictMode does not leave scroll locked after u
     )
   )
 
-  assertEquals(document.body.style.overflow, 'hidden')
+  assert(bodyScrollLockRuleExists())
 
   act(() => root.unmount())
 
-  assertEquals(document.body.style.overflow, 'auto')
+  assertFalse(bodyScrollLockRuleExists())
 })
 
 // --- global activator: gaps closed after an independent audit -------------------------------

@@ -17,20 +17,53 @@
  * SSR — and unregisters on close/unmount.
  *
  * Pure logic, no React/Preact import at all — genuinely shareable between both bindings verbatim.
+ *
+ * **Body scroll lock is a CSSOM rule inside a nonced `<style>` element, never `document.body.style
+ * .overflow` directly**: a real, confirmed-in-browser violation of `@zanix/space`'s own zero-config
+ * default CSP (`style-src 'self' 'nonce-<per-request>'`) — browsers block `element.style.setProperty
+ * (...)`/a plain `.style.<prop> = ...` assignment under `style-src` exactly like an inline `style`
+ * attribute, and a nonce never covers either (see `overlay-position-css.ts`'s own doc for the full
+ * reasoning `Modal`/`Drawer` already apply to their own positioning styles). `getOrCreateLockStyleEl`
+ * below mirrors that same `sheet.insertRule` technique for the ONE shared `body{overflow:hidden}`
+ * rule every overlay in the stack shares, toggled on/off by inserting/deleting that single rule
+ * rather than touching `document.body.style` at all.
  */
 
 let stack: symbol[] = []
-let savedBodyOverflow: string | null = null
+let lockStyleEl: HTMLStyleElement | null = null
+
+/** Gets (creating if needed) the shared, nonced `<style>` element `registerOverlay` inserts its one
+ * `body{overflow:hidden}` rule into — module-level and lazily created, same "one shared element for
+ * the module's own lifetime" shape `comet-persist-transition.ts` (`@zanix/space`) uses for its own
+ * shared rule set, since a body-scroll lock has no per-component-instance element of its own to live
+ * in the way `Modal`/`Drawer`'s own positioning styles do. */
+function getOrCreateLockStyleEl(nonce: string | undefined): HTMLStyleElement | null {
+  if (typeof document === 'undefined') return null
+  if (lockStyleEl?.isConnected) return lockStyleEl
+  const el = document.createElement('style')
+  // Assigned BEFORE `appendChild` — a nonce-based CSP evaluates a `<style>` element the INSTANT it
+  // enters the document; setting `.nonce` any later is already too late (same ordering
+  // `comet-persist-transition.ts`'s own `getOrCreateStyleElement` requires).
+  if (nonce) el.nonce = nonce
+  document.head.appendChild(el)
+  lockStyleEl = el
+  return el
+}
 
 /** Registers `id` as an open overlay (a no-op if already registered) and returns the matching
  * unregister function (also a no-op if called more than once, or after `id` is already gone) —
  * safe to call from an effect that may run its cleanup and setup again, e.g. React StrictMode's
- * dev-mode double-invocation, without ever producing a duplicate or phantom stack entry. */
-export function registerOverlay(id: symbol): () => void {
+ * dev-mode double-invocation, without ever producing a duplicate or phantom stack entry.
+ *
+ * @param nonce - The consuming page's own CSP nonce, when running under a nonce-based `style-src`
+ * — the same value already threaded into `Modal`/`Drawer`'s own `<style nonce={nonce}>` element at
+ * their call site. Omit on a page with no such CSP; the lock style element then carries no `nonce`
+ * attribute either, same as `comet-persist-transition.ts`'s own doc establishes for that case. */
+export function registerOverlay(id: symbol, nonce?: string): () => void {
   if (!stack.includes(id)) {
-    if (stack.length === 0 && typeof document !== 'undefined') {
-      savedBodyOverflow = document.body.style.overflow
-      document.body.style.overflow = 'hidden'
+    if (stack.length === 0) {
+      const sheet = getOrCreateLockStyleEl(nonce)?.sheet
+      sheet?.insertRule('body{overflow:hidden}', sheet.cssRules.length)
     }
     stack = [...stack, id]
   }
@@ -38,9 +71,11 @@ export function registerOverlay(id: symbol): () => void {
   return () => {
     if (!stack.includes(id)) return
     stack = stack.filter((entry) => entry !== id)
-    if (stack.length === 0 && typeof document !== 'undefined') {
-      document.body.style.overflow = savedBodyOverflow ?? ''
-      savedBodyOverflow = null
+    if (stack.length === 0) {
+      const sheet = lockStyleEl?.sheet
+      if (sheet) {
+        while (sheet.cssRules.length > 0) sheet.deleteRule(0)
+      }
     }
   }
 }

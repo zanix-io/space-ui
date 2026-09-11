@@ -103,6 +103,15 @@ adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
   `^1.8.0` — the first published `@zanix/space` version whose `defineComet` accepts this third
   argument.
 
+- **`Modal`/`Drawer`'s own body-scroll lock (`registerOverlay`, `shared/overlay-stack.ts`) set
+  `document.body.style.overflow` directly** — a real, confirmed-in-browser violation of
+  `@zanix/space`'s own zero-config default CSP (`style-src 'self' 'nonce-<per-request>'`), the same
+  class of bug `overlay-position-css.ts`'s own doc already documents for an inline `style`
+  attribute: a nonce never covers a plain `.style.<prop> = ...` assignment either. The lock is now a
+  `body{overflow:hidden}` CSSOM rule inserted into a shared, nonced `<style>` element instead —
+  `registerOverlay(id, nonce?)` takes the same nonce `Modal`/`Drawer` already thread through to
+  their own positioning `<style>` element, so the fix needs no new prop on either component.
+
 ## [2.0.1] - 2026-09-06
 
 ### Fixed

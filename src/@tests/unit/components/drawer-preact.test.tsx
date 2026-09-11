@@ -3,12 +3,13 @@ import { Fragment, h, render as renderDOM } from 'preact'
 import type { VNode } from 'preact'
 import { act } from 'preact/test-utils'
 import { render as renderToString } from 'preact-render-to-string'
-import { assertEquals, assertStringIncludes } from '@std/assert'
+import { assert, assertEquals, assertFalse, assertStringIncludes } from '@std/assert'
 import logger from 'shared/client-logger.ts'
 import { Drawer } from 'components/Drawer/index.preact.ts'
 import type { DrawerProps } from 'components/Drawer/index.preact.ts'
 import { Modal } from 'components/Modal/index.preact.ts'
 import type { ModalProps } from 'components/Modal/index.preact.ts'
+import { bodyScrollLockRuleExists } from './overlay-scroll-lock-test-utils.ts'
 
 // Unlike every hookless Preact component in this package, `Drawer` uses real hooks — built with
 // `h(Drawer, props)` and rendered through Preact's own pipeline, not called as a plain function.
@@ -370,7 +371,6 @@ Deno.test('Drawer (preact): closing returns focus to whatever had it before open
 // --- scroll lock -----------------------------------------------------------------------------
 
 Deno.test('Drawer (preact): opening locks body scroll, closing restores it', () => {
-  document.body.style.overflow = 'auto'
   const { rerender, unmount } = mount({
     open: false,
     onClose: () => {},
@@ -380,10 +380,10 @@ Deno.test('Drawer (preact): opening locks body scroll, closing restores it', () 
   })
 
   rerender({ open: true, onClose: () => {}, side: 'left', label: 'Cart', children: 'Empty' })
-  assertEquals(document.body.style.overflow, 'hidden')
+  assert(bodyScrollLockRuleExists())
 
   rerender({ open: false, onClose: () => {}, side: 'left', label: 'Cart', children: 'Empty' })
-  assertEquals(document.body.style.overflow, 'auto')
+  assertFalse(bodyScrollLockRuleExists())
 
   unmount()
 })

@@ -160,8 +160,11 @@ export function createModal<E, Node>(
 
     hooks.useEffect(() => {
       if (!open) return
-      return registerOverlay(stackId)
-    }, [open, stackId])
+      // `nonce` — the SAME value this component's own `<style nonce={nonce}>` element below
+      // already uses — see `overlay-stack.ts`'s own doc for why the shared body-scroll-lock rule
+      // needs it too.
+      return registerOverlay(stackId, nonce)
+    }, [open, stackId, nonce])
 
     hooks.useCloseOnOutside(containerRef, open && !showOverlay, () => {
       if (isTopOverlay(stackId)) onClose()

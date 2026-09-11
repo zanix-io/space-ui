@@ -2,10 +2,11 @@ import { must } from './dom-test-setup.ts'
 import { act } from 'react'
 import { createRoot } from 'react-dom/client'
 import { renderToStaticMarkup } from 'react-dom/server'
-import { assertEquals, assertStringIncludes } from '@std/assert'
+import { assert, assertEquals, assertFalse, assertStringIncludes } from '@std/assert'
 import logger from 'shared/client-logger.ts'
 import { Drawer } from 'components/Drawer/index.ts'
 import { Modal } from 'components/Modal/index.ts'
+import { bodyScrollLockRuleExists } from './overlay-scroll-lock-test-utils.ts'
 
 function mount(element: ReturnType<typeof Drawer>) {
   const container = document.createElement('div')
@@ -365,7 +366,6 @@ Deno.test('Drawer: closing returns focus to the element that had it before openi
 // --- scroll lock -----------------------------------------------------------------------------
 
 Deno.test('Drawer: opening locks body scroll, closing restores it', () => {
-  document.body.style.overflow = 'auto'
   const { rerender, unmount } = mount(
     <Drawer open={false} onClose={() => {}} side='left' label='Cart'>
       <p>Empty</p>
@@ -377,14 +377,14 @@ Deno.test('Drawer: opening locks body scroll, closing restores it', () => {
       <p>Empty</p>
     </Drawer>,
   )
-  assertEquals(document.body.style.overflow, 'hidden')
+  assert(bodyScrollLockRuleExists())
 
   rerender(
     <Drawer open={false} onClose={() => {}} side='left' label='Cart'>
       <p>Empty</p>
     </Drawer>,
   )
-  assertEquals(document.body.style.overflow, 'auto')
+  assertFalse(bodyScrollLockRuleExists())
 
   unmount()
 })

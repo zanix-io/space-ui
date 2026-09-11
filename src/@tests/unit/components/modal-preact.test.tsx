@@ -3,10 +3,17 @@ import { Fragment, h, render as renderDOM } from 'preact'
 import type { VNode } from 'preact'
 import { act } from 'preact/test-utils'
 import { render as renderToString } from 'preact-render-to-string'
-import { assertEquals, assertStrictEquals, assertStringIncludes } from '@std/assert'
+import {
+  assert,
+  assertEquals,
+  assertFalse,
+  assertStrictEquals,
+  assertStringIncludes,
+} from '@std/assert'
 import logger from 'shared/client-logger.ts'
 import { Modal, ModalProvider, useModal } from 'components/Modal/index.preact.ts'
 import type { ModalProps } from 'components/Modal/index.preact.ts'
+import { bodyScrollLockRuleExists } from './overlay-scroll-lock-test-utils.ts'
 
 // Unlike every hookless Preact component in this package, `Modal` uses real hooks — built with
 // `h(Modal, props)` and rendered through Preact's own pipeline, not called as a plain function.
@@ -393,7 +400,6 @@ Deno.test('Modal (preact): Shift+Tab at the first focusable element cycles to th
 // --- scroll lock (component-level integration) ----------------------------------------------
 
 Deno.test('Modal (preact): opening locks body scroll, closing restores it', () => {
-  document.body.style.overflow = 'auto'
   const { rerender, unmount } = mount({
     open: true,
     onClose: () => {},
@@ -401,10 +407,10 @@ Deno.test('Modal (preact): opening locks body scroll, closing restores it', () =
     children: 'Body',
   })
 
-  assertEquals(document.body.style.overflow, 'hidden')
+  assert(bodyScrollLockRuleExists())
 
   rerender({ open: false, onClose: () => {}, label: 'X', children: 'Body' })
-  assertEquals(document.body.style.overflow, 'auto')
+  assertFalse(bodyScrollLockRuleExists())
 
   unmount()
 })
