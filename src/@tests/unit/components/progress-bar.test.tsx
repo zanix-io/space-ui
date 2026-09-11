@@ -15,19 +15,19 @@ Deno.test('ProgressBar: renders a track/fill pair with data-space-ui on the trac
 Deno.test('ProgressBar: height defaults to 7px', () => {
   const html = renderToStaticMarkup(<ProgressBar />)
 
-  assertStringIncludes(html, 'style="height:7px"')
+  assertStringIncludes(html, 'height:7px')
 })
 
 Deno.test('ProgressBar: a numeric height is treated as pixels', () => {
   const html = renderToStaticMarkup(<ProgressBar height={12} />)
 
-  assertStringIncludes(html, 'style="height:12px"')
+  assertStringIncludes(html, 'height:12px')
 })
 
 Deno.test('ProgressBar: a string height is used verbatim', () => {
   const html = renderToStaticMarkup(<ProgressBar height='0.5rem' />)
 
-  assertStringIncludes(html, 'style="height:0.5rem"')
+  assertStringIncludes(html, 'height:0.5rem')
 })
 
 Deno.test('ProgressBar: without label, the track is aria-hidden and has no role', () => {
@@ -68,7 +68,7 @@ Deno.test('ProgressBar: with timeout, the fill carries data-timeout and duration
   const html = renderToStaticMarkup(<ProgressBar timeout={3000} />)
 
   assertStringIncludes(html, 'data-timeout="3000"')
-  assertStringIncludes(html, 'style="--space-ui-progress-duration:3000ms"')
+  assertStringIncludes(html, '--space-ui-progress-duration:3000ms')
 })
 
 Deno.test('ProgressBar: id and className are forwarded onto the track', () => {
@@ -84,9 +84,15 @@ Deno.test('ProgressBar: a realistic multi-prop example renders well-formed marku
   )
 
   assertStringIncludes(html, 'id="toast-progress"')
-  assertStringIncludes(html, 'style="height:4px"')
+  assertStringIncludes(html, 'height:4px')
   assertStringIncludes(html, 'role="progressbar"')
   assertStringIncludes(html, 'aria-label="Auto-dismissing"')
   assertStringIncludes(html, 'data-timeout="5000"')
   assertStringIncludes(html, '--space-ui-progress-duration:5000ms')
+})
+
+Deno.test('ProgressBar: nonce lands on the self-rendered <style> element', () => {
+  const html = renderToStaticMarkup(<ProgressBar nonce='abc123' />)
+
+  assertStringIncludes(html, '<style nonce="abc123">')
 })

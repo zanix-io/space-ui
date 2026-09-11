@@ -1,6 +1,7 @@
-import { createElement, useEffect, useId, useMemo, useRef, useState } from 'react'
+import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import type { ReactElement } from 'react'
 import type { CreateElement } from 'typings/renderer.ts'
+import { createElementWithNonceHydrationFix } from 'shared/create-element-nonce-hydration-fix.ts'
 import { useCloseOnOutside } from 'shared/close-on-outside.ts'
 import { usePosition } from 'shared/use-position.ts'
 import { createSelect } from './render.ts'
@@ -103,6 +104,6 @@ export type SelectProps = SelectBaseProps
  * omission actually matters.
  */
 export const Select: (props: SelectProps) => ReactElement = createSelect<ReactElement>(
-  createElement as unknown as CreateElement<ReactElement>,
-  { useId, useRef, useState, useMemo, useEffect, useCloseOnOutside, usePosition },
+  createElementWithNonceHydrationFix as unknown as CreateElement<ReactElement>,
+  { useId, useRef, useState, useMemo, useEffect, useLayoutEffect, useCloseOnOutside, usePosition },
 )

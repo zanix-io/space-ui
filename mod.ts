@@ -219,6 +219,10 @@ export type {
   SocialLinksInputBaseProps,
   SocialNetworkName,
 } from 'components/SocialLinksInput/types.ts'
+// Exported standalone (not just used internally by `SocialLinksInput`) — a read-only display of
+// already-stored URLs (e.g. `SocialNetworks` above) needs the exact same hostname→network mapping,
+// and duplicating it at the call site would drift from this component's own recognized set.
+export { detectSocialNetwork } from 'components/SocialLinksInput/detect-social-network.ts'
 
 // `StructuredData`/`StructuredDataProps`/`resolveStructuredData` reference `schema-dts`'s own
 // `Thing`/`WithContext` in their public signature (and `Icon`/`SocialNetworks`/`StructuredData`'s
@@ -285,6 +289,43 @@ export { Menu } from 'components/Menu/index.ts'
 export type { MenuItem, MenuOpenMode, MenuProps } from 'components/Menu/index.ts'
 export type { MenuBaseProps, MenuItemFields } from 'components/Menu/types.ts'
 
+// `PasswordInput` — `Input`'s closest sibling (composes it, plus `Button`, unmodified) — zero
+// `@zanix/space` dependency, ships from the root barrel.
+export { PasswordInput } from 'components/PasswordInput/index.ts'
+export type { PasswordInputProps } from 'components/PasswordInput/index.ts'
+export type { PasswordInputBaseProps } from 'components/PasswordInput/types.ts'
+
+// `Countdown` — a real-time, wall-clock-anchored count-DOWN, a genuinely different contract from
+// `Counter`'s fixed-duration count-UP reveal animation (not reused/extended here). Zero
+// `@zanix/space` dependency.
+export { Countdown } from 'components/Countdown/index.ts'
+export type { CountdownProps } from 'components/Countdown/index.ts'
+export type { CountdownBaseProps, CountdownVariant } from 'components/Countdown/types.ts'
+
+// `Avatar` — composes the unmodified, comet-safe root-barrel `Image` (its own `onError`, never a
+// hand-rolled `onerror` handler) for its image branch; zero `@zanix/space` dependency either way.
+export { Avatar } from 'components/Avatar/index.ts'
+export type { AvatarProps } from 'components/Avatar/index.ts'
+export type { AvatarBaseProps, AvatarShape, AvatarSize } from 'components/Avatar/types.ts'
+export { AVATAR_SIZE_PX } from 'components/Avatar/types.ts'
+
+// `Chip` — composes the unmodified `Button` (plus `shared/close-button-icon.ts`'s own default
+// glyph) for its own removable variant's remove control; zero `@zanix/space` dependency.
+export { Chip } from 'components/Chip/index.ts'
+export type { ChipProps } from 'components/Chip/index.ts'
+export type { ChipBaseProps } from 'components/Chip/types.ts'
+
+// `EmptyState` — stateless, composes nothing (its `icon`/`action` slots are plain render-props, so
+// this leaf component stays decoupled from `Button`/`Link` — see `render.ts`'s own doc); zero
+// `@zanix/space` dependency.
+export { EmptyState } from 'components/EmptyState/index.ts'
+export type { EmptyStateProps } from 'components/EmptyState/index.ts'
+export type {
+  EmptyStateBaseProps,
+  EmptyStateHeadingLevel,
+  EmptyStateRootType,
+} from 'components/EmptyState/types.ts'
+
 // --- Shared primitives ---------------------------------------------------------------------
 // The same headless building blocks this package's own interactive components (`Modal`, `Menu`,
 // `Slider`, `Popover`, `Tooltip`, `Combobox`, `RadioGroup`, `Tabs`) are built from, exported here
@@ -298,7 +339,7 @@ export type { EscapeKeyEvent } from 'shared/escape-to-close.ts'
 export { FOCUSABLE_SELECTOR, useFocusScope } from 'shared/focus-scope.ts'
 export type { FocusScopeOptions, TabKeyEvent } from 'shared/focus-scope.ts'
 
-export { liveRegionProps, VISUALLY_HIDDEN_STYLE } from 'shared/live-region.ts'
+export { liveRegionProps, VISUALLY_HIDDEN_CSS } from 'shared/live-region.ts'
 export type { LiveRegionPoliteness } from 'shared/live-region.ts'
 
 export { createRovingKeyDownHandler, getNextRovingIndex } from 'shared/roving-focus.ts'

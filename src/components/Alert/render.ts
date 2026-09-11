@@ -7,7 +7,7 @@ import type { AlertProps } from './types.ts'
  *
  * A persistent, VISIBLE inline message banner — `role="alert"`/`role="status"` (via `politeness`),
  * both implicit live regions on their own, no explicit `aria-live` needed. Deliberately does NOT
- * reuse `shared/live-region.ts` — that module's own `VISUALLY_HIDDEN_STYLE` is for announcement-only
+ * reuse `shared/live-region.ts` — that module's own `VISUALLY_HIDDEN_CSS` is for announcement-only
  * regions no one needs to SEE (`Slider`'s "Slide N of Total"); `Alert` is the opposite case, a
  * banner meant to be visible on screen, not hidden.
  *

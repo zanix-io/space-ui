@@ -98,6 +98,23 @@ export function getDynamicRule(root: ParentNode, panel: Element, idAttr: string)
 }
 
 /**
+ * Finds a component's own POSITIONING `<style>` element among possibly several under `root` — every
+ * `Combobox`/`DatePicker`/`MultiSelect`/`Popover`/`Select`/`Tooltip` instance also renders a second,
+ * always-mounted `<style>` element of its own (`shared/overlay-position-css.ts`'s own
+ * `DISPLAY_CONTENTS_WRAPPER_CSS`, backing its invisible `display:contents` wrapper span — see that
+ * module's own doc), so a bare `container.querySelector('style')` is no longer guaranteed to find
+ * the positioning one specifically; this searches by content instead of assuming DOM order/index.
+ * Returns `null`, never throwing, when the component's popup/panel/listbox is currently closed (that
+ * `<style>` element unmounts with it) — the wrapper's own `<style>` stays mounted regardless.
+ */
+export function findPositionStyleEl(root: ParentNode): HTMLStyleElement | null {
+  for (const styleEl of Array.from(root.querySelectorAll('style'))) {
+    if (styleEl.textContent?.includes('position:fixed')) return styleEl as HTMLStyleElement
+  }
+  return null
+}
+
+/**
  * A deterministic replacement for `setTimeout`/`clearTimeout` — a fake clock a test advances by an
  * exact number of milliseconds, firing exactly the timeouts that would have fired by then, instead
  * of waiting on real wall-clock time. Same shape and reasoning as `counter-test-utils.ts`'s own

@@ -296,7 +296,9 @@ Deno.test('Showcase: id/className land on the real Slider root; group wrapper is
   assertEquals(container.firstElementChild?.getAttribute('data-space-ui'), null)
 
   const group = must(container.querySelector('[data-space-ui="showcase-group"]')) as HTMLElement
-  assertEquals(group.style.display, 'flex')
+  assertEquals(group.getAttribute('style'), null)
+  const styleEl = must(container.querySelector('style'))
+  assertStringIncludes(styleEl.textContent ?? '', "[data-space-ui='showcase-group']{display:flex}")
 
   unmount()
 })
@@ -312,4 +314,14 @@ Deno.test('Showcase: the `slider` prop passes through to the underlying Slider u
   )
 
   assertStringIncludes(html, 'aria-label="Featured"')
+})
+
+Deno.test('Showcase: nonce lands on the group-wrapper <style> element', () => {
+  const html = renderToStaticMarkup(
+    <Showcase nonce='abc123'>
+      <div>A</div>
+    </Showcase>,
+  )
+
+  assertStringIncludes(html, '<style nonce="abc123">')
 })

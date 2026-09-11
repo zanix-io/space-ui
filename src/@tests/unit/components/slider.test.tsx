@@ -674,3 +674,14 @@ Deno.test(
     unmount()
   },
 )
+
+Deno.test('Slider: nonce lands on the live-region <style> element', () => {
+  const html = renderToStaticMarkup(
+    <Slider nonce='abc123'>
+      <div>A</div>
+      <div>B</div>
+    </Slider>,
+  )
+
+  assertStringIncludes(html, '<style nonce="abc123">')
+})

@@ -1,6 +1,6 @@
 import type { CreateElement } from 'typings/renderer.ts'
 import { createButton } from '../Button/render.ts'
-import { liveRegionProps } from 'shared/live-region.ts'
+import { liveRegionProps, VISUALLY_HIDDEN_CSS } from 'shared/live-region.ts'
 import type { SliderBaseProps } from './types.ts'
 import { MAX_MOUNTED_SLIDES } from './types.ts'
 
@@ -51,6 +51,7 @@ export function createSlider<E, Node>(
       label = 'Carousel',
       id,
       className,
+      nonce,
     } = props
 
     const slides = Array.isArray(children)
@@ -201,6 +202,11 @@ export function createSlider<E, Node>(
           { key: 'live', ...liveRegionProps(liveAnnouncing ? 'polite' : 'off') },
           `Slide ${clampedIndex + 1} of ${itemsQuantity}`,
         ),
+        // Backs the live region's own `VISUALLY_HIDDEN_ATTR` marker above — a self-rendered
+        // `<style nonce={nonce}>` element, never an inline `style` attribute (a real, confirmed CSP
+        // violation under a nonce-based `style-src` this fixes — see `SliderBaseProps.nonce`'s own
+        // doc).
+        h('style', { key: 'style', nonce }, VISUALLY_HIDDEN_CSS),
       ],
     )
   }

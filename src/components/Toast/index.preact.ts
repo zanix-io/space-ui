@@ -4,6 +4,7 @@ import {
   useCallback,
   useContext as usePreactContext,
   useEffect,
+  useId,
   useMemo,
   useState,
 } from 'preact/hooks'
@@ -26,7 +27,7 @@ function useContext(context: unknown): unknown {
 
 const bound = createToast<VNode, ComponentChildren>(
   h as unknown as CreateElement<VNode>,
-  { createContext, useContext, useCallback, useMemo, useEffect, useState },
+  { createContext, useContext, useCallback, useMemo, useEffect, useState, useId },
   Fragment,
 )
 

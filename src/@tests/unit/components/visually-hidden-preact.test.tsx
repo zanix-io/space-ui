@@ -20,21 +20,26 @@ Deno.test('VisuallyHidden (preact): carries data-space-ui="visually-hidden"', ()
   assertStringIncludes(html, 'data-space-ui="visually-hidden"')
 })
 
-Deno.test('VisuallyHidden (preact): applies the clip-and-collapse style inline', () => {
-  const html = render(VisuallyHidden({ children: 'text' }))
+Deno.test(
+  'VisuallyHidden (preact): applies the clip-and-collapse styling via a self-rendered <style>, never an inline style attribute',
+  () => {
+    const html = render(VisuallyHidden({ children: 'text' }))
 
-  assertStringIncludes(html, 'position:absolute')
-  assertStringIncludes(html, 'clip:rect(0, 0, 0, 0)')
-})
+    assertStringIncludes(html, '<style')
+    assertStringIncludes(html, 'position:absolute')
+    assertStringIncludes(html, 'clip:rect(0,0,0,0)')
+    assertEquals(html.includes(' style='), false)
+  },
+)
 
-Deno.test('VisuallyHidden (preact): id/className land on the same <span>', () => {
+Deno.test('VisuallyHidden (preact): id/className land on the same <span>, never the <style>', () => {
   const html = render(
     VisuallyHidden({ id: 'close-label', className: 'sr-only', children: 'Close' }),
   )
 
   assertStringIncludes(html, 'id="close-label"')
   assertStringIncludes(html, 'class="sr-only"')
-  assertStringIncludes(html, 'style=')
+  assertStringIncludes(html, '<style>')
 })
 
 Deno.test('VisuallyHidden (preact): without id/className, neither attribute is rendered', () => {
@@ -42,4 +47,10 @@ Deno.test('VisuallyHidden (preact): without id/className, neither attribute is r
 
   assertEquals(html.includes(' id='), false)
   assertEquals(html.includes(' class='), false)
+})
+
+Deno.test('VisuallyHidden (preact): nonce lands on the self-rendered <style> element', () => {
+  const html = render(VisuallyHidden({ children: 'text', nonce: 'abc123' }))
+
+  assertStringIncludes(html, '<style nonce="abc123">')
 })

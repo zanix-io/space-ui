@@ -1,6 +1,6 @@
-import { createElement } from 'react'
 import type { ReactElement } from 'react'
 import type { CreateElement } from 'typings/renderer.ts'
+import { createElementWithNonceHydrationFix } from 'shared/create-element-nonce-hydration-fix.ts'
 import { createVisuallyHidden } from './render.ts'
 import type { VisuallyHiddenProps } from './types.ts'
 
@@ -18,7 +18,9 @@ import type { VisuallyHiddenProps } from './types.ts'
  * ```
  */
 // Same `createElement`/`h` overload-set cast `Icon/index.ts` already needs and explains in full —
-// not repeated here.
+// not repeated here. `createElementWithNonceHydrationFix` — see `Modal/index.ts`'s own `nonce` doc
+// for why this component's own self-rendered `<style nonce>` needs it (a real, cosmetic-only React
+// hydration-warning gotcha).
 export const VisuallyHidden: (props: VisuallyHiddenProps) => ReactElement = createVisuallyHidden(
-  createElement as unknown as CreateElement<ReactElement>,
+  createElementWithNonceHydrationFix as unknown as CreateElement<ReactElement>,
 )

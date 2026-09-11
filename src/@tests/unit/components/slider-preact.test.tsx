@@ -521,3 +521,11 @@ Deno.test(
     act(() => renderDOM(null, container))
   },
 )
+
+Deno.test('Slider (preact): nonce lands on the live-region <style> element', () => {
+  const html = renderToString(
+    element({ nonce: 'abc123', children: [h('div', {}, 'A'), h('div', {}, 'B')] }),
+  )
+
+  assertStringIncludes(html, '<style nonce="abc123">')
+})

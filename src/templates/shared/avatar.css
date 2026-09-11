@@ -1,0 +1,44 @@
+/*
+ * Space-UI Avatar shape CSS — optional, never imported by any `@zanix/space-ui` runtime code
+ * -------------------------------------------------------------------------------------------
+ * `Avatar` itself sets no `border-radius` inline — the same "structural CSS lives in an optional
+ * companion file" precedent `./card.css` already establishes for `Card`'s own responsive layout,
+ * applied here to a plain shape instead. Without this file loaded, `Avatar` still renders fully
+ * valid, correctly SIZED markup (`width`/`height` are set inline by the component itself — a real
+ * CLS-prevention mechanism, not a styling opinion) — just as a plain rectangle, never a broken or
+ * unstyled-looking one.
+ *
+ * Every rule below is pure geometry — no color, no theme reference of any kind, unlike
+ * `../theme/space-defaults.css`. That's deliberate: a shape (circle vs. square) is a structural
+ * choice this package can ship a sane default for without taking any position on a consuming app's
+ * own color identity, the same split `./behavior.css`'s own header already draws between structure/
+ * animation (shared here) and color (left entirely to `../theme/tokens.css` and whatever a host app
+ * overrides it with).
+ */
+
+[data-space-ui='avatar'] {
+  overflow: hidden;
+}
+
+[data-space-ui='avatar'][data-shape='circle'] {
+  border-radius: 50%;
+}
+
+[data-space-ui='avatar'][data-shape='square'] {
+  border-radius: 0;
+}
+
+[data-space-ui='avatar'] img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+[data-space-ui='avatar-initials'] {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+}

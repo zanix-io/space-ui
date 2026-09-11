@@ -9,10 +9,79 @@ adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- **`PasswordInput`**, **`Countdown`**, **`Avatar`**, **`Chip`**, **`EmptyState`** — five new
+  components, all zero-`@zanix/space` dependency, shipping from the default `.`/`./preact` barrel.
+  See `docs/architecture.md`'s build-order table (rows 25–29) and `README.md`'s "Current status" for
+  each component's full contract; summarized here:
+  - **`PasswordInput`** composes the unmodified `Input` (via `Input/render.ts`'s own `createInput`
+    factory, never re-derived) plus a real `Button` for a show/hide toggle (`type="button"` — never
+    submits an enclosing form; only the real `<input>`'s own `type` attribute is ever toggled, so
+    native autofill/password managers stay unaffected). Controlled `visible`/`onVisibleChange` with
+    an uncontrolled `defaultVisible` fallback; `showIcon`/`hideIcon` render-props override the
+    default inline eye/eye-off glyphs.
+  - **`Countdown`** is a real-time, wall-clock-anchored count-DOWN — a genuinely different contract
+    from `Counter` (a fixed-duration count-UP reveal animation), not reused or extended from it.
+    `target: Date | number` is an already-resolved absolute instant; every tick recomputes
+    `target - Date.now()` fresh (never a naive decrement), self-correcting across tab
+    backgrounding/throttling. `onComplete` fires exactly once. A visually-hidden
+    `aria-live="polite"` region announces only at whole-minute boundaries plus once at zero, never
+    once per second. `variant="ring"` adds an SVG progress ring honoring `prefers-reduced-motion`
+    (disables its own CSS transition, never the value update).
+  - **`Avatar`** composes the unmodified, comet-safe root-barrel `Image`, reusing its own `onError`
+    for an automatic initials fallback (`get-initials.ts`, colocated and directly unit-tested)
+    whenever `src` is omitted or fails to load — including a failure that already happened before
+    this component's own effect ran (a real risk under any hydration-based framework, `onError`
+    alone only catches a failure that happens after it's attached): an effect calls
+    `HTMLImageElement.decode()` once per `src`, swapping to the fallback on rejection the same way
+    `onError` does, with a plain feature-detection fallback (skip the probe, `onError` alone) for an
+    environment where `decode` isn't a function. `size` (`'sm'`/`'md'`/`'lg'`, via the new exported
+    `AVATAR_SIZE_PX` map, or an explicit pixel number) sets real `width`/`height`. The
+    circular/square shape itself is pure, color-free geometry in a new optional
+    `src/templates/shared/avatar.css` companion (never imported by runtime code), the same
+    "structural CSS in an optional file" precedent `card.css` already established for `Card`.
+  - **`Chip`** is a pill-shaped label, static (no `onRemove`) or removable (`onRemove` given —
+    presence alone decides the mode), composing the unmodified `Button` plus
+    `shared/close-button-icon.ts`'s existing default glyph, the identical composition
+    `MultiSelect`'s own internal chip already uses. `tone` is a plain, OPEN `data-tone` passthrough
+    — deliberately never a closed enum of specific accent names, since this package ships no CSS and
+    owns no color identity; a consumer maps `data-tone` to real color entirely in its own
+    stylesheet. `MultiSelect`'s own chip markup is NOT refactored to compose this component in this
+    change — a disclosed deviation (see `docs/architecture.md`'s row 28 for the full reasoning) —
+    flagged as a follow-up design question, not attempted speculatively.
+  - **`EmptyState`** is a generic "nothing here yet" block (optional `icon` render-prop, a required
+    `heading` with a configurable `headingLevel`, optional `description`, optional `action`
+    render-prop) — usable standalone or nested inside a `Card`/section. `icon`/`action` stay plain
+    render-props rather than a bundled `Button`/`Link` dependency, keeping this leaf component
+    decoupled from either.
+
+  Building `PasswordInput`'s default icons and `Countdown`'s `'ring'` variant surfaced a real,
+  previously-unconfirmed React/Preact divergence, confirmed empirically: a hyphenated real SVG DOM
+  attribute (`stroke-width`, `stroke-dasharray`, `stroke-dashoffset`, `stroke-linecap`,
+  `stroke-linejoin`) passed via its camelCase prop form is correctly remapped by React's own
+  internal SVG attribute table but NOT by Preact, which sets the literal camelCase string as the DOM
+  attribute name verbatim — silently inert in Preact specifically (a missing `stroke-width` degrades
+  invisibly to the SVG spec's own default of `1`, never a visible failure or a thrown error). Both
+  new components avoid it entirely by writing real CSS text for these attributes into a
+  self-rendered `<style nonce={nonce}>` element (`PasswordInput`'s own
+  `STROKE_ICON_ATTR`/`PASSWORD_INPUT_STROKE_CSS`, `Countdown`'s own
+  `data-countdown-ring`/`data-countdown-ring-id` selectors), targeted via a `data-*` marker
+  attribute rather than either renderer's `style` prop — a plain CSS declaration has nothing to do
+  with either renderer's own DOM-attribute special-casing, and needs no numeric-unit handling of its
+  own either (`1.6px` is written as real CSS text, never a JS value either renderer could
+  reinterpret). This supersedes an earlier version of this same fix that moved the attributes into
+  the element's own `style` object instead — abandoned once a second, separate problem surfaced: an
+  inline `style="..."` attribute is itself a CSP `style-src` violation under a nonce-based policy
+  (`@zanix/space`'s own zero-config default), since a CSP nonce only ever applies to a `<style>`
+  element, never a `style` attribute (see `overlay-position-css.ts`'s own module doc for the full
+  reasoning, identical cause). **Not fixed here** (out of scope for this change, flagged as a real,
+  pre-existing gap for a maintainer): `shared/close-button-icon.ts`'s own `strokeWidth` and
+  `SocialLinksInput/render.ts`'s close glyph already use the same bare-camelCase shape today, so
+  their own stroke width silently never applies under the Preact binding specifically.
+
 - **`Textarea`** — a thin, accessible wrapper around a native `<textarea>`, the multi-line
-  counterpart `Input` (row 18) has no equivalent for — a real gap reported from a consumer
-  (`@presenza/web`, a `bio` field currently rendered through single-line `Input`). Controlled
-  `value`/`onValueChange` with an uncontrolled `defaultValue` fallback, same seam as `Input`.
+  counterpart `Input` (row 18) has no equivalent for — a real gap reported from a consumer app (a
+  `bio` field currently rendered through single-line `Input`). Controlled `value`/`onValueChange`
+  with an uncontrolled `defaultValue` fallback, same seam as `Input`.
   `placeholder`/`disabled`/`readOnly`/`required`/`autoComplete`/`maxLength`/`name` pass straight
   through, no reimplementation of the native contract; `rows` (default `4`) and `cols`/`wrap`
   replace `Input`'s `type`/`min`/`max`/`step`/`pattern` as the attributes this element actually
@@ -25,8 +94,8 @@ adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 - **`DatePicker.icon`** — an optional icon shown on the trigger, alongside its formatted date/
   placeholder text, real `IconProps` passed straight to `Icon` (same "composed, not reimplemented"
   contract `ImgButton.icon` already establishes). Omitted, the trigger renders exactly as it always
-  has. Addresses a real consumer gap (`@presenza/web`'s date-of-birth field, whose trigger had no
-  calendar glyph of any kind).
+  has. Addresses a real consumer gap (a date-of-birth field whose trigger had no calendar glyph of
+  any kind).
 - **`MultiSelect.getSelectionDescription`** — overrides the visually-hidden running-count text
   (`aria-describedby`'d to the input) this component renders for its own selected-chip count.
   Defaults to the existing fixed English `"N item(s) selected"` string — this component has no i18n
@@ -84,6 +153,17 @@ adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
   itself a submitted field. Zero `@zanix/space` dependency (composes only `Input`/`Button`) — ships
   from the default `.`/`./preact` barrel. See `docs/architecture.md`'s build-order table (row 23)
   and `README.md`'s "Current status" for the full contract.
+
+### Fixed
+
+- **`SocialLinksInput`'s `network` auto-detection never ran for entries supplied via
+  `defaultValues`/`values`** — `detectSocialNetwork` was only ever called from `handleUrlChange`,
+  fired on a row's own keystroke; an entry seeded with a known URL and a `null`/stale `network` (the
+  exact shape a caller loading a saved profile reasonably supplies, with no reason to run detection
+  itself before first render) rendered with no `renderIcon` glyph until the user next edited that
+  row, even though its `url` already resolved to a real network. `network` is now re-derived from
+  `url` for every entry — on the initial `defaultValues` seed and on every render of a controlled
+  `values`, not only on edit — since a caller's own copy of `network` is never the source of truth.
 
 ## [2.0.2] - 2026-09-07
 

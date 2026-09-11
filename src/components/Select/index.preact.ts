@@ -1,6 +1,6 @@
 import { h } from 'preact'
 import type { VNode } from 'preact'
-import { useEffect, useId, useMemo, useRef, useState } from 'preact/hooks'
+import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'preact/hooks'
 import type { CreateElement } from 'typings/renderer.ts'
 import { useCloseOnOutside } from 'shared/close-on-outside.preact.ts'
 import { usePosition } from 'shared/use-position.preact.ts'
@@ -24,5 +24,5 @@ export type SelectProps = SelectBaseProps
  */
 export const Select: (props: SelectProps) => VNode = createSelect<VNode>(
   h as unknown as CreateElement<VNode>,
-  { useId, useRef, useState, useMemo, useEffect, useCloseOnOutside, usePosition },
+  { useId, useRef, useState, useMemo, useEffect, useLayoutEffect, useCloseOnOutside, usePosition },
 )

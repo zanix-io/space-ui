@@ -1,4 +1,4 @@
-import { dispatchWindowEvent, must } from './dom-test-setup.ts'
+import { dispatchWindowEvent, getDynamicRule, must } from './dom-test-setup.ts'
 import { act } from 'react'
 import { createRoot } from 'react-dom/client'
 import { renderToStaticMarkup } from 'react-dom/server'
@@ -548,8 +548,13 @@ Deno.test('MultiSelect: the listbox is positioned via the input reference rect',
 
   act(() => dispatchWindowEvent(new Event('resize')))
 
-  assertEquals(listbox.style.position, 'fixed')
-  assertStringIncludes(listbox.style.transform, 'translate(')
+  // No inline `style` attribute at all — `position`/`top`/`left` live in the static `<style>`
+  // rule (a real CSP fix), and the genuinely dynamic `transform`/`visibility` are applied to a
+  // CSSOM rule inside that SAME element instead (see `MULTI_SELECT_LISTBOX_POSITION_CSS`'s and
+  // `createMultiSelect`'s own doc).
+  assertEquals(listbox.getAttribute('style'), null)
+  const rule = getDynamicRule(container, listbox, 'data-multi-select-id')
+  assertStringIncludes(rule.style.transform, 'translate(')
 
   unmount()
 })
@@ -565,4 +570,10 @@ Deno.test('MultiSelect: id/className land on the input', () => {
   assertEquals(input.className, 'multi-select-input')
 
   unmount()
+})
+
+Deno.test('MultiSelect: nonce lands on the always-rendered wrapper <style> element', () => {
+  const html = renderToStaticMarkup(<MultiSelect nonce='abc123' options={[]} />)
+
+  assertStringIncludes(html, '<style nonce="abc123">')
 })

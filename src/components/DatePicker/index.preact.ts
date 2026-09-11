@@ -1,6 +1,6 @@
 import { Fragment, h } from 'preact'
 import type { VNode } from 'preact'
-import { useEffect, useMemo, useRef, useState } from 'preact/hooks'
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'preact/hooks'
 import type { CreateElement } from 'typings/renderer.ts'
 import { useCloseOnOutside } from 'shared/close-on-outside.preact.ts'
 import { usePosition } from 'shared/use-position.preact.ts'
@@ -22,6 +22,6 @@ export type DatePickerProps = DatePickerBaseProps
  */
 export const DatePicker: (props: DatePickerProps) => VNode = createDatePicker<VNode>(
   h as unknown as CreateElement<VNode>,
-  { useRef, useState, useMemo, useEffect, useCloseOnOutside, usePosition },
+  { useRef, useState, useMemo, useEffect, useLayoutEffect, useCloseOnOutside, usePosition },
   Fragment,
 )

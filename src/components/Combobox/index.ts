@@ -1,14 +1,43 @@
-import { createElement, useId, useRef, useState } from 'react'
+import { createElement, useId, useLayoutEffect, useRef, useState } from 'react'
 import type {
   ChangeEvent as ReactChangeEvent,
   KeyboardEvent as ReactKeyboardEvent,
   MouseEvent as ReactMouseEvent,
   ReactElement,
 } from 'react'
+import { createElementWithNonceHydrationFix } from 'shared/create-element-nonce-hydration-fix.ts'
 import { useCloseOnOutside } from 'shared/close-on-outside.ts'
 import { getNextRovingIndex } from 'shared/roving-focus.ts'
+import {
+  buildOverlayCss,
+  DISPLAY_CONTENTS_WRAPPER_ATTR,
+  DISPLAY_CONTENTS_WRAPPER_CSS,
+  getOrInsertDynamicRule,
+  removeDynamicRule,
+} from 'shared/overlay-position-css.ts'
 import { usePosition } from 'shared/use-position.ts'
 import type { ComboboxBaseProps, ComboboxOption } from './types.ts'
+
+/**
+ * The static, non-dynamic part of this component's own listbox positioning — same
+ * `buildOverlayCss`/nonce'd-`<style>` pattern `Select/render.ts`'s own `SELECT_LISTBOX_POSITION_CSS`
+ * already establishes (see that file's own doc, and `shared/overlay-position-css.ts`'s, for the
+ * full CSP reasoning — the previous version of this file's own `position:'fixed'`/`transform`
+ * object literal on the `<ul>` was a real, confirmed violation of a nonce-based `style-src` CSP).
+ * Duplicated verbatim in `index.preact.ts` — this component has no shared `render.ts` (see this
+ * file's own top-level doc, "Real implementation... this component owns and renders its
+ * `<input>` directly" — the whole component, not just this constant, is independently implemented
+ * per binding).
+ */
+const COMBOBOX_LISTBOX_POSITION_CSS: string = buildOverlayCss('combobox-listbox', {
+  position: 'fixed',
+  top: 0,
+  left: 0,
+  margin: 0,
+  padding: 0,
+  listStyle: 'none',
+  visibility: 'hidden',
+})
 
 /** {@linkcode ComboboxBaseProps} — nothing extra for the React binding. */
 export type ComboboxProps = ComboboxBaseProps
@@ -112,6 +141,7 @@ export function Combobox(props: ComboboxProps): ReactElement {
     'aria-invalid': ariaInvalid,
     'aria-label': ariaLabel,
     'aria-labelledby': ariaLabelledBy,
+    nonce,
   } = props
 
   const baseId = useId()
@@ -171,8 +201,37 @@ export function Combobox(props: ComboboxProps): ReactElement {
   const inputRef = useRef<HTMLInputElement>(null)
   const listboxRef = useRef<HTMLUListElement>(null)
   const containerRef = useRef<HTMLSpanElement>(null)
+  const styleElRef = useRef<HTMLStyleElement>(null)
+  const dynamicRuleRef = useRef<CSSStyleRule | null>(null)
 
   const position = usePosition(inputRef, listboxRef, open, { placement, offset })
+
+  // The dynamic-positioning CSSOM rule — see `COMBOBOX_LISTBOX_POSITION_CSS`'s own doc and
+  // `Select/render.ts`'s own identical effect (not repeated here). Scoped to THIS instance via
+  // `listboxId` (stable for the component's lifetime), same reasoning `Select`'s own
+  // `dynamicSelector` documents. Keyed on `open` since this component's own `<style>` element
+  // unmounts whenever the listbox itself does.
+  const dynamicSelector = `[data-space-ui='combobox-listbox'][data-combobox-id='${listboxId}']`
+  useLayoutEffect(() => {
+    if (!open) return
+    const styleEl = styleElRef.current
+    if (!styleEl) return
+    getOrInsertDynamicRule(styleEl, dynamicRuleRef, dynamicSelector)
+    return () => removeDynamicRule(styleEl, dynamicRuleRef)
+  }, [open, dynamicSelector])
+
+  // Applies the CSSOM rule's own `transform`/`visibility` on every position update —
+  // `useLayoutEffect`, not `useEffect`, so this runs synchronously before the browser paints, same
+  // reasoning `Select`'s own identical effect documents.
+  useLayoutEffect(() => {
+    const rule = dynamicRuleRef.current
+    if (!rule) return
+    rule.style.setProperty(
+      'transform',
+      position ? `translate(${position.x}px, ${position.y}px)` : '',
+    )
+    rule.style.setProperty('visibility', position ? 'visible' : 'hidden')
+  }, [position])
 
   useCloseOnOutside(containerRef, open, () => setOpen(false))
 
@@ -228,7 +287,7 @@ export function Combobox(props: ComboboxProps): ReactElement {
   const activeOption = activeIndex !== null ? options[activeIndex] : undefined
   const activeOptionId = activeOption ? `${baseId}-option-${activeOption.value}` : undefined
 
-  const input = createElement('input', {
+  const input = createElementWithNonceHydrationFix('input', {
     key: 'input',
     ref: inputRef,
     id: inputId,
@@ -253,6 +312,18 @@ export function Combobox(props: ComboboxProps): ReactElement {
     onKeyDown: handleKeyDown,
   })
 
+  // Static, non-dynamic `position: fixed; top: 0; left: 0; ...` lives in a self-rendered
+  // `<style>` element (see `COMBOBOX_LISTBOX_POSITION_CSS`'s own doc) — the genuinely dynamic
+  // `transform`/`visibility` are applied to a CSSOM rule inside that SAME element instead of an
+  // inline `style` attribute; the listbox itself carries no `style` prop at all.
+  const styleEl = open
+    ? createElementWithNonceHydrationFix(
+      'style',
+      { key: 'style', nonce, ref: styleElRef },
+      COMBOBOX_LISTBOX_POSITION_CSS,
+    )
+    : null
+
   const listbox = open
     ? createElement(
       'ul',
@@ -262,16 +333,7 @@ export function Combobox(props: ComboboxProps): ReactElement {
         ref: listboxRef,
         role: 'listbox',
         'data-space-ui': 'combobox-listbox',
-        style: {
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          margin: 0,
-          padding: 0,
-          listStyle: 'none',
-          transform: position ? `translate(${position.x}px, ${position.y}px)` : undefined,
-          visibility: position ? 'visible' : 'hidden',
-        },
+        'data-combobox-id': listboxId,
       },
       options.map((option, index) =>
         createElement('li', {
@@ -289,8 +351,19 @@ export function Combobox(props: ComboboxProps): ReactElement {
     )
     : null
 
-  return createElement('span', { ref: containerRef, style: { display: 'contents' } }, [
+  // Unconditional (unlike `styleEl` above, which unmounts with the listbox) — the returned
+  // container span below renders regardless of `open`, so the CSS backing its own
+  // `display:contents` marker must always be present too.
+  const wrapperStyleEl = createElementWithNonceHydrationFix(
+    'style',
+    { key: 'wrapper-style', nonce },
+    DISPLAY_CONTENTS_WRAPPER_CSS,
+  )
+
+  return createElement('span', { ref: containerRef, [DISPLAY_CONTENTS_WRAPPER_ATTR]: '' }, [
     input,
+    wrapperStyleEl,
+    styleEl,
     listbox,
   ])
 }

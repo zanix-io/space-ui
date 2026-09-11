@@ -4,6 +4,7 @@ import {
   useCallback,
   useContext as useReactContext,
   useEffect,
+  useId,
   useMemo,
   useState,
 } from 'react'
@@ -28,7 +29,7 @@ function useContext(context: unknown): unknown {
 
 const bound = createToast<ReactElement, ReactNode>(
   createElementWithNonceHydrationFix as unknown as CreateElement<ReactElement>,
-  { createContext, useContext, useCallback, useMemo, useEffect, useState },
+  { createContext, useContext, useCallback, useMemo, useEffect, useState, useId },
   Fragment,
 )
 

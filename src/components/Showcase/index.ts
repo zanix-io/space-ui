@@ -1,6 +1,7 @@
-import { Children, createElement, useEffect, useRef, useState } from 'react'
+import { Children, useEffect, useRef, useState } from 'react'
 import type { ReactElement, ReactNode } from 'react'
 import type { CreateElement } from 'typings/renderer.ts'
+import { createElementWithNonceHydrationFix } from 'shared/create-element-nonce-hydration-fix.ts'
 import type { SliderProps } from 'components/Slider/index.ts'
 import { createShowcase } from './render.ts'
 import type { ShowcaseBaseProps } from './types.ts'
@@ -110,7 +111,7 @@ export const Showcase: (props: ShowcaseProps) => ReactElement = createShowcase<
   ReactElement,
   ReactNode
 >(
-  createElement as unknown as CreateElement<ReactElement>,
+  createElementWithNonceHydrationFix as unknown as CreateElement<ReactElement>,
   { useEffect, useRef, useState },
   Children.toArray,
 )

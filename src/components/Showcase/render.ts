@@ -51,7 +51,7 @@ export function createShowcase<E, Node>(
   ) => E
 
   return function Showcase(props: ShowcaseRenderProps<Node>): E {
-    const { itemsPerSlide, slider, id, className, children } = props
+    const { itemsPerSlide, slider, id, className, children, nonce } = props
 
     const containerRef = hooks.useRef<HTMLDivElement | null>(null)
     const [containerWidth, setContainerWidth] = hooks.useState<number | null>(null)
@@ -80,6 +80,12 @@ export function createShowcase<E, Node>(
     return h(
       'div',
       { ref: containerRef },
+      // Backs `data-space-ui="showcase-group"`'s own `display: flex` — a self-rendered
+      // `<style nonce={nonce}>` element, never an inline `style` attribute (see
+      // `ShowcaseBaseProps.nonce`'s own doc). One shared, instance-agnostic rule: `display: flex`
+      // never varies, the same tolerance `DISPLAY_CONTENTS_WRAPPER_CSS` already establishes for
+      // duplicate-safe static CSS repeated across instances.
+      h('style', { key: 'group-style', nonce }, "[data-space-ui='showcase-group']{display:flex}"),
       hAny(Slider, {
         ...slider,
         id,
@@ -87,7 +93,7 @@ export function createShowcase<E, Node>(
         children: groups.map((group, index) =>
           h(
             'div',
-            { key: index, 'data-space-ui': 'showcase-group', style: { display: 'flex' } },
+            { key: index, 'data-space-ui': 'showcase-group' },
             group,
           )
         ),

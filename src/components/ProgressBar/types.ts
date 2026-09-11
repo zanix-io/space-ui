@@ -24,4 +24,12 @@ export type ProgressBarProps = {
   label?: string
   id?: string
   className?: string
+  /** This component's own `height`/animation-duration styling lives in a self-rendered
+   * `<style nonce={nonce}>` element, never an inline `style` attribute — required only when the
+   * consuming page runs a nonce-based `style-src` CSP (`@zanix/space`'s own zero-config default is
+   * exactly this shape); without a matching nonce, a strict CSP blocks that `<style>` element,
+   * leaving this component at its own inert-markup default (no explicit height, no duration custom
+   * property — a real fallback, never a crash) until a matching nonce is supplied. Omit `nonce`
+   * entirely when no such CSP is in effect — nothing here changes. */
+  nonce?: string
 }

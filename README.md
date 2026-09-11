@@ -276,7 +276,7 @@ ahead of time:
 
 - ✅ **`VisuallyHidden`** — hides content visually while keeping it announced to assistive
   technology, via the same clip-and-collapse technique `shared/live-region.ts`'s own
-  `VISUALLY_HIDDEN_STYLE` already applies inline for live announcements — broader use than that one
+  `VISUALLY_HIDDEN_CSS` already applies inline for live announcements — broader use than that one
   case (an icon-only control's accessible label spelled out as real text, a skip link's
   destination). Stateless, same `render.ts` factory pattern `Icon` already establishes.
 
@@ -284,8 +284,8 @@ ahead of time:
   `role="status"` via `politeness` — both implicit live regions on their own, no explicit
   `aria-live` needed. Resolved to one component rather than two (`Alert`/`InlineNotice`), since the
   one real semantic distinction is a single prop. No severity/`variant` prop — purely visual, zero
-  ARIA backing, already achievable via `className`. Deliberately doesn't reuse
-  `VISUALLY_HIDDEN_STYLE` — this is a banner meant to be seen, not an announcement-only region.
+  ARIA backing, already achievable via `className`. Deliberately doesn't reuse `VISUALLY_HIDDEN_CSS`
+  — this is a banner meant to be seen, not an announcement-only region.
 
 - ✅ **`Pagination`** — Previous/Next plus a windowed sequence of page numbers, the current one
   marked `aria-current="page"`. Never constructs a URL itself — `getPageHref?` is the caller's own
@@ -451,7 +451,7 @@ ahead of time:
   tag-input convention. Real DOM focus never leaves the input — `aria-activedescendant` via
   `shared/roving-focus.ts`'s own `getNextRovingIndex`, exactly `Combobox`'s own model, never roving
   tabindex. A visually-hidden "N items selected" description (`shared/live-region.ts`'s own
-  `VISUALLY_HIDDEN_STYLE`) is referenced via the input's own `aria-describedby`. Controlled
+  `VISUALLY_HIDDEN_CSS`) is referenced via the input's own `aria-describedby`. Controlled
   `values`/`inputValue`/`open`, each with an uncontrolled fallback, same seam every stateful
   component here keeps. Shareable-body `render.ts` factory (`Select`/`Input`'s own shape), the one
   isolable `onChange`/`onInput` divergence handled the same narrow way `Input/render.ts` already
@@ -545,7 +545,56 @@ ahead of time:
   than a single repeated field name, so a plain `<form method="post">` submission collects every
   entry correctly.
 
-All forty ship for **both React and Preact** (see [Installation](#installation)).
+- ✅ **`PasswordInput`** — a password `Input` with a built-in, accessible show/hide visibility
+  toggle. Composes the unmodified `Input` (every prop `Input` accepts, minus `type`, which this
+  component owns internally) plus a real `Button` for the toggle — `type="button"`, so it never
+  submits an enclosing form, and never breaks native autofill or a password manager (it only ever
+  flips the real `<input>`'s own `type` attribute between `'password'`/`'text'`, the standard
+  technique both already recognize). Controlled `visible`/`onVisibleChange` with an uncontrolled
+  `defaultVisible` fallback. `showIcon`/`hideIcon` render-props override this component's own
+  default inline "eye"/"eye-off" glyphs; `getToggleLabel` overrides the default English
+  `'Show password'`/`'Hide password'` accessible name.
+- ✅ **`Countdown`** — a real-time countdown toward a wall-clock instant, distinct from `Counter` (a
+  fixed-duration count-UP reveal animation — a genuinely different contract, not reused here).
+  `target: Date | number` is an already-resolved absolute instant, never a relative "seconds from
+  now" duration — converting one into the other is the one caller-side `Date.now()` read this
+  component deliberately never does itself (the same SSR-determinism reason `DatePicker`'s own
+  "today" value resolves post-mount, not during render). Recomputes `target - Date.now()` fresh on
+  every tick — anchored to the wall clock, never a naive decrement — so it self-corrects
+  automatically across tab backgrounding/throttling. `onComplete` fires exactly once. A
+  visually-hidden `aria-live="polite"` region announces only at whole-minute boundaries (plus once
+  at zero), never once per second. `variant="numeric"` (default) or `variant="ring"` (an additional
+  SVG progress ring, `stroke-dashoffset`-based, disabling its own transition — never the value
+  update itself — under `prefers-reduced-motion`).
+- ✅ **`Avatar`** — a circular (or square, via `shape`) image avatar with an automatic initials
+  fallback (derived from a required `name`) whenever `src` is omitted or the image fails to load —
+  including a failure that already happened before hydration, caught via an
+  `HTMLImageElement.
+  decode()` probe alongside `onError` (feature-detected; `onError` alone still
+  applies wherever `decode` isn't a function). Composes the unmodified, comet-safe root-barrel
+  `Image` and reuses its own `onError` callback for the fallback, rather than a hand-rolled
+  `onerror` handler. `size` accepts a named token (`'sm'`/`'md'`/`'lg'`, resolved via the exported
+  `AVATAR_SIZE_PX` map) or an explicit pixel number, applied as real `width`/`height` — the same
+  CLS-prevention footing `Image.width`/ `Image.height` already have. The circular/square treatment
+  itself is pure, color-free geometry living in the optional `src/templates/shared/avatar.css`
+  companion (never imported by this component), the same "structural CSS in an optional file"
+  precedent `Card`'s own `card.css` already establishes.
+- ✅ **`Chip`** — a pill-shaped label: static (informational) when `onRemove` is omitted, or
+  removable (a real, keyboard-operable "×" button, `aria-label="Remove {label}"`) when it's given.
+  Composes the unmodified `Button` plus `shared/close-button-icon.ts`'s own default glyph for the
+  remove control, the same composition `MultiSelect`'s own chip already uses (not refactored to
+  share this component in this change — see the CHANGELOG for why). `tone` is a plain, OPEN
+  `data-tone` passthrough, deliberately never a closed set of specific accent names: this package
+  ships no CSS and owns no color identity, so mapping a tone to a real color stays entirely a
+  consuming app's own stylesheet's job.
+- ✅ **`EmptyState`** — a generic "nothing here yet" block: an optional decorative icon render-prop,
+  a required heading (real heading element, level configurable via `headingLevel`, default `'h3'`,
+  fitting either a standalone page-level state or one nested inside a `Card`/ section), an optional
+  description, and an optional `action` render-prop. `icon`/`action` are deliberately plain
+  render-props rather than a bundled `Button`/`Link` dependency — this leaf component stays
+  decoupled from either, the caller composes whichever fits.
+
+All forty-five ship for **both React and Preact** (see [Installation](#installation)).
 
 Also included, though not a rendering component: **`IntlProvider`/`useIntl`/`createFormatter`** —
 this package's own ICU message-formatting runtime (`formatMessage(id, values)` for plain messages,

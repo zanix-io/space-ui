@@ -472,7 +472,10 @@ Deno.test(
       })
     }
 
-    assertEquals(sheet.cssRules.length, 2)
+    // Two static rules (`TOOLTIP_POSITION_CSS` plus the shared `DISPLAY_CONTENTS_WRAPPER_CSS`,
+    // concatenated into this same `<style>` element's own content — see `render.ts`'s own doc)
+    // plus exactly one dynamic rule for this one instance.
+    assertEquals(sheet.cssRules.length, 3)
     assertEquals(tooltipRule(container, panel).style.visibility, 'hidden')
 
     unmount()

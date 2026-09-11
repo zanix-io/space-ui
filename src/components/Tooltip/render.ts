@@ -2,6 +2,8 @@ import type { CreateElement } from 'typings/renderer.ts'
 import type { ComputePositionOptions, ComputePositionResult } from 'shared/positioning.ts'
 import {
   buildOverlayCss,
+  DISPLAY_CONTENTS_WRAPPER_ATTR,
+  DISPLAY_CONTENTS_WRAPPER_CSS,
   getOrInsertDynamicRule,
   removeDynamicRule,
 } from 'shared/overlay-position-css.ts'
@@ -219,7 +221,7 @@ export function createTooltip<E, Node>(
 
     const triggerEl = h(
       'span',
-      { key: 'trigger', ref: triggerWrapperRef, style: { display: 'contents' } },
+      { key: 'trigger', ref: triggerWrapperRef, [DISPLAY_CONTENTS_WRAPPER_ATTR]: '' },
       trigger({
         'aria-describedby': tooltipId,
         onMouseEnter: handleMouseEnter,
@@ -234,7 +236,11 @@ export function createTooltip<E, Node>(
     // `visibility`/`pointerEvents` are applied to a CSSOM rule inside that SAME element instead of
     // an inline `style` attribute (see this module's own `createTooltip` doc above); the panel
     // itself carries no `style` prop at all.
-    const styleEl = h('style', { key: 'style', nonce, ref: styleElRef }, TOOLTIP_POSITION_CSS)
+    const styleEl = h(
+      'style',
+      { key: 'style', nonce, ref: styleElRef },
+      TOOLTIP_POSITION_CSS + DISPLAY_CONTENTS_WRAPPER_CSS,
+    )
     const panel = h(
       'div',
       {

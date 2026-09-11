@@ -31,6 +31,25 @@
  * `<body>`, so equal-specificity conflicts resolve in the component's favor by source order) — but it
  * is no longer the absolute guarantee inline `style` used to provide.
  */
+/** The `data-*` attribute marker every `display:contents` wrapper `<span>` in this package uses
+ * (`Combobox`/`DatePicker`/`MultiSelect`/`Popover`/`Select`/`Tooltip` each render an invisible
+ * wrapper purely so a `ref` can find the real rendered child without adding an extra box to the
+ * layout), paired with {@linkcode DISPLAY_CONTENTS_WRAPPER_CSS} below, instead of an inline
+ * `style="display:contents"` attribute — a real, confirmed CSP violation this fixes, identical in
+ * cause to the one this module's own {@linkcode buildOverlayCss} already exists for. */
+export const DISPLAY_CONTENTS_WRAPPER_ATTR = 'data-space-ui-wrapper'
+
+/**
+ * The single static CSS rule backing every `display:contents` wrapper span this package renders.
+ * `display: contents` never varies per instance — there's nothing dynamic about it — so unlike
+ * {@linkcode buildOverlayCss}'s own per-enum-value rules, this is one plain, module-level constant
+ * every affected component's own self-rendered `<style nonce={nonce}>` element includes verbatim
+ * (concatenated alongside that component's own positioning CSS where one already exists, e.g.
+ * `Tooltip`/`Popover`; rendered in its own dedicated `<style>` element where one doesn't, e.g.
+ * `Combobox`/`DatePicker`/`MultiSelect`/`Select`).
+ */
+export const DISPLAY_CONTENTS_WRAPPER_CSS = `[${DISPLAY_CONTENTS_WRAPPER_ATTR}]{display:contents}`
+
 export function buildOverlayCss(
   dataSpaceUi: string,
   base: Record<string, string | number>,

@@ -16,4 +16,13 @@ export type ShowcaseBaseProps = {
   itemsPerSlide?: ItemsPerSlide
   id?: string
   className?: string
+  /** This component's own per-slide group wrapper (`display: flex`) lives in a self-rendered
+   * `<style nonce={nonce}>` element, never an inline `style` attribute — required only when the
+   * consuming page runs a nonce-based `style-src` CSP (`@zanix/space`'s own zero-config default is
+   * exactly this shape); without a matching nonce, a strict CSP blocks that `<style>` element,
+   * leaving each group's own items stacked vertically (a real fallback, never a crash) until a
+   * matching nonce is supplied. Independent of `slider.nonce` — this component forwards nothing
+   * from `slider` to its own group styling or vice versa, so a caller running such a CSP sets both
+   * explicitly. Omit `nonce` entirely when no such CSP is in effect — nothing here changes. */
+  nonce?: string
 }

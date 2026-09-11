@@ -46,6 +46,9 @@ export type ToastHooks = {
   useMemo: <T>(fn: () => T, deps: unknown[]) => T
   useEffect: (effect: () => void | (() => void), deps: unknown[]) => void
   useState: <T>(initial: T) => [T, (value: T | ((current: T) => T)) => void]
+  /** Forwarded to the composed `ProgressBar`'s own instance-scoping need — see that component's
+   * own `nonce` doc. */
+  useId: () => string
 }
 
 /** The object `useToast` returns, generic over nothing extra beyond `ToastApi` itself —
@@ -88,7 +91,7 @@ export function createToast<E, Node>(
 } {
   const Button = createButton(h)
   const Icon = createIcon(h)
-  const ProgressBar = createProgressBar(h)
+  const ProgressBar = createProgressBar(h, { useId: hooks.useId })
   const Alert = createAlert(h)
   const DefaultCloseIcon = createDefaultCloseIcon(h)
   const hAny = h as unknown as (
@@ -98,7 +101,11 @@ export function createToast<E, Node>(
   ) => E
 
   function ToastEntryView(
-    { entry, onClose }: { entry: ToastMessage & { id: string }; onClose: () => void },
+    { entry, onClose, nonce }: {
+      entry: ToastMessage & { id: string }
+      onClose: () => void
+      nonce?: string
+    },
   ): E {
     const {
       variant = 'info',
@@ -153,7 +160,7 @@ export function createToast<E, Node>(
             )
             : null,
           timeout && shouldShowProgress
-            ? hAny(Fragment, { key: 'progress' }, ProgressBar({ timeout }))
+            ? hAny(Fragment, { key: 'progress' }, ProgressBar({ timeout, nonce }))
             : null,
         ],
       }),
@@ -211,7 +218,10 @@ export function createToast<E, Node>(
               'data-position': position,
             },
             entries.map((entry) =>
-              hAny(ToastEntryView, { key: entry.id, entry, onClose: () => closeToast(entry.id) })
+              hAny(
+                ToastEntryView,
+                { key: entry.id, entry, onClose: () => closeToast(entry.id), nonce },
+              )
             ),
           ),
         ])

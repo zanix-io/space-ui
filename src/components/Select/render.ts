@@ -3,7 +3,34 @@ import { createButton } from '../Button/render.ts'
 import { createEscapeToCloseHandler } from 'shared/escape-to-close.ts'
 import type { ComputePositionOptions, ComputePositionResult } from 'shared/positioning.ts'
 import { getNextRovingIndex } from 'shared/roving-focus.ts'
+import {
+  buildOverlayCss,
+  DISPLAY_CONTENTS_WRAPPER_ATTR,
+  DISPLAY_CONTENTS_WRAPPER_CSS,
+  getOrInsertDynamicRule,
+  removeDynamicRule,
+} from 'shared/overlay-position-css.ts'
 import type { SelectBaseProps, SelectOption } from './types.ts'
+
+/**
+ * The static, non-dynamic part of this component's own listbox positioning — same
+ * `buildOverlayCss`/nonce'd-`<style>` pattern `Popover`/`Tooltip` already establish (see
+ * `shared/overlay-position-css.ts`'s own doc for the full CSP reasoning: an inline `style`
+ * attribute — including the previous version of this file's own `position:'fixed'`/`transform`
+ * object literal on the `<ul>` — is a real, confirmed violation of a nonce-based `style-src` CSP).
+ * `visibility: hidden` is the DEFAULT here (not genuinely static — see `createSelect`'s own doc for
+ * the dynamic per-instance CSSOM rule that overrides it once a real position exists) so the listbox
+ * starts, and stays until the first client measurement, provably hidden via CSS alone.
+ */
+const SELECT_LISTBOX_POSITION_CSS: string = buildOverlayCss('select-listbox', {
+  position: 'fixed',
+  top: 0,
+  left: 0,
+  margin: 0,
+  padding: 0,
+  listStyle: 'none',
+  visibility: 'hidden',
+})
 
 /**
  * The hooks/primitives this component's shared body needs, injected alongside `h` — same shape
@@ -19,6 +46,10 @@ export type SelectHooks = {
   useState: <T>(initial: T) => [T, (value: T | ((current: T) => T)) => void]
   useMemo: <T>(fn: () => T, deps: unknown[]) => T
   useEffect: (effect: () => void | (() => void), deps: unknown[]) => void
+  /** For the dynamic-positioning CSSOM rule application — see `createSelect`'s own doc. Applied
+   * synchronously before paint, same reasoning `Popover`/`Tooltip`'s own identical injection
+   * documents (not repeated here). */
+  useLayoutEffect: (effect: () => void | (() => void), deps: unknown[]) => void
   useCloseOnOutside: (
     ref: { current: HTMLElement | null },
     active: boolean,
@@ -67,6 +98,7 @@ export function createSelect<E>(
       offset = 8,
       id,
       className,
+      nonce,
     } = props
 
     const baseId = hooks.useId()
@@ -102,6 +134,8 @@ export function createSelect<E>(
     const triggerWrapperRef = hooks.useRef<HTMLSpanElement | null>(null)
     const listboxRef = hooks.useRef<HTMLUListElement | null>(null)
     const containerRef = hooks.useRef<HTMLSpanElement | null>(null)
+    const styleElRef = hooks.useRef<HTMLStyleElement | null>(null)
+    const dynamicRuleRef = hooks.useRef<CSSStyleRule | null>(null)
 
     // A stable object whose `.current` is always the LIVE trigger element — the same technique
     // `Popover`'s own `referenceRef` already establishes, needed because `Button` can't take a
@@ -114,6 +148,34 @@ export function createSelect<E>(
     const getTriggerElement = () => triggerWrapperRef.current?.querySelector<HTMLElement>('button')
 
     const position = hooks.usePosition(referenceRef, listboxRef, open, { placement, offset })
+
+    // The dynamic-positioning CSSOM rule — see `SELECT_LISTBOX_POSITION_CSS`'s own doc and
+    // `shared/overlay-position-css.ts`'s for the full mechanism. Scoped to THIS instance via
+    // `listboxId` (stable for the component's lifetime) — without that, two `Select`s open at once
+    // would both target the same bare `[data-space-ui='select-listbox']` selector and silently
+    // share one position. Keyed on `open` itself, same reasoning `Popover`'s own identical effect
+    // documents: this component's own `<style>` element unmounts every time `open` becomes `false`.
+    const dynamicSelector = `[data-space-ui='select-listbox'][data-select-id='${listboxId}']`
+    hooks.useLayoutEffect(() => {
+      if (!open) return
+      const styleEl = styleElRef.current
+      if (!styleEl) return
+      getOrInsertDynamicRule(styleEl, dynamicRuleRef, dynamicSelector)
+      return () => removeDynamicRule(styleEl, dynamicRuleRef)
+    }, [open])
+
+    // Applies the CSSOM rule's own `transform`/`visibility` on every position update —
+    // `useLayoutEffect`, not `useEffect`, so this runs synchronously before the browser paints,
+    // same reasoning `Popover`'s own identical effect documents.
+    hooks.useLayoutEffect(() => {
+      const rule = dynamicRuleRef.current
+      if (!rule) return
+      rule.style.setProperty(
+        'transform',
+        position ? `translate(${position.x}px, ${position.y}px)` : '',
+      )
+      rule.style.setProperty('visibility', position ? 'visible' : 'hidden')
+    }, [position])
 
     hooks.useCloseOnOutside(containerRef, open, () => setOpen(false))
 
@@ -176,7 +238,7 @@ export function createSelect<E>(
 
     const trigger = h(
       'span',
-      { key: 'trigger', ref: triggerWrapperRef, style: { display: 'contents' } },
+      { key: 'trigger', ref: triggerWrapperRef, [DISPLAY_CONTENTS_WRAPPER_ATTR]: '' },
       Button({
         id,
         className,
@@ -187,6 +249,14 @@ export function createSelect<E>(
         children: selectedIndex !== -1 && activeOption ? activeOption.label : (placeholder ?? ''),
       }),
     )
+
+    // Static, non-dynamic `position: fixed; top: 0; left: 0; ...` lives in a self-rendered
+    // `<style>` element (see `SELECT_LISTBOX_POSITION_CSS`'s own doc) — the genuinely dynamic
+    // `transform`/`visibility` are applied to a CSSOM rule inside that SAME element instead of an
+    // inline `style` attribute; the listbox itself carries no `style` prop at all.
+    const styleEl = open
+      ? h('style', { key: 'style', nonce, ref: styleElRef }, SELECT_LISTBOX_POSITION_CSS)
+      : null
 
     const listbox = open
       ? h(
@@ -199,17 +269,8 @@ export function createSelect<E>(
           tabIndex: -1,
           'aria-activedescendant': activeOptionId,
           'data-space-ui': 'select-listbox',
+          'data-select-id': listboxId,
           onBlur: () => setOpen(false),
-          style: {
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            margin: 0,
-            padding: 0,
-            listStyle: 'none',
-            transform: position ? `translate(${position.x}px, ${position.y}px)` : undefined,
-            visibility: position ? 'visible' : 'hidden',
-          },
         },
         options.map((option) =>
           h('li', {
@@ -230,10 +291,15 @@ export function createSelect<E>(
       )
       : null
 
+    // Unconditional (unlike `styleEl` above, which unmounts with the listbox) — `trigger`/the
+    // returned container span below render regardless of `open`, so the CSS backing their own
+    // `display:contents` marker must always be present too.
+    const wrapperStyleEl = h('style', { key: 'wrapper-style', nonce }, DISPLAY_CONTENTS_WRAPPER_CSS)
+
     return h(
       'span',
-      { ref: containerRef, style: { display: 'contents' }, onKeyDown: handleKeyDown },
-      [trigger, listbox],
+      { ref: containerRef, [DISPLAY_CONTENTS_WRAPPER_ATTR]: '', onKeyDown: handleKeyDown },
+      [trigger, wrapperStyleEl, styleEl, listbox],
     )
   }
 }

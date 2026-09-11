@@ -1,4 +1,4 @@
-import { dispatchWindowEvent, getDynamicRule, must } from './dom-test-setup.ts'
+import { dispatchWindowEvent, findPositionStyleEl, getDynamicRule, must } from './dom-test-setup.ts'
 import { act } from 'react'
 import { createRoot } from 'react-dom/client'
 import { renderToStaticMarkup } from 'react-dom/server'
@@ -121,7 +121,7 @@ Deno.test('Popover: the panel is positioned via the trigger reference rect', () 
   // doc).
   assertEquals(panel.getAttribute('style'), null)
 
-  const styleEl = must(container.querySelector('style'))
+  const styleEl = must(findPositionStyleEl(container))
   assertStringIncludes(styleEl.textContent ?? '', "[data-space-ui='popover']{position:fixed")
 
   const rule = popoverRule(container, panel)
@@ -384,7 +384,7 @@ Deno.test('Popover: repeated open/close cycles never accumulate duplicate dynami
 
   for (let i = 0; i < 3; i++) {
     act(() => trigger.click()) // open
-    const styleEl = must(container.querySelector<HTMLStyleElement>('style'))
+    const styleEl = must(findPositionStyleEl(container))
     const sheet = must(styleEl.sheet)
     // One static rule (`POPOVER_POSITION_CSS`) plus exactly one dynamic rule for this one
     // instance — never more, regardless of how many times it opened and closed.
@@ -393,7 +393,10 @@ Deno.test('Popover: repeated open/close cycles never accumulate duplicate dynami
   }
 
   assertEquals(container.querySelector('[data-space-ui="popover"]'), null)
-  assertEquals(container.querySelector('style'), null)
+  // The positioning `<style>` unmounts with the panel — the wrapper's own `<style>` (backing the
+  // trigger's/container's always-mounted `display:contents` markers) stays mounted regardless, so
+  // this checks specifically for the positioning one rather than "no `<style>` at all."
+  assertEquals(findPositionStyleEl(container), null)
 
   unmount()
 })

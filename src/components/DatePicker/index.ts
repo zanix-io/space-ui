@@ -1,6 +1,7 @@
-import { createElement, Fragment, useEffect, useMemo, useRef, useState } from 'react'
+import { Fragment, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import type { ReactElement } from 'react'
 import type { CreateElement } from 'typings/renderer.ts'
+import { createElementWithNonceHydrationFix } from 'shared/create-element-nonce-hydration-fix.ts'
 import { useCloseOnOutside } from 'shared/close-on-outside.ts'
 import { usePosition } from 'shared/use-position.ts'
 import { createDatePicker } from './render.ts'
@@ -161,7 +162,7 @@ export type DatePickerProps = DatePickerBaseProps
  * no icon markup at all).
  */
 export const DatePicker: (props: DatePickerProps) => ReactElement = createDatePicker<ReactElement>(
-  createElement as unknown as CreateElement<ReactElement>,
-  { useRef, useState, useMemo, useEffect, useCloseOnOutside, usePosition },
+  createElementWithNonceHydrationFix as unknown as CreateElement<ReactElement>,
+  { useRef, useState, useMemo, useEffect, useLayoutEffect, useCloseOnOutside, usePosition },
   Fragment,
 )

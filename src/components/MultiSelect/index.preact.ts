@@ -1,6 +1,6 @@
 import { h } from 'preact'
 import type { VNode } from 'preact'
-import { useId, useRef, useState } from 'preact/hooks'
+import { useId, useLayoutEffect, useRef, useState } from 'preact/hooks'
 import type { CreateElement } from 'typings/renderer.ts'
 import { useCloseOnOutside } from 'shared/close-on-outside.preact.ts'
 import { usePosition } from 'shared/use-position.preact.ts'
@@ -27,6 +27,6 @@ export type MultiSelectProps = MultiSelectBaseProps
  */
 export const MultiSelect: (props: MultiSelectProps) => VNode = createMultiSelect<VNode>(
   h as unknown as CreateElement<VNode>,
-  { useId, useRef, useState, useCloseOnOutside, usePosition },
+  { useId, useRef, useState, useLayoutEffect, useCloseOnOutside, usePosition },
   'onInput',
 )

@@ -1,5 +1,6 @@
 import { h } from 'preact'
 import type { VNode } from 'preact'
+import { useId } from 'preact/hooks'
 import type { CreateElement } from 'typings/renderer.ts'
 import { createProgressBar } from './render.ts'
 import type { ProgressBarProps } from './types.ts'
@@ -12,4 +13,5 @@ import type { ProgressBarProps } from './types.ts'
 // Same overload-set mismatch as `Icon/index.preact.ts`'s own cast, same reasoning.
 export const ProgressBar: (props: ProgressBarProps) => VNode = createProgressBar(
   h as unknown as CreateElement<VNode>,
+  { useId },
 )

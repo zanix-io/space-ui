@@ -30,13 +30,16 @@ export type SocialLinksInputProps = SocialLinksInputBaseProps & {
  *
  * ## Network auto-detection
  *
- * `detectSocialNetwork` (see that module's own doc for the exact hostname table) recomputes
- * `entry.network` on every keystroke in that row's own URL field — a pure, synchronous hostname
- * parse, cheap enough to need no debounce or blur-only recomputation. Recognizes Instagram, X
- * (`x.com`/`twitter.com`), Facebook (`facebook.com`/`fb.com`), LinkedIn, TikTok, YouTube
- * (`youtube.com`/`youtu.be`), WhatsApp (`wa.me`/`whatsapp.com`), and Telegram
- * (`t.me`/`telegram.me`) by hostname; anything else that still parses as a URL is `'website'`; an
- * empty or unparseable value is `null`.
+ * `detectSocialNetwork` (see that module's own doc for the exact hostname table) — a pure,
+ * synchronous hostname parse, cheap enough to need no debounce or blur-only recomputation —
+ * recomputes `entry.network` on every keystroke in that row's own URL field, AND on every render of
+ * an entry supplied via `defaultValues`/`values`: a caller's own copy of `network` is never trusted,
+ * so seeding entries from already-known URLs (e.g. loaded from a saved profile) needs no detection
+ * pass of the caller's own — `network: null` on every seeded entry is enough, this component fills
+ * it in before first paint. Recognizes Instagram, X (`x.com`/`twitter.com`), Facebook
+ * (`facebook.com`/`fb.com`), LinkedIn, TikTok, YouTube (`youtube.com`/`youtu.be`), WhatsApp
+ * (`wa.me`/`whatsapp.com`), and Telegram (`t.me`/`telegram.me`) by hostname; anything else that
+ * still parses as a URL is `'website'`; an empty or unparseable value is `null`.
  *
  * ## Icon rendering — a render-prop, not a bundled catalog
  *

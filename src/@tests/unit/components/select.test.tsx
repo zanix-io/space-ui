@@ -1,4 +1,4 @@
-import { dispatchWindowEvent, must } from './dom-test-setup.ts'
+import { dispatchWindowEvent, getDynamicRule, must } from './dom-test-setup.ts'
 import { act } from 'react'
 import { createRoot } from 'react-dom/client'
 import { renderToStaticMarkup } from 'react-dom/server'
@@ -429,8 +429,13 @@ Deno.test('Select: the listbox is positioned via the trigger reference rect', ()
 
   act(() => dispatchWindowEvent(new Event('resize')))
 
-  assertEquals(listbox.style.position, 'fixed')
-  assertStringIncludes(listbox.style.transform, 'translate(')
+  // No inline `style` attribute at all — `position`/`top`/`left` live in the static `<style>`
+  // rule (a real CSP fix), and the genuinely dynamic `transform`/`visibility` are applied to a
+  // CSSOM rule inside that SAME element instead (see `SELECT_LISTBOX_POSITION_CSS`'s and
+  // `createSelect`'s own doc).
+  assertEquals(listbox.getAttribute('style'), null)
+  const rule = getDynamicRule(container, listbox, 'data-select-id')
+  assertStringIncludes(rule.style.transform, 'translate(')
 
   unmount()
 })

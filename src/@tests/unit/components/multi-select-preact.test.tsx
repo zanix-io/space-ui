@@ -1,4 +1,4 @@
-import { dispatchWindowEvent, must } from './dom-test-setup.ts'
+import { dispatchWindowEvent, getDynamicRule, must } from './dom-test-setup.ts'
 import { h, render as renderDOM } from 'preact'
 import type { VNode } from 'preact'
 import { act } from 'preact/test-utils'
@@ -451,8 +451,19 @@ Deno.test('MultiSelect (preact): the listbox is positioned via the input referen
 
   act(() => dispatchWindowEvent(new Event('resize')))
 
-  assertEquals(listbox.style.position, 'fixed')
-  assertStringIncludes(listbox.style.transform, 'translate(')
+  // No inline `style` attribute at all — `position`/`top`/`left` live in the static `<style>`
+  // rule (a real CSP fix), and the genuinely dynamic `transform`/`visibility` are applied to a
+  // CSSOM rule inside that SAME element instead (see `MULTI_SELECT_LISTBOX_POSITION_CSS`'s and
+  // `createMultiSelect`'s own doc).
+  assertEquals(listbox.getAttribute('style'), null)
+  const rule = getDynamicRule(container, listbox, 'data-multi-select-id')
+  assertStringIncludes(rule.style.transform, 'translate(')
 
   unmount()
+})
+
+Deno.test('MultiSelect (preact): nonce lands on the always-rendered wrapper <style> element', () => {
+  const html = renderToString(h(MultiSelect, { nonce: 'abc123', options: [] }))
+
+  assertStringIncludes(html, '<style nonce="abc123">')
 })

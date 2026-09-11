@@ -3,6 +3,8 @@ import { createEscapeToCloseHandler } from 'shared/escape-to-close.ts'
 import type { ComputePositionOptions, ComputePositionResult } from 'shared/positioning.ts'
 import {
   buildOverlayCss,
+  DISPLAY_CONTENTS_WRAPPER_ATTR,
+  DISPLAY_CONTENTS_WRAPPER_CSS,
   getOrInsertDynamicRule,
   removeDynamicRule,
 } from 'shared/overlay-position-css.ts'
@@ -178,13 +180,19 @@ export function createPopover<E, Node>(
 
     const triggerEl = h(
       'span',
-      { key: 'trigger', ref: triggerWrapperRef, style: { display: 'contents' } },
+      { key: 'trigger', ref: triggerWrapperRef, [DISPLAY_CONTENTS_WRAPPER_ATTR]: '' },
       trigger({
         'aria-expanded': open,
         'aria-controls': contentId,
         onClick: () => setOpen(!open),
       }),
     )
+
+    // Unconditional (unlike `styleEl` below, which unmounts with the panel) — the trigger/
+    // container wrapper spans above/below render regardless of `open`, so the CSS backing their
+    // own `display:contents` marker must always be present too. See
+    // `DISPLAY_CONTENTS_WRAPPER_CSS`'s own doc.
+    const wrapperStyleEl = h('style', { key: 'wrapper-style', nonce }, DISPLAY_CONTENTS_WRAPPER_CSS)
 
     // The panel mounts as soon as `open` is true — its own DOM node has to exist for `panelRef` to
     // attach at all, which is what `usePosition` needs to measure it in the first place (measuring
@@ -218,8 +226,9 @@ export function createPopover<E, Node>(
       )
       : null
 
-    return h('span', { ref: containerRef, style: { display: 'contents' } }, [
+    return h('span', { ref: containerRef, [DISPLAY_CONTENTS_WRAPPER_ATTR]: '' }, [
       triggerEl,
+      wrapperStyleEl,
       styleEl,
       panel,
     ])

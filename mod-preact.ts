@@ -359,6 +359,8 @@ export type {
   /** See `components/SocialLinksInput/types.ts`'s own `SocialNetworkName` for the full doc. */
   SocialNetworkName,
 } from 'components/SocialLinksInput/types.ts'
+// See the default entrypoint's own comment on this same export for why it's public.
+export { detectSocialNetwork } from 'components/SocialLinksInput/detect-social-network.ts'
 
 // See the default entrypoint's own comment on `StructuredData` for why this subpath, and the
 // Preact `VNode` return type every binding here has, are accepted slow-types exceptions.
@@ -456,6 +458,33 @@ export type {
   MenuItemFields,
 } from 'components/Menu/types.ts'
 
+// See `mod.ts`'s own comments on `PasswordInput`/`Countdown`/`Avatar`/`Chip`/`EmptyState` — same
+// reasoning, Preact bindings.
+export { PasswordInput } from 'components/PasswordInput/index.preact.ts'
+export type { PasswordInputProps } from 'components/PasswordInput/index.preact.ts'
+export type { PasswordInputBaseProps } from 'components/PasswordInput/types.ts'
+
+export { Countdown } from 'components/Countdown/index.preact.ts'
+export type { CountdownProps } from 'components/Countdown/index.preact.ts'
+export type { CountdownBaseProps, CountdownVariant } from 'components/Countdown/types.ts'
+
+export { Avatar } from 'components/Avatar/index.preact.ts'
+export type { AvatarProps } from 'components/Avatar/index.preact.ts'
+export type { AvatarBaseProps, AvatarShape, AvatarSize } from 'components/Avatar/types.ts'
+export { AVATAR_SIZE_PX } from 'components/Avatar/types.ts'
+
+export { Chip } from 'components/Chip/index.preact.ts'
+export type { ChipProps } from 'components/Chip/index.preact.ts'
+export type { ChipBaseProps } from 'components/Chip/types.ts'
+
+export { EmptyState } from 'components/EmptyState/index.preact.ts'
+export type { EmptyStateProps } from 'components/EmptyState/index.preact.ts'
+export type {
+  EmptyStateBaseProps,
+  EmptyStateHeadingLevel,
+  EmptyStateRootType,
+} from 'components/EmptyState/types.ts'
+
 // --- Shared primitives ---------------------------------------------------------------------
 // See the default entrypoint's own comment on this section — same reasoning, Preact bindings for
 // the two that are hooks (`useCloseOnOutside`, `useFocusScope`); the rest are renderer-agnostic and
@@ -478,8 +507,8 @@ export type { FocusScopeOptions, TabKeyEvent } from 'shared/focus-scope.preact.t
 export {
   /** See `shared/live-region.ts`'s own `liveRegionProps` for the full doc. */
   liveRegionProps,
-  /** See `shared/live-region.ts`'s own `VISUALLY_HIDDEN_STYLE` for the full doc. */
-  VISUALLY_HIDDEN_STYLE,
+  /** See `shared/live-region.ts`'s own `VISUALLY_HIDDEN_CSS` for the full doc. */
+  VISUALLY_HIDDEN_CSS,
 } from 'shared/live-region.ts'
 export type {
   /** See `shared/live-region.ts`'s own `LiveRegionPoliteness` for the full doc. */

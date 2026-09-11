@@ -10,7 +10,11 @@ export type SocialLinkEntry = {
   id: string
   url: string
   /** Auto-detected from `url`'s own hostname (see `detectSocialNetwork`'s own doc for the exact
-   * rules) — recomputed on every `url` change. `null` only for an empty or unparseable `url`. */
+   * rules) — never trusted from the caller, always re-derived by `SocialLinksInput` itself: on
+   * every `url` edit, AND on every render of an entry supplied via `defaultValues`/`values`, so a
+   * caller seeding entries from already-known URLs (e.g. loaded from a saved profile) never needs
+   * to run detection itself first — whatever this field holds going in is overwritten. `null` only
+   * for an empty or unparseable `url`. */
   network: SocialNetworkName | null
 }
 

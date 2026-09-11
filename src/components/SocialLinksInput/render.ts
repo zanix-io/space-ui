@@ -28,6 +28,18 @@ export type SocialLinksInputRenderProps<Node> = SocialLinksInputBaseProps & {
   renderIcon?: (entry: SocialLinkEntry) => Node | null
 }
 
+/** Re-derives every entry's own `network` from its `url` — `detectSocialNetwork` is the single
+ * source of truth for that field, never the caller's own copy of it. Without this, an entry
+ * supplied via `defaultValues`/`values` with a stale or `null` `network` (e.g. loaded from a saved
+ * profile, where the caller reasonably has no reason to run detection itself before first render)
+ * would render with no icon until the user next edits that row's own URL — `handleUrlChange` below
+ * is the only other place `network` gets computed, and it only ever fires on a row already on
+ * screen. Applied both to the initial `defaultValues` seed and to every render of a controlled
+ * `values`, so `network` stays correct regardless of how or when the caller's own array changes. */
+function normalizeNetworks(entries: SocialLinkEntry[]): SocialLinkEntry[] {
+  return entries.map((entry) => ({ ...entry, network: detectSocialNetwork(entry.url) }))
+}
+
 function plusIcon<E>(h: CreateElement<E>): E {
   return h(
     'svg',
@@ -103,8 +115,8 @@ export function createSocialLinksInput<E>(
     } = props
 
     const isControlled = controlledValues !== undefined
-    const [internalValues, setInternalValues] = hooks.useState(defaultValues)
-    const values = isControlled ? controlledValues : internalValues
+    const [internalValues, setInternalValues] = hooks.useState(normalizeNetworks(defaultValues))
+    const values = isControlled ? normalizeNetworks(controlledValues) : internalValues
 
     const pendingFocusIdRef = hooks.useRef<string | null>(null)
 

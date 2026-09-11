@@ -1,6 +1,7 @@
-import { createElement, useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { ReactElement, ReactNode } from 'react'
 import type { CreateElement } from 'typings/renderer.ts'
+import { createElementWithNonceHydrationFix } from 'shared/create-element-nonce-hydration-fix.ts'
 import { createSlider } from './render.ts'
 import type { SliderBaseProps } from './types.ts'
 
@@ -137,6 +138,6 @@ export type SliderProps = SliderBaseProps & { children: ReactNode }
  * accessible name, styleable entirely through `className`/`data-space-ui`.
  */
 export const Slider: (props: SliderProps) => ReactElement = createSlider<ReactElement, ReactNode>(
-  createElement as unknown as CreateElement<ReactElement>,
+  createElementWithNonceHydrationFix as unknown as CreateElement<ReactElement>,
   { useEffect, useRef, useState },
 )

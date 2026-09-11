@@ -3,8 +3,32 @@ import { createButton } from '../Button/render.ts'
 import { createDefaultCloseIcon } from 'shared/close-button-icon.ts'
 import type { ComputePositionOptions, ComputePositionResult } from 'shared/positioning.ts'
 import { getNextRovingIndex } from 'shared/roving-focus.ts'
-import { VISUALLY_HIDDEN_STYLE } from 'shared/live-region.ts'
+import { VISUALLY_HIDDEN_ATTR, VISUALLY_HIDDEN_CSS } from 'shared/live-region.ts'
+import {
+  buildOverlayCss,
+  DISPLAY_CONTENTS_WRAPPER_ATTR,
+  DISPLAY_CONTENTS_WRAPPER_CSS,
+  getOrInsertDynamicRule,
+  removeDynamicRule,
+} from 'shared/overlay-position-css.ts'
 import type { MultiSelectBaseProps, MultiSelectOption } from './types.ts'
+
+/**
+ * The static, non-dynamic part of this component's own listbox positioning — same
+ * `buildOverlayCss`/nonce'd-`<style>` pattern `Select/render.ts`'s own `SELECT_LISTBOX_POSITION_CSS`
+ * already establishes (see that file's own doc, and `shared/overlay-position-css.ts`'s, for the
+ * full CSP reasoning — the previous version of this file's own `position:'fixed'`/`transform`
+ * object literal on the `<ul>` was a real, confirmed violation of a nonce-based `style-src` CSP).
+ */
+const MULTI_SELECT_LISTBOX_POSITION_CSS: string = buildOverlayCss('multi-select-listbox', {
+  position: 'fixed',
+  top: 0,
+  left: 0,
+  margin: 0,
+  padding: 0,
+  listStyle: 'none',
+  visibility: 'hidden',
+})
 
 /**
  * The hooks/primitives this component's shared body needs, injected alongside `h` — same shape
@@ -15,6 +39,9 @@ export type MultiSelectHooks = {
   useId: () => string
   useRef: <T>(initial: T) => { current: T }
   useState: <T>(initial: T) => [T, (value: T | ((current: T) => T)) => void]
+  /** For the dynamic-positioning CSSOM rule application — see `createMultiSelect`'s own doc and
+   * `Select/render.ts`'s own identical injection (not repeated here). */
+  useLayoutEffect: (effect: () => void | (() => void), deps: unknown[]) => void
   useCloseOnOutside: (
     ref: { current: HTMLElement | null },
     active: boolean,
@@ -105,6 +132,7 @@ export function createMultiSelect<E>(
       'aria-label': ariaLabel,
       'aria-labelledby': ariaLabelledBy,
       getSelectionDescription = (count) => `${count} item${count === 1 ? '' : 's'} selected`,
+      nonce,
     } = props
 
     const baseId = hooks.useId()
@@ -187,6 +215,8 @@ export function createMultiSelect<E>(
     const inputRef = hooks.useRef<HTMLInputElement | null>(null)
     const listboxRef = hooks.useRef<HTMLUListElement | null>(null)
     const containerRef = hooks.useRef<HTMLSpanElement | null>(null)
+    const styleElRef = hooks.useRef<HTMLStyleElement | null>(null)
+    const dynamicRuleRef = hooks.useRef<CSSStyleRule | null>(null)
 
     const position = hooks.usePosition(inputRef, listboxRef, open, { placement, offset })
 
@@ -272,6 +302,34 @@ export function createMultiSelect<E>(
     // render at all once nothing real is left to offer, rather than mounting an empty `<ul>`.
     const listboxVisible = open && !atMax && availableOptions.length > 0
 
+    // The dynamic-positioning CSSOM rule — see `MULTI_SELECT_LISTBOX_POSITION_CSS`'s own doc and
+    // `Select/render.ts`'s own identical effect (not repeated here). Scoped to THIS instance via
+    // `listboxId` (stable for the component's lifetime), same reasoning `Select`'s own
+    // `dynamicSelector` documents. Keyed on `listboxVisible` since this component's own `<style>`
+    // element unmounts whenever the listbox itself does.
+    const dynamicSelector =
+      `[data-space-ui='multi-select-listbox'][data-multi-select-id='${listboxId}']`
+    hooks.useLayoutEffect(() => {
+      if (!listboxVisible) return
+      const styleEl = styleElRef.current
+      if (!styleEl) return
+      getOrInsertDynamicRule(styleEl, dynamicRuleRef, dynamicSelector)
+      return () => removeDynamicRule(styleEl, dynamicRuleRef)
+    }, [listboxVisible])
+
+    // Applies the CSSOM rule's own `transform`/`visibility` on every position update —
+    // `useLayoutEffect`, not `useEffect`, so this runs synchronously before the browser paints,
+    // same reasoning `Select`'s own identical effect documents.
+    hooks.useLayoutEffect(() => {
+      const rule = dynamicRuleRef.current
+      if (!rule) return
+      rule.style.setProperty(
+        'transform',
+        position ? `translate(${position.x}px, ${position.y}px)` : '',
+      )
+      rule.style.setProperty('visibility', position ? 'visible' : 'hidden')
+    }, [position])
+
     const describedBy = [ariaDescribedBy, descriptionId].filter(Boolean).join(' ')
 
     const chips = values.map((value, index) => {
@@ -305,14 +363,16 @@ export function createMultiSelect<E>(
 
     // A visually-hidden running count, referenced via the input's own `aria-describedby` — the
     // "reasonable addition" `index.ts`'s own doc names, reusing `shared/live-region.ts`'s own
-    // `VISUALLY_HIDDEN_STYLE` (plain hidden-but-announced styling, not an `aria-live` region — this
-    // is a static description, not a transient announcement, so `liveRegionProps` itself doesn't
-    // apply here). Text comes from `getSelectionDescription` — this component has no i18n
-    // mechanism of its own, so a localized consumer overrides it rather than patching a fixed
-    // English string.
+    // `VISUALLY_HIDDEN_ATTR`/`VISUALLY_HIDDEN_CSS` pair (plain hidden-but-announced styling, not an
+    // `aria-live` region — this is a static description, not a transient announcement, so
+    // `liveRegionProps` itself doesn't apply here) — applied via `wrapperStyleEl` below (a nonce'd
+    // `<style>` element), never an inline `style` attribute (a real, confirmed CSP violation under a
+    // nonce-based `style-src` this fixes). Text comes from `getSelectionDescription` — this
+    // component has no i18n mechanism of its own, so a localized consumer overrides it rather than
+    // patching a fixed English string.
     const description = h(
       'span',
-      { key: 'description', id: descriptionId, style: VISUALLY_HIDDEN_STYLE },
+      { key: 'description', id: descriptionId, [VISUALLY_HIDDEN_ATTR]: '' },
       getSelectionDescription(values.length),
     )
 
@@ -341,6 +401,14 @@ export function createMultiSelect<E>(
       onKeyDown: handleKeyDown,
     })
 
+    // Static, non-dynamic `position: fixed; top: 0; left: 0; ...` lives in a self-rendered
+    // `<style>` element (see `MULTI_SELECT_LISTBOX_POSITION_CSS`'s own doc) — the genuinely dynamic
+    // `transform`/`visibility` are applied to a CSSOM rule inside that SAME element instead of an
+    // inline `style` attribute; the listbox itself carries no `style` prop at all.
+    const styleEl = listboxVisible
+      ? h('style', { key: 'style', nonce, ref: styleElRef }, MULTI_SELECT_LISTBOX_POSITION_CSS)
+      : null
+
     const listbox = listboxVisible
       ? h(
         'ul',
@@ -350,16 +418,7 @@ export function createMultiSelect<E>(
           ref: listboxRef,
           role: 'listbox',
           'data-space-ui': 'multi-select-listbox',
-          style: {
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            margin: 0,
-            padding: 0,
-            listStyle: 'none',
-            transform: position ? `translate(${position.x}px, ${position.y}px)` : undefined,
-            visibility: position ? 'visible' : 'hidden',
-          },
+          'data-multi-select-id': listboxId,
         },
         availableOptions.map((option, index) =>
           h('li', {
@@ -377,10 +436,22 @@ export function createMultiSelect<E>(
       )
       : null
 
-    return h('span', { ref: containerRef, style: { display: 'contents' } }, [
+    // Unconditional (unlike `styleEl` above, which unmounts with the listbox) — the returned
+    // container span below renders regardless of `listboxVisible`, so the CSS backing its own
+    // `display:contents` marker must always be present too — alongside `VISUALLY_HIDDEN_CSS`,
+    // backing `description`'s own always-rendered marker for the identical reason.
+    const wrapperStyleEl = h(
+      'style',
+      { key: 'wrapper-style', nonce },
+      DISPLAY_CONTENTS_WRAPPER_CSS + VISUALLY_HIDDEN_CSS,
+    )
+
+    return h('span', { ref: containerRef, [DISPLAY_CONTENTS_WRAPPER_ATTR]: '' }, [
       chipsWrapper,
       description,
       input,
+      wrapperStyleEl,
+      styleEl,
       listbox,
     ])
   }

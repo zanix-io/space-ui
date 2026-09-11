@@ -503,9 +503,11 @@ Deno.test('Tooltip: the dynamic rule is inserted once, not duplicated on repeate
     act(() => trigger.dispatchEvent(new MouseEvent('mouseout', { bubbles: true })))
   }
 
-  // One static rule (`TOOLTIP_POSITION_CSS`) plus exactly one dynamic rule for this one instance —
-  // never more, regardless of how many times it opened and closed.
-  assertEquals(sheet.cssRules.length, 2)
+  // Two static rules (`TOOLTIP_POSITION_CSS` plus the shared `DISPLAY_CONTENTS_WRAPPER_CSS`,
+  // concatenated into this same `<style>` element's own content — see `render.ts`'s own doc) plus
+  // exactly one dynamic rule for this one instance — never more, regardless of how many times it
+  // opened and closed.
+  assertEquals(sheet.cssRules.length, 3)
   assertEquals(tooltipRule(container, panel).style.visibility, 'hidden')
 
   unmount()

@@ -202,3 +202,17 @@ Deno.test('SocialLinksInput (preact): renderIcon renders inside an aria-hidden w
   assertStringIncludes(html, 'data-testid="icon"')
   assertStringIncludes(html, 'instagram')
 })
+
+Deno.test('SocialLinksInput (preact): a defaultValues entry seeded with network: null still detects on first render, before any edit', () => {
+  // `seedEntry` always seeds `network: null`, the same shape a caller loading known URLs (e.g. a
+  // saved profile) reasonably supplies with no detection pass of its own. Asserts the exact icon
+  // span content, not merely that "instagram" appears somewhere in the markup — the URL's own
+  // `value="..."` attribute contains that substring regardless of what `entry.network` resolves to.
+  const html = renderToString(
+    element({
+      defaultValues: [seedEntry('https://instagram.com/zanix')],
+      renderIcon: (entry) => h('span', { 'data-testid': 'icon' }, entry.network ?? 'generic'),
+    }),
+  )
+  assertStringIncludes(html, '<span data-testid="icon">instagram</span>')
+})

@@ -4,6 +4,13 @@ import { createIcon } from '../Icon/render.ts'
 import { createEscapeToCloseHandler } from 'shared/escape-to-close.ts'
 import type { ComputePositionOptions, ComputePositionResult } from 'shared/positioning.ts'
 import { deriveStableCometId } from 'shared/stable-comet-id.ts'
+import {
+  buildOverlayCss,
+  DISPLAY_CONTENTS_WRAPPER_ATTR,
+  DISPLAY_CONTENTS_WRAPPER_CSS,
+  getOrInsertDynamicRule,
+  removeDynamicRule,
+} from 'shared/overlay-position-css.ts'
 import type { CalendarDate } from './date-utils.ts'
 import {
   addDays,
@@ -44,6 +51,23 @@ type DatePickerKeyEvent = {
 type DatePickerView = 'days' | 'months' | 'years'
 
 /**
+ * The static, non-dynamic part of this component's own panel positioning — same
+ * `buildOverlayCss`/nonce'd-`<style>` pattern `Select/render.ts`'s own `SELECT_LISTBOX_POSITION_CSS`
+ * already establishes (see that file's own doc, and `shared/overlay-position-css.ts`'s, for the
+ * full CSP reasoning — the previous version of this file's own `position:'fixed'`/`transform`
+ * object literal on the panel `<div>` was a real, confirmed violation of a nonce-based `style-src`
+ * CSP).
+ */
+const DATE_PICKER_PANEL_POSITION_CSS: string = buildOverlayCss('date-picker-panel', {
+  position: 'fixed',
+  top: 0,
+  left: 0,
+  margin: 0,
+  padding: 0,
+  visibility: 'hidden',
+})
+
+/**
  * The hooks/primitives this component's shared body needs, injected alongside `h` — same shape
  * `Select/render.ts`'s own `SelectHooks` establishes (see that file's own doc for the full
  * soundness reasoning, not repeated here). No `useId` — see `index.ts`'s own doc, "Ids: derived
@@ -57,6 +81,9 @@ export type DatePickerHooks = {
   useState: <T>(initial: T) => [T, (value: T | ((current: T) => T)) => void]
   useMemo: <T>(fn: () => T, deps: unknown[]) => T
   useEffect: (effect: () => void | (() => void), deps: unknown[]) => void
+  /** For the dynamic-positioning CSSOM rule application — see `createDatePicker`'s own doc and
+   * `Select/render.ts`'s own identical injection (not repeated here). */
+  useLayoutEffect: (effect: () => void | (() => void), deps: unknown[]) => void
   useCloseOnOutside: (
     ref: { current: HTMLElement | null },
     active: boolean,
@@ -120,6 +147,7 @@ export function createDatePicker<E>(
       locale = 'en',
       id,
       className,
+      nonce,
     } = props
 
     // Derived purely from already-identical-both-sides props (never render order/a counter/
@@ -196,6 +224,8 @@ export function createDatePicker<E>(
     // individually Tab-reachable, like `Accordion`'s own headers — see `index.ts`'s own doc for
     // why they're deliberately NOT roving-tabindex).
     const focusTargetRef = hooks.useRef<HTMLElement | null>(null)
+    const styleElRef = hooks.useRef<HTMLStyleElement | null>(null)
+    const dynamicRuleRef = hooks.useRef<CSSStyleRule | null>(null)
 
     // Same technique `Select/render.ts`'s own `referenceRef` already establishes: `Button` can't
     // take a `ref` directly, so this is a stable object whose `.current` is always the LIVE
@@ -208,6 +238,33 @@ export function createDatePicker<E>(
     const getTriggerElement = () => triggerWrapperRef.current?.querySelector<HTMLElement>('button')
 
     const position = hooks.usePosition(referenceRef, panelRef, open, { placement, offset })
+
+    // The dynamic-positioning CSSOM rule — see `DATE_PICKER_PANEL_POSITION_CSS`'s own doc and
+    // `Select/render.ts`'s own identical effect (not repeated here). Scoped to THIS instance via
+    // `panelId` (stable for the component's lifetime), same reasoning `Select`'s own
+    // `dynamicSelector` documents. Keyed on `open` since this component's own panel `<style>`
+    // element unmounts whenever the panel itself does.
+    const dynamicSelector = `[data-space-ui='date-picker-panel'][data-date-picker-id='${panelId}']`
+    hooks.useLayoutEffect(() => {
+      if (!open) return
+      const styleEl = styleElRef.current
+      if (!styleEl) return
+      getOrInsertDynamicRule(styleEl, dynamicRuleRef, dynamicSelector)
+      return () => removeDynamicRule(styleEl, dynamicRuleRef)
+    }, [open])
+
+    // Applies the CSSOM rule's own `transform`/`visibility` on every position update —
+    // `useLayoutEffect`, not `useEffect`, so this runs synchronously before the browser paints,
+    // same reasoning `Select`'s own identical effect documents.
+    hooks.useLayoutEffect(() => {
+      const rule = dynamicRuleRef.current
+      if (!rule) return
+      rule.style.setProperty(
+        'transform',
+        position ? `translate(${position.x}px, ${position.y}px)` : '',
+      )
+      rule.style.setProperty('visibility', position ? 'visible' : 'hidden')
+    }, [position])
 
     hooks.useCloseOnOutside(containerRef, open, () => setOpen(false))
 
@@ -296,7 +353,7 @@ export function createDatePicker<E>(
 
     const trigger = h(
       'span',
-      { key: 'trigger', ref: triggerWrapperRef, style: { display: 'contents' } },
+      { key: 'trigger', ref: triggerWrapperRef, [DISPLAY_CONTENTS_WRAPPER_ATTR]: '' },
       Button({
         id,
         className,
@@ -308,17 +365,23 @@ export function createDatePicker<E>(
       }),
     )
 
+    // Unconditional (rendered in both the closed-early-return branch below and the full open
+    // render further down) — backs EVERY `[DISPLAY_CONTENTS_WRAPPER_ATTR]` marker this file renders
+    // (the trigger wrapper, the container span, and each view's own header wrapper), same reasoning
+    // `Select/render.ts`'s own `wrapperStyleEl` documents: one static rule, not re-derived per site.
+    const wrapperStyleEl = h('style', { key: 'wrapper-style', nonce }, DISPLAY_CONTENTS_WRAPPER_CSS)
+
     if (!open) {
       return h(
         'span',
-        { ref: containerRef, style: { display: 'contents' } },
-        [trigger, null],
+        { ref: containerRef, [DISPLAY_CONTENTS_WRAPPER_ATTR]: '' },
+        [trigger, wrapperStyleEl, null],
       )
     }
 
     // --- Days view -------------------------------------------------------------------------------
 
-    const daysHeader = h('span', { key: 'header', style: { display: 'contents' } }, [
+    const daysHeader = h('span', { key: 'header', [DISPLAY_CONTENTS_WRAPPER_ATTR]: '' }, [
       hAny(
         Fragment,
         { key: 'prev-month' },
@@ -458,7 +521,7 @@ export function createDatePicker<E>(
 
     // --- Months view -----------------------------------------------------------------------------
 
-    const monthsHeader = h('span', { key: 'header', style: { display: 'contents' } }, [
+    const monthsHeader = h('span', { key: 'header', [DISPLAY_CONTENTS_WRAPPER_ATTR]: '' }, [
       hAny(
         Fragment,
         { key: 'prev-year' },
@@ -525,7 +588,7 @@ export function createDatePicker<E>(
 
     // --- Years view ------------------------------------------------------------------------------
 
-    const yearsHeader = h('span', { key: 'header', style: { display: 'contents' } }, [
+    const yearsHeader = h('span', { key: 'header', [DISPLAY_CONTENTS_WRAPPER_ATTR]: '' }, [
       hAny(
         Fragment,
         { key: 'prev-page' },
@@ -583,6 +646,18 @@ export function createDatePicker<E>(
     const header = view === 'days' ? daysHeader : (view === 'months' ? monthsHeader : yearsHeader)
     const grid = view === 'days' ? daysGrid : (view === 'months' ? monthsGrid : yearsGrid)
 
+    // Static, non-dynamic `position: fixed; top: 0; left: 0; ...` lives in a self-rendered
+    // `<style>` element (see `DATE_PICKER_PANEL_POSITION_CSS`'s own doc) — the genuinely dynamic
+    // `transform`/`visibility` are applied to a CSSOM rule inside that SAME element instead of an
+    // inline `style` attribute; the panel itself carries no `style` prop at all. Unconditional here
+    // (unlike `Select`'s own conditional `styleEl`) since this whole branch already only runs while
+    // `open` is true — see the early `if (!open) return` above.
+    const panelStyleEl = h(
+      'style',
+      { key: 'panel-style', nonce, ref: styleElRef },
+      DATE_PICKER_PANEL_POSITION_CSS,
+    )
+
     const panel = h(
       'div',
       {
@@ -590,20 +665,17 @@ export function createDatePicker<E>(
         id: panelId,
         ref: panelRef,
         'data-space-ui': 'date-picker-panel',
+        'data-date-picker-id': panelId,
         onKeyDown: escapeHandler,
-        style: {
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          margin: 0,
-          padding: 0,
-          transform: position ? `translate(${position.x}px, ${position.y}px)` : undefined,
-          visibility: position ? 'visible' : 'hidden',
-        },
       },
       [header, grid, view === 'days' ? timeSection : null, view === 'days' ? doneFooter : null],
     )
 
-    return h('span', { ref: containerRef, style: { display: 'contents' } }, [trigger, panel])
+    return h('span', { ref: containerRef, [DISPLAY_CONTENTS_WRAPPER_ATTR]: '' }, [
+      trigger,
+      wrapperStyleEl,
+      panelStyleEl,
+      panel,
+    ])
   }
 }

@@ -57,4 +57,13 @@ export type ComboboxBaseProps = {
   'aria-invalid'?: boolean
   'aria-label'?: string
   'aria-labelledby'?: string
+  /** Threaded onto this component's own self-rendered `<style>` element(s), required only when
+   * the consuming page runs a nonce-based `style-src` CSP (`@zanix/space`'s own zero-config
+   * default is exactly this shape) — without a matching nonce, a strict CSP blocks this
+   * component's ENTIRE listbox positioning (`position: fixed` and the dynamic
+   * `transform`/`visibility` `usePosition` computes) the same way it would an inline `style`
+   * attribute, same contract `SelectBaseProps.nonce` already establishes (see `index.ts`'s own
+   * doc, and `shared/overlay-position-css.ts`'s, for the full mechanism). Omit `nonce` entirely
+   * when no such CSP is in effect — nothing here changes. */
+  nonce?: string
 }

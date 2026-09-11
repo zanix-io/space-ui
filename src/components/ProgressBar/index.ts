@@ -1,6 +1,7 @@
-import { createElement } from 'react'
+import { useId } from 'react'
 import type { ReactElement } from 'react'
 import type { CreateElement } from 'typings/renderer.ts'
+import { createElementWithNonceHydrationFix } from 'shared/create-element-nonce-hydration-fix.ts'
 import { createProgressBar } from './render.ts'
 import type { ProgressBarProps } from './types.ts'
 
@@ -22,5 +23,6 @@ import type { ProgressBarProps } from './types.ts'
  */
 // Same overload-set mismatch as `Icon/index.ts`'s own cast, same reasoning — see that file's doc.
 export const ProgressBar: (props: ProgressBarProps) => ReactElement = createProgressBar(
-  createElement as unknown as CreateElement<ReactElement>,
+  createElementWithNonceHydrationFix as unknown as CreateElement<ReactElement>,
+  { useId },
 )

@@ -18,6 +18,14 @@ export type SliderBaseProps = {
   label?: string
   id?: string
   className?: string
+  /** This component's own visually-hidden live region (`"Slide N of Total"`) needs
+   * `shared/live-region.ts`'s own clip-and-collapse styling, applied via a self-rendered
+   * `<style nonce={nonce}>` element rather than an inline `style` attribute — required only when
+   * the consuming page runs a nonce-based `style-src` CSP (`@zanix/space`'s own zero-config default
+   * is exactly this shape); without a matching nonce, a strict CSP blocks that `<style>` element,
+   * leaving the live region visually UNHIDDEN (a real fallback, never a crash) until a matching
+   * nonce is supplied. Omit `nonce` entirely when no such CSP is in effect — nothing here changes. */
+  nonce?: string
 }
 
 /** Slides beyond this many simultaneously mounted get evicted (oldest-visited first, never the

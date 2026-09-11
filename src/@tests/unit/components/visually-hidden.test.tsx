@@ -15,14 +15,19 @@ Deno.test('VisuallyHidden: carries data-space-ui="visually-hidden"', () => {
   assertStringIncludes(html, 'data-space-ui="visually-hidden"')
 })
 
-Deno.test('VisuallyHidden: applies the clip-and-collapse style inline, not via a class', () => {
-  const html = renderToStaticMarkup(<VisuallyHidden>text</VisuallyHidden>)
+Deno.test(
+  'VisuallyHidden: applies the clip-and-collapse styling via a self-rendered <style>, never an inline style attribute',
+  () => {
+    const html = renderToStaticMarkup(<VisuallyHidden>text</VisuallyHidden>)
 
-  assertStringIncludes(html, 'position:absolute')
-  assertStringIncludes(html, 'clip:rect(0, 0, 0, 0)')
-})
+    assertStringIncludes(html, '<style')
+    assertStringIncludes(html, 'position:absolute')
+    assertStringIncludes(html, 'clip:rect(0,0,0,0)')
+    assertEquals(html.includes(' style='), false)
+  },
+)
 
-Deno.test('VisuallyHidden: id/className land on the same <span> as the inline style', () => {
+Deno.test('VisuallyHidden: id/className land on the same <span>, never the <style>', () => {
   const html = renderToStaticMarkup(
     <VisuallyHidden id='close-label' className='sr-only'>
       Close dialog
@@ -31,7 +36,7 @@ Deno.test('VisuallyHidden: id/className land on the same <span> as the inline st
 
   assertStringIncludes(html, 'id="close-label"')
   assertStringIncludes(html, 'class="sr-only"')
-  assertStringIncludes(html, 'style=')
+  assertStringIncludes(html, '<style>')
 })
 
 Deno.test('VisuallyHidden: without id/className, neither attribute is rendered', () => {
@@ -39,4 +44,10 @@ Deno.test('VisuallyHidden: without id/className, neither attribute is rendered',
 
   assertEquals(html.includes(' id='), false)
   assertEquals(html.includes(' class='), false)
+})
+
+Deno.test('VisuallyHidden: nonce lands on the self-rendered <style> element', () => {
+  const html = renderToStaticMarkup(<VisuallyHidden nonce='abc123'>text</VisuallyHidden>)
+
+  assertStringIncludes(html, '<style nonce="abc123">')
 })

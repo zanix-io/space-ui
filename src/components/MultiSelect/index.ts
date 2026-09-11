@@ -1,6 +1,7 @@
-import { createElement, useId, useRef, useState } from 'react'
+import { useId, useLayoutEffect, useRef, useState } from 'react'
 import type { ReactElement } from 'react'
 import type { CreateElement } from 'typings/renderer.ts'
+import { createElementWithNonceHydrationFix } from 'shared/create-element-nonce-hydration-fix.ts'
 import { useCloseOnOutside } from 'shared/close-on-outside.ts'
 import { usePosition } from 'shared/use-position.ts'
 import { createMultiSelect } from './render.ts'
@@ -68,8 +69,8 @@ export type MultiSelectProps = MultiSelectBaseProps
  *
  * Referenced via the input's own `aria-describedby` (merged with a caller-supplied one, if given) —
  * a static description, not an `aria-live` announcement, since nothing here needs to interrupt to
- * announce a transient change; `shared/live-region.ts`'s own `VISUALLY_HIDDEN_STYLE` is reused for
- * the styling only. The text itself comes from `getSelectionDescription` (default: a fixed English
+ * announce a transient change; `shared/live-region.ts`'s own `VISUALLY_HIDDEN_ATTR`/
+ * `VISUALLY_HIDDEN_CSS` pair is reused for the styling only. The text itself comes from `getSelectionDescription` (default: a fixed English
  * `"N item(s) selected"`) — this component has no i18n mechanism of its own, so a localized
  * consumer passes its own formatter rather than getting a hardcoded string it can't change.
  *
@@ -90,7 +91,7 @@ export type MultiSelectProps = MultiSelectBaseProps
 export const MultiSelect: (props: MultiSelectProps) => ReactElement = createMultiSelect<
   ReactElement
 >(
-  createElement as unknown as CreateElement<ReactElement>,
-  { useId, useRef, useState, useCloseOnOutside, usePosition },
+  createElementWithNonceHydrationFix as unknown as CreateElement<ReactElement>,
+  { useId, useRef, useState, useLayoutEffect, useCloseOnOutside, usePosition },
   'onChange',
 )
