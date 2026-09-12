@@ -21,6 +21,11 @@ function isLogo(icon: SocialNetworksProps['links'][number]['icon']): icon is Soc
  * API — `className` remains the primarily supported styling path. Scoped to the list only, same as
  * `className` already is — the individual `<li>`/`<a>` per link get no hook of their own in this
  * first version.
+ *
+ * `crossOrigin` (logo-`img` case only) — opt-in, forwarded unchanged onto the native `<img>`. See
+ * {@linkcode SocialNetworkLogo.crossOrigin}'s own doc for the real, confirmed session-cookie
+ * hazard this lets a caller opt out of. The sprite-`Icon` case has no equivalent attribute to
+ * forward it to — `<use href>` doesn't ambiently send cookies the way `<img src>` does.
  */
 export function createSocialNetworks<E>(
   h: CreateElement<E>,
@@ -41,6 +46,7 @@ export function createSocialNetworks<E>(
             src: link.icon.img,
             alt: link.icon.alt ?? `${link.name} logo`,
             loading: link.icon.loading,
+            crossOrigin: link.icon.crossOrigin,
           })
           : Icon({ href: link.icon.href, name: link.icon.name, viewBox: link.icon.viewBox })
 

@@ -201,6 +201,32 @@ Deno.test('Video (preact): without a poster, no poster attribute is rendered', (
   assertEquals(render(vnode).includes('poster'), false)
 })
 
+Deno.test(
+  'Video (preact): crossOrigin forwards through unchanged — real fix for a confirmed ' +
+    "session-cookie hazard on a cross-origin poster (see VideoProps.crossOrigin's own doc)",
+  () => {
+    const vnode = Video({
+      src: 'clip.mp4',
+      title: 'Demo',
+      poster: 'https://cdn.example.com/poster.jpg',
+      crossOrigin: 'anonymous',
+    })
+    assert(vnode)
+
+    assertStringIncludes(render(vnode), 'crossorigin="anonymous"')
+  },
+)
+
+Deno.test(
+  'Video (preact): crossOrigin is omitted by default — never forced on a caller who never asked',
+  () => {
+    const vnode = Video({ src: 'clip.mp4', title: 'Demo' })
+    assert(vnode)
+
+    assertEquals(render(vnode).includes('crossorigin'), false)
+  },
+)
+
 Deno.test('Video (preact): title becomes aria-label on the native <video>', () => {
   const vnode = Video({ src: 'clip.mp4', title: 'Demo video' })
   assert(vnode)

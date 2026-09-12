@@ -19,6 +19,15 @@ export type SocialNetworkLogo = {
    * would only get worse LCP from deferring it) — so this is the caller's own layout call, never
    * assumed by the component. */
   loading?: 'lazy' | 'eager'
+  /** Forwarded verbatim onto the native `<img crossorigin>` attribute — same real, confirmed
+   * session-cookie hazard {@linkcode Avatar}'s own `crossOrigin` doc documents: a logo `img`
+   * pointing at a host that shares the viewer's own hostname but a different port has session
+   * cookies attached to it ambiently by the browser (cookies are host-scoped, never port-scoped),
+   * and that host's own response can emit a `Set-Cookie` that clobbers the viewing app's real
+   * session cookie. `'anonymous'` (no cookies sent, CORS response required) is the fix; omitted by
+   * default so no caller is forced into a CORS requirement their logo host doesn't actually meet —
+   * a real, brand-owned logo CDN commonly has none. */
+  crossOrigin?: 'anonymous' | 'use-credentials'
 }
 
 /** One entry in {@linkcode SocialNetworksProps}'s `links`. */

@@ -42,6 +42,20 @@ export type AvatarBaseProps = {
   size?: AvatarSize | number
   id?: string
   className?: string
+  /** CORS mode for the image request — same real platform attribute `Image`'s own `crossOrigin`
+   * already exposes, forwarded through unchanged (`render.ts`'s own `Image({ ..., crossOrigin })`
+   * call). Needed whenever `src` is a cross-origin URL served by a REST API that also sets
+   * session-related cookies for that same host: with no `crossorigin` attribute at all, a plain
+   * cross-origin `<img>` load is an ordinary AMBIENT browser request — every cookie matching the
+   * target host rides along, and any `Set-Cookie` the response carries is stored back just as
+   * ambiently. Confirmed live, real case: a broken/orphaned image asset's own unrelated `401`
+   * response silently overwrote an unrelated app's own session cookie on the same host (cookies
+   * are never port-scoped), logging the viewer out mid-page. `'anonymous'` forces a real CORS-mode
+   * fetch with NO credentials in either direction — this origin's own cookies are never sent, and
+   * nothing in the response can ever be stored as one — while leaving a genuinely public image
+   * load itself unaffected. Omitted by default: only a consumer whose own `src` host has this
+   * exact hazard needs to opt in. */
+  crossOrigin?: 'anonymous' | 'use-credentials'
   /** This component's own sizing (`display: inline-block`, `width`/`height`) lives in a
    * self-rendered `<style nonce={nonce}>` element, never an inline `style` attribute — required
    * only when the consuming page runs a nonce-based `style-src` CSP (`@zanix/space`'s own

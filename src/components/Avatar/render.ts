@@ -88,6 +88,13 @@ export type AvatarHooks = {
  * package's own test suite exercises the rejection path by overriding
  * `HTMLImageElement.prototype.decode` directly rather than relying on a real failure `happy-dom`
  * can't simulate; see `avatar.test.tsx`/`avatar-preact.test.tsx`'s own "decode() rejects" tests.
+ *
+ * ## `crossOrigin` — opt-in, forwarded unchanged to `Image`
+ *
+ * See {@linkcode AvatarBaseProps.crossOrigin}'s own doc for the real, confirmed session-cookie
+ * hazard this exists to let a caller opt out of. `Avatar` itself takes no position on whether
+ * `src` needs it — this component only forwards whatever the caller passes straight through to
+ * the underlying `Image({ ..., crossOrigin })` call, same as every other pass-through prop here.
  */
 export function createAvatar<E>(
   h: CreateElement<E>,
@@ -98,7 +105,7 @@ export function createAvatar<E>(
   const Image = createImage<E>(h)
 
   return function Avatar(props: AvatarBaseProps): E {
-    const { name, src, shape = 'circle', size = 'md', id, className, nonce } = props
+    const { name, src, shape = 'circle', size = 'md', id, className, nonce, crossOrigin } = props
 
     const avatarId = hooks.useId()
     const pixels = typeof size === 'number' ? size : AVATAR_SIZE_PX[size]
@@ -133,7 +140,7 @@ export function createAvatar<E>(
     const showImage = Boolean(src) && !imageFailed
 
     const content = showImage
-      ? Image({ src: src as string, alt: name, onError: () => setImageFailed(true) })
+      ? Image({ src: src as string, alt: name, crossOrigin, onError: () => setImageFailed(true) })
       : h(
         'span',
         { role: 'img', 'aria-label': name, 'data-space-ui': 'avatar-initials' },

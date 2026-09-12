@@ -115,3 +115,28 @@ Deno.test('SocialNetworks: an image logo with no loading given renders no such a
 
   assertEquals(html.includes('loading='), false)
 })
+
+Deno.test(
+  'SocialNetworks: an image logo forwards crossOrigin — real fix for a confirmed ' +
+    "session-cookie hazard (see SocialNetworkLogo.crossOrigin's own doc)",
+  () => {
+    const html = renderToStaticMarkup(
+      <SocialNetworks
+        links={[{ ...xLink, icon: { img: '/assets/logos/x.png', crossOrigin: 'anonymous' } }]}
+      />,
+    )
+
+    assertStringIncludes(html, 'crossorigin="anonymous"')
+  },
+)
+
+Deno.test(
+  'SocialNetworks: an image logo with no crossOrigin given renders no such attribute',
+  () => {
+    const html = renderToStaticMarkup(
+      <SocialNetworks links={[{ ...xLink, icon: { img: '/assets/logos/x.png' } }]} />,
+    )
+
+    assertEquals(html.includes('crossorigin='), false)
+  },
+)

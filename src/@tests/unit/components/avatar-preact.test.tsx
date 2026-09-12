@@ -99,3 +99,33 @@ Deno.test('Avatar (preact): nonce lands on the self-rendered sizing <style> elem
   assertStringIncludes(html, '<style nonce="abc123">')
   assertEquals(html.includes(' style='), false)
 })
+
+Deno.test(
+  'Avatar (preact): crossOrigin forwards through unchanged to the rendered img — real fix for a ' +
+    "confirmed session-cookie hazard (see AvatarBaseProps.crossOrigin's own doc)",
+  () => {
+    const { container, unmount } = mount({
+      name: 'Ada Lovelace',
+      src: 'https://cdn.example.com/ada.jpg',
+      crossOrigin: 'anonymous',
+    })
+    const img = must(container.querySelector('img'))
+    assertEquals(img.getAttribute('crossorigin'), 'anonymous')
+
+    unmount()
+  },
+)
+
+Deno.test(
+  'Avatar (preact): crossOrigin is omitted by default — never forced on a caller who never asked',
+  () => {
+    const { container, unmount } = mount({
+      name: 'Ada Lovelace',
+      src: 'https://cdn.example.com/ada.jpg',
+    })
+    const img = must(container.querySelector('img'))
+    assertEquals(img.getAttribute('crossorigin'), null)
+
+    unmount()
+  },
+)

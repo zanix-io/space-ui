@@ -138,6 +138,13 @@ export function createRichTextTags<E>(h: CreateElement<E>): Record<string, RichT
       return SocialNetworks({ ...props, links } as never) ?? h('span', null)
     },
 
+    // `crossOrigin` (e.g. `<props>src=...&crossOrigin=anonymous</props>`) reaches `Image` here
+    // like any other `<props>` key — no special-casing needed, since this whole call is an
+    // untyped spread. Worth calling out explicitly: an author-supplied `src` pointing at a host
+    // that shares the viewer's own hostname but a different port has this app's own session
+    // cookies attached to it ambiently (cookies are host-scoped, never port-scoped), and that
+    // host's own response can clobber the viewing app's real session cookie — see
+    // `ImageProps.crossOrigin`'s own doc for the full, confirmed hazard `'anonymous'` opts out of.
     img: (chunks) => {
       const { props } = extractRichTextProps(chunks)
       return Image({ alt: '', ...props, src: sanitizeUrl(props.src ?? '') } as never)

@@ -223,6 +223,29 @@ Deno.test('Video: without a poster, no poster attribute is rendered', () => {
   assertEquals(html.includes('poster'), false)
 })
 
+Deno.test(
+  'Video: crossOrigin forwards through unchanged to the rendered <video> — real fix for a ' +
+    "confirmed session-cookie hazard on a cross-origin poster (see VideoProps.crossOrigin's own doc)",
+  () => {
+    const html = renderToStaticMarkup(
+      <Video
+        src='clip.mp4'
+        title='Demo'
+        poster='https://cdn.example.com/poster.jpg'
+        crossOrigin='anonymous'
+      />,
+    )
+
+    assertStringIncludes(html, 'crossorigin="anonymous"')
+  },
+)
+
+Deno.test('Video: crossOrigin is omitted by default — never forced on a caller who never asked', () => {
+  const html = renderToStaticMarkup(<Video src='clip.mp4' title='Demo' />)
+
+  assertEquals(html.includes('crossorigin'), false)
+})
+
 Deno.test('Video: title becomes aria-label on the native <video>, not a title attribute', () => {
   const html = renderToStaticMarkup(<Video src='clip.mp4' title='Demo video' />)
 

@@ -82,6 +82,21 @@ export type VideoProps = {
   height?: string | number
   id?: string
   className?: string
+  /**
+   * File case only. Forwarded verbatim onto the native `<video crossorigin>` attribute, which
+   * governs CORS mode for every resource the element itself fetches — the `poster` image included
+   * (per the WHATWG spec, `crossorigin` is a media-element-wide setting, not scoped to `src`
+   * alone). Real, confirmed hazard this exists to let a caller opt out of, same shape
+   * `Avatar.crossOrigin`'s own doc documents: a `poster` pointing at a host that shares the
+   * viewer's own hostname but a different port (a common same-machine-different-service dev/prod
+   * topology) has session cookies attached to it ambiently by the browser — cookies are host-
+   * scoped, never port-scoped — and that host's own response can emit a `Set-Cookie` that clobbers
+   * the viewing app's real session cookie. `'anonymous'` (no cookies sent, CORS response required)
+   * is the fix for that case; omitted by default so no caller is forced into a CORS requirement
+   * their poster host doesn't actually meet. Has no effect on the `'provider'`/`'iframe'` cases —
+   * `IFrame` itself has no equivalent attribute to forward it to.
+   */
+  crossOrigin?: 'anonymous' | 'use-credentials'
 
   // --- Native <video> playback attributes — apply to the FILE case only. For a YouTube/Vimeo
   // embed, `controls`/`autoPlay`/`loop`/`muted` are still honored (threaded through

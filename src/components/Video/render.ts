@@ -103,6 +103,11 @@ import type { VideoProps, VideoSourceProps } from './types.ts'
  * poster would need this component to compute or react to the viewport itself, reintroducing
  * exactly the responsive-JS machinery `sources` was designed to avoid needing.
  *
+ * `crossOrigin` — opt-in, forwarded unchanged onto the native `<video>` element (file case only).
+ * See {@linkcode VideoProps.crossOrigin}'s own doc for the real, confirmed session-cookie hazard
+ * this lets a caller opt out of for a cross-origin `poster`, the same one `Avatar`/`Image` were
+ * fixed for.
+ *
  * `src`/`sources[].src`/`poster`/each `track.src` are all plain strings — never a bespoke `Asset`
  * type — resolved through the identical `resolveFileSrc` helper below. `@zanix/space`'s own
  * breakpoint preset names (`msm`/`mlg`/`dmd`/`dlg`/`thum`) are never hardcoded anywhere in this
@@ -216,6 +221,7 @@ export function createVideo<E>(
           // dead markup per the WHATWG resource-selection algorithm.
           src: hasSources ? undefined : resolvedSrc,
           poster: props.poster ? resolveFileSrc(props.poster) : undefined,
+          crossOrigin: props.crossOrigin,
           controls: props.controls,
           autoPlay: props.autoPlay,
           loop: props.loop,

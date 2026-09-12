@@ -43,7 +43,9 @@ ahead of time:
   visual theme, and `createCatalogIcon`'s own worked example.
 - ✅ **`SocialNetworks`** — a list of external social links, each an accessible `<a>` wrapping
   either an `Icon` or an image logo. Default accessible label/tooltip built from the network name;
-  both overridable per link. Renders nothing for an empty list.
+  both overridable per link. Renders nothing for an empty list. An image-logo entry's
+  `crossOrigin?: 'anonymous' | 'use-credentials'` forwards onto its `<img>` — same session-cookie
+  hazard `Image`/`Avatar`/`Video` already let a caller opt out of.
 - ✅ **`StructuredData`** — a JSON-LD `<script>` tag from typed [schema.org](https://schema.org)
   data (`schema-dts`). Renders `data` exactly as given; defaults `@context` to
   `'https://schema.org'` only when `data` doesn't already set it. Its own resolution logic is also
@@ -80,6 +82,10 @@ ahead of time:
   resolve via `resolveAssetHref`, SSR-only, not comet-safe). `@zanix/space/video-source`'s own
   classification stays a real, unconditional dependency in BOTH forms (safe for a Comet — no
   `'server-only'` directive) — see `Video/render.ts`'s own doc for the full contract.
+  `crossOrigin?:
+  'anonymous' | 'use-credentials'` (file case only) forwards onto the native
+  `<video>` element, governing CORS mode for every resource it fetches — `poster` included, per the
+  WHATWG spec — same session-cookie hazard `Image`/`Avatar` already opt out of.
 - ✅ **`Image`** — a real `<img>`, or a `<picture>` with art-direction `<source>`s when `sources` is
   given. Native `loading`/`decoding`/`fetchPriority`/`crossOrigin`/`referrerPolicy` only; no custom
   lazy-loading machinery. `placeholder` shows a fallback image while the real one loads (a real
@@ -465,11 +471,14 @@ ahead of time:
   the same native `@formatjs/intl` mechanism, exposed directly, rather than a hand-rolled tag
   parser. Population (a `<props>key=val</props>` tag nested inside any other tag, handing it extra
   props) works via a typed sentinel value, never a stringified-marker round-trip. `video` renders
-  through the real `Video` component. Markdown parses through `markdown-to-jsx`'s own pure AST-only
-  subpath, walked by hand via `h` — zero `preact/compat` involved, enforced by a dependency-boundary
-  test. Document loading is a standalone `resolveRichTextDocument` resolver a `loader` calls,
-  mirroring `StructuredData`'s own resolver precedent, rather than a prop on the component itself.
-  See [CHANGELOG](./CHANGELOG.md) for the full design record.
+  through the real `Video` component. The `img`/`video` tags' own `<props>` bag reaches `Image`/
+  `Video` untyped but unfiltered — a `crossOrigin=anonymous` entry already works today for a
+  cross-origin `src`, the same session-cookie hazard `Image`/`Video` document on their own props.
+  Markdown parses through `markdown-to-jsx`'s own pure AST-only subpath, walked by hand via `h` —
+  zero `preact/compat` involved, enforced by a dependency-boundary test. Document loading is a
+  standalone `resolveRichTextDocument` resolver a `loader` calls, mirroring `StructuredData`'s own
+  resolver precedent, rather than a prop on the component itself. See [CHANGELOG](./CHANGELOG.md)
+  for the full design record.
 
 - ✅ **`Recaptcha`**/**`HCaptcha`**/**`Turnstile`** — the client-side complement to `@zanix/auth`'s
   own `captchaGuard`; this package never imports `@zanix/auth` or mentions
@@ -579,6 +588,12 @@ ahead of time:
   itself is pure, color-free geometry living in the optional `src/templates/shared/avatar.css`
   companion (never imported by this component), the same "structural CSS in an optional file"
   precedent `Card`'s own `card.css` already establishes.
+  `crossOrigin?: 'anonymous' |
+  'use-credentials'` forwards straight through to the composed
+  `Image` — opt-in fix for a real session-cookie hazard: an `src` on a host sharing the viewer's own
+  hostname but a different port (a common same-machine-different-service topology) gets that app's
+  cookies attached ambiently (cookies are host-scoped, never port-scoped), and the image host's own
+  response can clobber the viewing app's real session cookie.
 - ✅ **`Chip`** — a pill-shaped label: static (informational) when `onRemove` is omitted, or
   removable (a real, keyboard-operable "×" button, `aria-label="Remove {label}"`) when it's given.
   Composes the unmodified `Button` plus `shared/close-button-icon.ts`'s own default glyph for the

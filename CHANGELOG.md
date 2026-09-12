@@ -156,6 +156,34 @@ adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- **`Avatar`/`Video`/`SocialNetworks` had no way to opt an `<img>`/`<video>` out of ambient
+  credentials on a cross-origin `src` — a real, confirmed session-cookie hazard, not a theoretical
+  one.** Found via a live, reproduced bug in a real consumer: a profile-photo `Avatar` pointed at a
+  cross-origin asset host that shared the viewer's own hostname but a different port (a common
+  same-machine-different-service dev/prod topology). Browsers attach cookies to an image request
+  ambiently, with no CORS preflight, keyed on the target HOST alone — cookies are never port-scoped
+  — so the calling app's own session cookies reached that other service, and its response emitted a
+  `Set-Cookie` under the ecosystem's shared cookie names that clobbered the viewing app's real
+  session, silently logging the user out on every page view rendering that image.
+  `crossOrigin='anonymous'` (no cookies sent, a CORS response required instead) is the fix, now
+  exposed as `crossOrigin?: 'anonymous' | 'use-credentials'`, forwarded unchanged onto the native
+  attribute, omitted by default so no caller is forced into a CORS requirement their host doesn't
+  actually meet:
+  - **`Avatar`** — forwards straight through to the composed `Image`
+    (`AvatarBaseProps.crossOrigin`).
+  - **`Video`** — new `VideoProps.crossOrigin`, applied to the native `<video>` element (file case
+    only). Per the WHATWG spec, `crossorigin` on a media element governs CORS mode for every
+    resource it fetches, `poster` included — not just `src`/`<source>` — so a cross-origin poster
+    had the identical exposure with no opt-out until now.
+  - **`SocialNetworks`** — new `SocialNetworkLogo.crossOrigin`, forwarded onto the image-logo
+    variant's own `<img>` (the sprite-`Icon` variant has no equivalent attribute — `<use href>`
+    doesn't ambiently send cookies the way `<img src>` does).
+  - **`Card`/`ImgButton`** needed no code change — both already spread a full
+    `Omit<ImageProps, 'alt'>` object into their own internal `Image({...})` call, so `crossOrigin`
+    already reached through once `Image` itself supported it.
+  - **`RichText`'s `img`/`video` tags** already forward `crossOrigin` too (an untyped `<props>` bag
+    spread verbatim into `Image`/`Video`) — this release only adds the doc note that was missing, no
+    code change.
 - **`SocialLinksInput`'s `network` auto-detection never ran for entries supplied via
   `defaultValues`/`values`** — `detectSocialNetwork` was only ever called from `handleUrlChange`,
   fired on a row's own keystroke; an entry seeded with a known URL and a `null`/stale `network` (the
