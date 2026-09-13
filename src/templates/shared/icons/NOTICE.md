@@ -69,7 +69,7 @@ top of `catalog.svg`, copied verbatim from the source files:
 Do not remove this comment when copying/regenerating this file — see Font Awesome's own request in
 their license ("we ask that you do not actively work to remove them from files").
 
-## The 17 icons in this catalog
+## The 17 Font Awesome icons in this catalog
 
 `spinner`, `close`, `gear`, `phone`, `envelope`, `arrow-up`, `arrow-down`, `arrow-left`,
 `arrow-right`, `map-location-dot`, `search`, `check`, `plus`, `minus`, `triangle-exclamation`,
@@ -77,6 +77,27 @@ their license ("we ask that you do not actively work to remove them from files")
 `src/components/CatalogIcon/types.ts`), `CATALOG_VIEWBOX`, and the `<symbol id="...">` set inside
 `catalog.svg` are meant to always agree exactly; `space-ui`'s own test suite checks this (see
 `catalog-integrity.test.ts`).
+
+## Zanix-original additions: `verified`, `clock`, `shield`
+
+`catalog.svg` also carries three symbols that are **not** Font Awesome content — a small
+trust/verification-status set, each a plain open stroke, never a solid fill:
+
+- **`verified`** — an open checkmark (`M5 13l4 4L19 7`, `viewBox="0 0 24 24"`, `stroke-width="2"`) —
+  a "verified" status.
+- **`clock`** — a circle plus clock hands (`<circle r="9">` + `M12 7v6l4 2`, `viewBox="0 0 24 24"`,
+  `stroke-width="1.8"`) — a "pending" status.
+- **`shield`** — a shield outline plus an inner checkmark
+  (`M12 3l7 3v5c0 5-3 8.5-7 10-4-1.5-7-5-7-10V6z` + `M9.5 12l1.8 1.8L15 10`, `viewBox="0 0 24 24"`,
+  `stroke-width="1.8"`) — an "unverified"/"rejected" status.
+
+Font Awesome's free tier ships only the Solid weight (filled shapes) — there is no real upstream
+file any of these three could have been extracted from, so they're original Zanix artwork instead,
+added directly into this shared sprite (a deliberate product decision, not a licensing oversight)
+rather than through a second, parallel catalog file. Licensed the same as the rest of this package's
+own source (this repo's own `LICENSE`), not CC BY 4.0 — there is no third-party attribution to track
+for any of them. `catalog-integrity.test.ts` encodes this as the real, named exception to "every
+symbol uses `fill="currentColor"`."
 
 ## Relationship to `theme/` — this is `shared/`, deliberately not `theme/`
 

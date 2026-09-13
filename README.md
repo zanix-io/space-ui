@@ -32,7 +32,7 @@ ahead of time:
 - ✅ **`Icon`** — an SVG sprite icon (`<svg><use href="#..." /></svg>`). Takes an already-resolved
   sprite `href`, a symbol `name`, and an explicit `viewBox` — no client-side fetch-and-sniff, no
   flash of an empty icon while a real `viewBox` loads in.
-- ✅ **`CatalogIcon`** — `Icon`, pre-wired to an optional, curated default icon catalog (17 common
+- ✅ **`CatalogIcon`** — `Icon`, pre-wired to an optional, curated default icon catalog (20 common
   UI glyphs, `CC BY 4.0`-licensed, no brand icons). Resolves a known `name` to the catalog's own
   `viewBox` and delegates the render to the unmodified `Icon` — `href` is still yours to provide.
   Entirely opt-in: nothing here is loaded, imported, or scaffolded unless you reach for it. Built on

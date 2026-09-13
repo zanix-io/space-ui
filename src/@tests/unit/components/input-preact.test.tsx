@@ -124,3 +124,34 @@ Deno.test('Input (preact): composes cleanly with the props Field.children hands 
 
   unmount()
 })
+
+// --- inputMode / onPaste / autoFocus (added for a six-box OTP/verification-code field consumer) -
+
+Deno.test('Input (preact): inputMode passes straight through', () => {
+  const { container, unmount } = mount({ 'aria-label': 'Code', inputMode: 'numeric' })
+  const input = must(container.querySelector<HTMLInputElement>('input'))
+  assertEquals(input.inputMode, 'numeric')
+  unmount()
+})
+
+Deno.test('Input (preact): autoFocus passes straight through as a real native attribute', () => {
+  const html = renderToString(element({ 'aria-label': 'Code', autoFocus: true }))
+  assertStringIncludes(html, 'autofocus')
+})
+
+Deno.test('Input (preact): onPaste fires with the real ClipboardEvent on a native paste', () => {
+  let received: ClipboardEvent | undefined
+  const { container, unmount } = mount({
+    'aria-label': 'Code',
+    onPaste: (e) => (received = e),
+  })
+  const input = must(container.querySelector<HTMLInputElement>('input'))
+
+  const event = new Event('paste', { bubbles: true }) as ClipboardEvent
+  act(() => {
+    input.dispatchEvent(event)
+  })
+
+  assertEquals(received, event)
+  unmount()
+})

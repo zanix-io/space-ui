@@ -69,5 +69,23 @@
       <path fill="currentColor"
         d="M256 512a256 256 0 1 1 0-512 256 256 0 1 1 0 512zM374 145.7c-10.7-7.8-25.7-5.4-33.5 5.3L221.1 315.2 169 263.1c-9.4-9.4-24.6-9.4-33.9 0s-9.4 24.6 0 33.9l72 72c5 5 11.8 7.5 18.8 7s13.4-4.1 17.5-9.8L379.3 179.2c7.8-10.7 5.4-25.7-5.3-33.5z" />
     </symbol>
+    <!-- `verified`/`clock`/`shield` are original Zanix artwork, NOT Font Awesome — see NOTICE.md's
+         own "Zanix-original addition" section. The only symbols in this file tinted via a stroke
+         color instead of a solid fill, since they're thin open-stroke glyphs, not solid shapes. -->
+    <symbol id="verified" viewBox="0 0 24 24">
+      <path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+        stroke-linejoin="round" d="M5 13l4 4L19 7" />
+    </symbol>
+    <symbol id="clock" viewBox="0 0 24 24">
+      <circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.8" />
+      <path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"
+        stroke-linejoin="round" d="M12 7v6l4 2" />
+    </symbol>
+    <symbol id="shield" viewBox="0 0 24 24">
+      <path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"
+        stroke-linejoin="round" d="M12 3l7 3v5c0 5-3 8.5-7 10-4-1.5-7-5-7-10V6z" />
+      <path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"
+        stroke-linejoin="round" d="M9.5 12l1.8 1.8L15 10" />
+    </symbol>
   </defs>
 </svg>

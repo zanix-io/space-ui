@@ -5,6 +5,47 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/) and this project
 adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [2.1.0-rc.6] - 2026-09-13
+
+### Added
+
+- **`Input.inputMode`/`onPaste`/`autoFocus`** — three real gaps closed together, all needed by the
+  same confirmed motivating consumer: a six-box OTP/verification-code field (`@zanix/iam`'s own new
+  `ui/components/otp-code-field`, generalized out of a duplicate a downstream consumer had built
+  because `Input` couldn't support it yet). `inputMode` (e.g. `'numeric'`) is the phone-keypad hint
+  without the side effects `type="number"` brings (spinner arrows, rejecting a leading zero);
+  `onPaste` is a real, untransformed native-event passthrough (a code field that wants to REPLACE
+  its whole value with a pasted code, not insert at cursor position, needs the raw event —
+  `onValueChange` alone can't distinguish "pasted" from "typed"); `autoFocus` is the native
+  `autofocus` attribute, added instead of a `ref` prop after confirming Preact core (no
+  `preact/compat` dependency anywhere in this package) does not support ref-forwarding to a plain
+  function component — a function-component vnode's `ref` resolves to Preact's own internal
+  component wrapper, never the underlying DOM node (confirmed against Preact's own
+  `diff/children.js` source) — `autoFocus` needs no ref/`useEffect` on either side and sidesteps
+  that renderer asymmetry entirely. All three are thin passthroughs, same contract as every other
+  native `Input` prop.
+
+- **`RadioGroup.items[].disabled`** — a real, non-selectable item, the same "this exists, but isn't
+  available yet" case a native `<input type="radio" disabled>` already covers. Forwarded verbatim
+  onto the composed `Button` (which already supported `disabled`); skipped entirely by arrow-key/
+  `Home`/`End` roving navigation (`RadioGroup/render.ts`'s own bounded `nextEnabledIndexFor` loop,
+  the same technique `Select`'s own disabled-skipping navigation already established) and by the
+  initial "nothing selected yet" tabbable-item fallback, which now lands on the first ENABLED item
+  rather than unconditionally index 0. A disabled item can still be the controlled `value`/
+  `defaultValue` — this component never second-guesses a value the caller explicitly set. Real,
+  confirmed gap this closes: a consumer needing a catalog with some items disabled (e.g. "this
+  option exists, but isn't available yet," shown rather than omitted) previously had no way to
+  express that with `RadioGroup` at all.
+- **`CatalogIconName`/`catalog.svg`: `verified`, `clock`, `shield`** — a small trust/verification-
+  status icon set (a checkmark, a pending clock, an unverified/rejected shield), the 18th-20th
+  symbols in the default icon catalog and the only real, named exception to "every symbol is Font
+  Awesome-sourced": Font Awesome's free tier ships only the Solid (filled) weight, so no real
+  upstream file could ever produce these thin, open-stroke glyphs. All three are original Zanix
+  artwork instead, added directly into the existing shared sprite (never a second, parallel catalog)
+  — tinted via `stroke="currentColor"` rather than the other 17 symbols' `fill="currentColor"`, both
+  documented in `NOTICE.md`'s own new "Zanix-original additions" section and enforced by
+  `catalog-integrity.test.ts`.
+
 ## [2.1.0] - 2026-09-08
 
 ### Added

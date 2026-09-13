@@ -20,9 +20,12 @@ export type InputProps = InputBaseProps
  * yet.
  *
  * A thin passthrough, not a reimplementation of `<input>`'s own contract: `placeholder`/
- * `disabled`/`readOnly`/`required`/`autoComplete`/`min`/`max`/`step`/`maxLength`/`pattern` all pass
- * straight through to the real native attribute, this component adds no validation or coercion of
- * its own on top of them.
+ * `disabled`/`readOnly`/`required`/`autoComplete`/`min`/`max`/`step`/`maxLength`/`pattern`/
+ * `inputMode`/`onPaste`/`autoFocus` all pass straight through to the real native attribute/event,
+ * this component adds no validation or coercion of its own on top of them (see
+ * {@linkcode InputBaseProps.autoFocus}'s own doc for why that one is a plain native attribute
+ * rather than a `ref` prop — the real, shipped consumer this whole extension was added for, a
+ * six-box OTP/verification-code field, needs nothing more).
  *
  * ## Composing inside `Field`
  *

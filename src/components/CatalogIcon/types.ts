@@ -7,10 +7,20 @@ import type { IconProps } from '../Icon/types.ts'
  * usage in the legacy codebase. No icon here is a brand/social mark — those stay out of any
  * default catalog.
  *
- * This exact set of 17 names is kept in agreement with the `<symbol id="...">`s in the real
- * curated sprite (`src/templates/shared/icons/catalog.svg`) and with {@linkcode CATALOG_VIEWBOX}
+ * This exact set of names is kept in agreement with the `<symbol id="...">`s in the real curated
+ * sprite (`src/templates/shared/icons/catalog.svg`) and with {@linkcode CATALOG_VIEWBOX}
  * below — `catalog-integrity.test.ts` checks all three stay in sync. Nothing here is copyrighted
  * content — only names and verified dimensions, never path data.
+ *
+ * **`verified`/`clock`/`shield` are the three exceptions to "sourced from Font Awesome Free"**:
+ * Font Awesome's free tier ships only the Solid weight (filled shapes) — no outline/stroke weight
+ * exists there at all — so no real upstream file could ever produce the thin, open-stroke glyphs a
+ * trust/verification-status UI needs (a checkmark badge, a pending clock, an unverified/rejected
+ * shield). All three are original Zanix artwork instead, added directly here (a real product
+ * decision, not a licensing oversight) rather than through a second, parallel catalog — see
+ * `src/templates/shared/icons/NOTICE.md`'s own "Zanix-original addition" section for the full
+ * accounting, and `catalog-integrity.test.ts` for how they're the only symbols allowed to differ
+ * from the rest (a `stroke`-based glyph, not `fill="currentColor"`).
  */
 export type CatalogIconName =
   | 'spinner'
@@ -30,6 +40,9 @@ export type CatalogIconName =
   | 'triangle-exclamation'
   | 'circle-info'
   | 'circle-check'
+  | 'verified'
+  | 'clock'
+  | 'shield'
 
 /**
  * Per-name `viewBox`, matching the real upstream Font Awesome Free 7.3.1 SVG for each icon
@@ -61,6 +74,9 @@ export const CATALOG_VIEWBOX: Record<CatalogIconName, string> = {
   'triangle-exclamation': '0 0 512 512',
   'circle-info': '0 0 512 512',
   'circle-check': '0 0 512 512',
+  verified: '0 0 24 24',
+  clock: '0 0 24 24',
+  shield: '0 0 24 24',
 }
 
 /**

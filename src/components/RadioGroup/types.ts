@@ -12,6 +12,15 @@ export type RadioGroupItemBase = {
   /** Accessible-label override — same convention `Button.label` already has, for the case this
    * item's own visible content isn't readable text on its own (an icon-only segmented option). */
   label?: string
+  /** Renders this item as a real, non-selectable option — the same "this exists, but isn't
+   * available yet" case a native `<input type="radio" disabled>` covers. Forwarded verbatim onto
+   * the composed `Button` (which already supports it), and skipped entirely by arrow-key/`Home`/
+   * `End` roving navigation and by the initial "nothing selected yet" tabbable-item fallback — the
+   * same reachability rule a native disabled radio already gets for free. A disabled item can still
+   * be the CONTROLLED `value`/`defaultValue` (rendered checked, just never reachable BY navigating
+   * to it) — this component never second-guesses a value the caller explicitly set.
+   * @default false */
+  disabled?: boolean
 }
 
 /** Props shared by both the React and Preact `RadioGroup` bindings. */

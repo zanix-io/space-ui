@@ -1,6 +1,7 @@
 import type { CreateElement } from 'typings/renderer.ts'
 import { createButton } from '../Button/render.ts'
-import { createRovingKeyDownHandler } from 'shared/roving-focus.ts'
+import { getNextRovingIndex } from 'shared/roving-focus.ts'
+import type { NavigationKeyEvent } from 'shared/roving-focus.ts'
 import type { RadioGroupBaseProps, RadioGroupItemBase } from './types.ts'
 
 /**
@@ -71,15 +72,43 @@ export function createRadioGroup<E, Node>(
     }
 
     const selectedIndex = items.findIndex((item) => item.value === value)
-    const activeIndex = selectedIndex === -1 ? 0 : selectedIndex
+    // Nothing selected yet — the first ENABLED item is the tabbable one, never a disabled item
+    // sitting at index 0. Same reachability rule a native `<input type="radio" disabled>` already
+    // gets from the browser for free (never part of the initial tab stop).
+    const firstEnabledIndex = items.findIndex((item) => !item.disabled)
+    const activeIndex = selectedIndex !== -1
+      ? selectedIndex
+      : (firstEnabledIndex === -1 ? 0 : firstEnabledIndex)
 
-    const handleKeyDown = createRovingKeyDownHandler(
-      activeIndex,
-      items.length,
-      (nextIndex) => setValue(items[nextIndex].value),
-      (index) => containerRef.current?.querySelectorAll<HTMLButtonElement>('[role="radio"]')[index],
-      orientation,
-    )
+    const getItemElement = (index: number) =>
+      containerRef.current?.querySelectorAll<HTMLButtonElement>('[role="radio"]')[index]
+
+    // A bounded loop (never more than `items.length` steps) skipping disabled items entirely —
+    // same technique `Select/render.ts`'s own `nextEnabledIndexFor` already establishes for the
+    // identical "automatic-activation navigation must never land on a disabled option" rule. Unlike
+    // `Select` (which never moves real focus — `aria-activedescendant`), this still needs to move
+    // real DOM focus itself once a landing index is found, the defining behavior of the
+    // roving-tabindex pattern `createRovingKeyDownHandler` normally provides — not reused here since
+    // that helper has no disabled-skipping concept of its own to extend.
+    const nextEnabledIndexFor = (key: string): number | null => {
+      if (items.length === 0) return null
+      let index = activeIndex
+      for (let i = 0; i < items.length; i++) {
+        const candidate = getNextRovingIndex(index, key, items.length, orientation)
+        if (candidate === null) return null
+        index = candidate
+        if (!items[index].disabled) return index
+      }
+      return null
+    }
+
+    const handleKeyDown = (event: NavigationKeyEvent) => {
+      const nextIndex = nextEnabledIndexFor(event.key)
+      if (nextIndex === null) return
+      event.preventDefault()
+      setValue(items[nextIndex].value)
+      getItemElement(nextIndex)?.focus()
+    }
 
     return h(
       'div',
@@ -101,6 +130,7 @@ export function createRadioGroup<E, Node>(
             checked: item.value === value,
             onClick: () => setValue(item.value),
             label: item.label,
+            disabled: item.disabled,
             tabIndex: index === activeIndex ? 0 : -1,
             children: item.children,
           }),

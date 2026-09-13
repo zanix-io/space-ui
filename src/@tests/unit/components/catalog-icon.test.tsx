@@ -78,6 +78,20 @@ Deno.test('CatalogIcon: keeps data-space-ui="icon" — the same hook Icon itself
   assertStringIncludes(html, 'data-space-ui="icon"')
 })
 
+for (const name of ['verified', 'clock', 'shield'] as const) {
+  Deno.test(
+    `CatalogIcon: '${name}' (a Zanix-original, non-Font-Awesome symbol) resolves like any other name`,
+    () => {
+      const html = renderToStaticMarkup(
+        <CatalogIcon name={name} href='/assets/icons/catalog.svg' />,
+      )
+
+      assertStringIncludes(html, `href="/assets/icons/catalog.svg#${name}"`)
+      assertStringIncludes(html, 'viewBox="0 0 24 24"')
+    },
+  )
+}
+
 Deno.test(
   'CatalogIcon: an unknown name is a compile-time error, never a silent broken sprite reference',
   () => {

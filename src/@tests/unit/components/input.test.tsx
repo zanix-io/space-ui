@@ -4,6 +4,8 @@ import { createRoot } from 'react-dom/client'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { assertEquals, assertStringIncludes } from '@std/assert'
 import { Input } from 'components/Input/index.ts'
+import { createInput } from 'components/Input/render.ts'
+import type { CreateElement } from 'typings/renderer.ts'
 
 // Same real-value-tracker-bypassing technique `combobox.test.tsx` already establishes and
 // explains in full — needed because React installs a "value tracker" on native inputs to
@@ -157,4 +159,46 @@ Deno.test('Input: composes cleanly with the props Field.children hands back', ()
   assertEquals(input.getAttribute('aria-invalid'), 'true')
 
   unmount()
+})
+
+// --- inputMode / onPaste / autoFocus (added for a six-box OTP/verification-code field consumer) -
+
+Deno.test('Input: inputMode passes straight through', () => {
+  const { container, unmount } = mount(<Input aria-label='Code' inputMode='numeric' />)
+  const input = must(container.querySelector<HTMLInputElement>('input'))
+  assertEquals(input.inputMode, 'numeric')
+  unmount()
+})
+
+Deno.test('Input: autoFocus passes straight through as a real native attribute', () => {
+  const html = renderToStaticMarkup(<Input aria-label='Code' autoFocus />)
+  assertStringIncludes(html, 'autofocus=""')
+})
+
+// Real DOM dispatch of a `paste` event through React's own synthetic event system hung this
+// process indefinitely under `happy-dom` (`dom-test-setup.ts` bridges `Event`/`MouseEvent`/
+// `KeyboardEvent`/`FocusEvent` only — no `ClipboardEvent`, and React's own paste plugin reading
+// `nativeEvent.clipboardData` off a plain bridged `Event` never resolves whatever it's awaiting).
+// `onPaste`'s own contract is a pure, untransformed passthrough (unlike `onChange`/`onInput`,
+// which have real per-renderer handling logic — see `render.ts`'s own doc) — verified instead at
+// the `createInput` factory level below, real DOM/React entirely bypassed, same confidence with
+// none of the hang risk.
+Deno.test('createInput: forwards inputMode/onPaste/autoFocus straight into the props object handed to h', () => {
+  const captured: { props: Record<string, unknown> | null } = { props: null }
+  const fakeH: CreateElement<null> = (_type, props) => {
+    captured.props = props
+    return null
+  }
+  const factoryInput = createInput<null>(
+    fakeH,
+    { useState: (initial) => [initial, () => {}] },
+    'onChange',
+  )
+  const onPaste = () => {}
+
+  factoryInput({ 'aria-label': 'Code', inputMode: 'numeric', onPaste, autoFocus: true })
+
+  assertEquals(captured.props?.inputMode, 'numeric')
+  assertEquals(captured.props?.onPaste, onPaste)
+  assertEquals(captured.props?.autoFocus, true)
 })

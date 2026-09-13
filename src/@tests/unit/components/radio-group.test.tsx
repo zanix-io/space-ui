@@ -248,3 +248,69 @@ Deno.test('RadioGroup: value takes precedence over defaultValue when both are gi
     'aria-checked="true"', // large
   ])
 })
+
+// --- disabled items --------------------------------------------------------------------------
+
+const itemsWithDisabled: RadioGroupItem[] = [
+  { value: 'small', children: 'Small', disabled: true },
+  { value: 'medium', children: 'Medium' },
+  { value: 'large', children: 'Large' },
+]
+
+Deno.test('RadioGroup: disabled forwards to the composed Button as a real disabled attribute', () => {
+  const html = renderToStaticMarkup(<RadioGroup items={itemsWithDisabled} label='Size' />)
+  assertStringIncludes(html, 'disabled=""')
+
+  const { container, unmount } = mount(<RadioGroup items={itemsWithDisabled} label='Size' />)
+  const [small, medium] = radios(container)
+  assertEquals(small.disabled, true)
+  assertEquals(medium.disabled, false)
+
+  unmount()
+})
+
+Deno.test(
+  'RadioGroup: nothing selected, first item disabled — the first ENABLED item is tabbable',
+  () => {
+    const html = renderToStaticMarkup(<RadioGroup items={itemsWithDisabled} label='Size' />)
+
+    const tabIndexes = html.match(/tabindex="(0|-1)"/g) ?? []
+    assertEquals(tabIndexes, ['tabindex="-1"', 'tabindex="0"', 'tabindex="-1"'])
+  },
+)
+
+Deno.test('RadioGroup: clicking a disabled item never selects it — real DOM', () => {
+  const calls: string[] = []
+  const { container, unmount } = mount(
+    <RadioGroup
+      items={itemsWithDisabled}
+      label='Size'
+      onValueChange={(next) => calls.push(next)}
+    />,
+  )
+  const [small] = radios(container)
+
+  act(() => small.click())
+
+  assertEquals(calls, [])
+  assertEquals(small.getAttribute('aria-checked'), 'false')
+
+  unmount()
+})
+
+Deno.test('RadioGroup: ArrowRight from the last enabled item skips a disabled one — real DOM', () => {
+  const { container, unmount } = mount(
+    <RadioGroup items={itemsWithDisabled} label='Size' defaultValue='large' />,
+  )
+  const [small, medium, large] = radios(container)
+
+  // `large` -> `ArrowRight` would land on `small` (index 0) next, but it's disabled — skip
+  // straight to `medium` instead, the next real enabled option after wrapping.
+  arrowKey(large, 'ArrowRight')
+
+  assertEquals(medium.getAttribute('aria-checked'), 'true')
+  assertEquals(document.activeElement, medium)
+  assertEquals(small.getAttribute('aria-checked'), 'false')
+
+  unmount()
+})

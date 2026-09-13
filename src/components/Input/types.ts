@@ -53,6 +53,29 @@ export type InputBaseProps = {
   name?: string
   id?: string
   className?: string
+  /** Native `inputmode` attribute (e.g. `'numeric'`, `'decimal'`, `'none'`) — a browser/virtual-
+   * keyboard hint only, never a validation constraint of its own; passed through verbatim, same
+   * thin-passthrough contract as `autoComplete`/`pattern`. Real, common need: a numeric-only OTP/
+   * verification-code field wants the phone's numeric keypad without actually being `type="number"`
+   * (which would also enable spinner arrows and reject a leading zero). */
+  inputMode?: 'none' | 'text' | 'tel' | 'url' | 'email' | 'numeric' | 'decimal' | 'search'
+  /** Fires on a native paste event, e.g. a code-entry field that wants to accept a whole
+   * clipboard-pasted code in one go rather than one character at a time. Real event, not a
+   * synthetic re-derivation — a caller that calls `event.preventDefault()` inside this handler
+   * (to fully own how the pasted text gets applied) sees the native `<input>`'s own value stay
+   * unchanged, exactly like any other native `onpaste` handler. */
+  onPaste?: (event: ClipboardEvent) => void
+  /** Native `autofocus` attribute — the browser itself focuses this element the moment it's
+   * parsed/inserted, with no `ref`/`useEffect` needed on either side. Deliberately NOT a `ref`
+   * prop instead: React 19 allows `ref` as a plain prop on a function component, but Preact core
+   * (no `preact/compat` dependency anywhere in this package) does not — a function-component
+   * vnode's `ref` resolves to Preact's own internal component wrapper, never the DOM node,
+   * confirmed against Preact's own `diff/children.js` (`childVNode._component || newDom`, and
+   * `_component` is always set for a function component). `autoFocus` sidesteps that renderer
+   * asymmetry entirely — the real, confirmed motivating need (a six-box OTP/verification-code
+   * field focusing itself on mount — see `@zanix/iam`'s own `ui/components/otp-code-field`) needs
+   * nothing more than this. */
+  autoFocus?: boolean
   /** Spread this straight from {@linkcode FieldRenderProps} (imported from
    * `components/Field/types.ts`, not restated here) when composing inside `Field` — same prop
    * name, same contract. */

@@ -237,3 +237,76 @@ Deno.test('RadioGroup (preact): value takes precedence over defaultValue', () =>
     'aria-checked="true"',
   ])
 })
+
+// --- disabled items --------------------------------------------------------------------------
+
+const itemsWithDisabled: RadioGroupItem[] = [
+  { value: 'small', children: 'Small', disabled: true },
+  { value: 'medium', children: 'Medium' },
+  { value: 'large', children: 'Large' },
+]
+
+Deno.test(
+  'RadioGroup (preact): disabled forwards to the composed Button as a real disabled attribute',
+  () => {
+    const html = renderToString(element({ items: itemsWithDisabled, label: 'Size' }))
+    // Preact's own server renderer serializes a boolean attribute bare (`disabled`), unlike
+    // React's `renderToStaticMarkup` (`disabled=""`) — same real, confirmed divergence this
+    // package's own other boolean-attribute tests already work around per renderer.
+    assertStringIncludes(html, '<button type="button" disabled ')
+
+    const { container, unmount } = mount({ items: itemsWithDisabled, label: 'Size' })
+    const [small, medium] = radios(container)
+    assertEquals(small.disabled, true)
+    assertEquals(medium.disabled, false)
+
+    unmount()
+  },
+)
+
+Deno.test(
+  'RadioGroup (preact): nothing selected, first item disabled — the first ENABLED item is tabbable',
+  () => {
+    const html = renderToString(element({ items: itemsWithDisabled, label: 'Size' }))
+
+    const tabIndexes = html.match(/tabindex="(0|-1)"/g) ?? []
+    assertEquals(tabIndexes, ['tabindex="-1"', 'tabindex="0"', 'tabindex="-1"'])
+  },
+)
+
+Deno.test('RadioGroup (preact): clicking a disabled item never selects it — real DOM', () => {
+  const calls: string[] = []
+  const { container, unmount } = mount({
+    items: itemsWithDisabled,
+    label: 'Size',
+    onValueChange: (next) => calls.push(next),
+  })
+  const [small] = radios(container)
+
+  act(() => small.click())
+
+  assertEquals(calls, [])
+  assertEquals(small.getAttribute('aria-checked'), 'false')
+
+  unmount()
+})
+
+Deno.test(
+  'RadioGroup (preact): ArrowRight from the last enabled item skips a disabled one',
+  () => {
+    const { container, unmount } = mount({
+      items: itemsWithDisabled,
+      label: 'Size',
+      defaultValue: 'large',
+    })
+    const [small, medium, large] = radios(container)
+
+    arrowKey(large, 'ArrowRight')
+
+    assertEquals(medium.getAttribute('aria-checked'), 'true')
+    assertEquals(document.activeElement, medium)
+    assertEquals(small.getAttribute('aria-checked'), 'false')
+
+    unmount()
+  },
+)

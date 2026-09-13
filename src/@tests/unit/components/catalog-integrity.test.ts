@@ -117,18 +117,52 @@ Deno.test('catalog.svg: is a small curated set, not the legacy 1446-symbol base.
   const svg = readCatalogSvg()
   const count = extractSymbols(svg).length
 
-  assertEquals(count, 17, 'expected exactly the 17 approved icons — not the full legacy sprite')
+  assertEquals(
+    count,
+    20,
+    'expected exactly the 17 Font Awesome icons plus the three Zanix-original',
+  )
   assert(count < 50, 'catalog.svg must stay a small curated set, never a full icon library')
 })
 
-Deno.test('catalog.svg: every path uses fill="currentColor", no hardcoded color', () => {
-  const svg = readCatalogSvg()
+// `verified`/`clock`/`shield` are the real, named exceptions — original Zanix artwork (see
+// NOTICE.md's own "Zanix-original addition" section), thin open-stroke glyphs, never a Font
+// Awesome solid shape.
+const ZANIX_ORIGINAL_IDS = ['verified', 'clock', 'shield']
 
-  assert(!/#[0-9a-fA-F]{3,8}\b/.test(svg), 'catalog.svg must not hardcode any hex color')
-  assert(!/\brgb\(/.test(svg), 'catalog.svg must not hardcode any rgb() color')
-  const fillCount = (svg.match(/fill="currentColor"/g) ?? []).length
-  assertEquals(fillCount, 17, 'every one of the 17 symbols must use fill="currentColor"')
-})
+Deno.test(
+  'catalog.svg: every FONT AWESOME symbol uses fill="currentColor", no hardcoded color',
+  () => {
+    const svg = readCatalogSvg()
+
+    assert(!/#[0-9a-fA-F]{3,8}\b/.test(svg), 'catalog.svg must not hardcode any hex color')
+    assert(!/\brgb\(/.test(svg), 'catalog.svg must not hardcode any rgb() color')
+    const fillCount = (svg.match(/fill="currentColor"/g) ?? []).length
+    const expectedFillCount = Object.keys(CATALOG_VIEWBOX).length - ZANIX_ORIGINAL_IDS.length
+    assertEquals(
+      fillCount,
+      expectedFillCount,
+      'every Font Awesome-sourced symbol must use fill="currentColor" — the Zanix-original ones are the only exception',
+    )
+  },
+)
+
+Deno.test(
+  'catalog.svg: every Zanix-original symbol is stroke-based, never fill="currentColor"',
+  () => {
+    const svg = readCatalogSvg()
+
+    for (const id of ZANIX_ORIGINAL_IDS) {
+      const match = svg.match(new RegExp(`<symbol id="${id}"[^]*?<\\/symbol>`))
+      assert(match, `expected a <symbol id="${id}"> in catalog.svg`)
+      assert(!match[0].includes('fill="currentColor"'), `${id} must never use fill="currentColor"`)
+      assert(
+        match[0].includes('stroke="currentColor"'),
+        `${id} must tint via stroke="currentColor", the same currentColor-inheritance principle every other symbol here already follows`,
+      )
+    }
+  },
+)
 
 Deno.test('catalog.svg: no external dependency — no script, no remote href/src target', () => {
   const svg = readCatalogSvg()
