@@ -1,7 +1,8 @@
 import { h } from 'preact'
 import type { VNode } from 'preact'
-import { useEffect, useId, useRef, useState } from 'preact/hooks'
+import { useRef } from 'preact/hooks'
 import type { CreateElement } from 'typings/renderer.ts'
+import { useImageLoadState } from 'shared/use-image-load-state.preact.ts'
 import { createAvatar } from './render.ts'
 import type { AvatarBaseProps } from './types.ts'
 
@@ -18,5 +19,5 @@ export type AvatarProps = AvatarBaseProps
  */
 export const Avatar: (props: AvatarProps) => VNode = createAvatar<VNode>(
   h as unknown as CreateElement<VNode>,
-  { useState, useId, useEffect, useRef },
+  { useRef, useImageLoadState },
 )

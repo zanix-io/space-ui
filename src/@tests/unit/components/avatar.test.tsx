@@ -56,6 +56,30 @@ Deno.test('Avatar: default size is md (48px)', () => {
   assertStringIncludes(html, 'width:48px')
 })
 
+// --- `data-avatar-id` stability (deriveStableCometId, not the renderer's own useId()) -----------
+
+Deno.test(
+  'Avatar: data-avatar-id is identical across two independent renders of the same props — proves ' +
+    "it's derived from props, never render order/a hydration-root-scoped counter",
+  () => {
+    const first = renderToStaticMarkup(<Avatar name='Ada Lovelace' size='lg' />)
+    const second = renderToStaticMarkup(<Avatar name='Ada Lovelace' size='lg' />)
+    const idOf = (html: string) => must(html.match(/data-avatar-id="([^"]+)"/))[1]
+    assertEquals(idOf(first), idOf(second))
+  },
+)
+
+Deno.test(
+  'Avatar: two instances sharing name but a different size never collide on data-avatar-id — the ' +
+    'one case that would otherwise scope the wrong sizeCss to the wrong instance',
+  () => {
+    const small = renderToStaticMarkup(<Avatar name='Ada Lovelace' size='sm' />)
+    const large = renderToStaticMarkup(<Avatar name='Ada Lovelace' size='lg' />)
+    const idOf = (html: string) => must(html.match(/data-avatar-id="([^"]+)"/))[1]
+    assertEquals(idOf(small) === idOf(large), false)
+  },
+)
+
 // --- image branch + onError fallback (real DOM) -----------------------------------------------
 
 Deno.test('Avatar: with src, renders a real Image with alt=name, no initials shown', () => {
@@ -194,3 +218,55 @@ Deno.test('Avatar: crossOrigin is omitted by default — never forced on a calle
 
   unmount()
 })
+
+// --- data-loaded / data-pending (shared/use-image-load-state.ts) -------------------------------
+
+Deno.test('Avatar: no src — neither data-loaded nor data-pending is set', () => {
+  const html = renderToStaticMarkup(<Avatar name='Ada Lovelace' />)
+  assertEquals(html.includes('data-loaded'), false)
+  assertEquals(html.includes('data-pending'), false)
+})
+
+Deno.test('Avatar: with src, before it resolves — data-pending is set, not data-loaded', () => {
+  const { container, unmount } = mount(
+    <Avatar name='Ada Lovelace' src='https://cdn.example.com/ada.jpg' />,
+  )
+  const root = must(container.querySelector('[data-space-ui="avatar"]'))
+  assertEquals(root.getAttribute('data-pending'), 'true')
+  assertEquals(root.getAttribute('data-loaded'), null)
+
+  unmount()
+})
+
+Deno.test('Avatar: a real load event sets data-loaded, clears data-pending', () => {
+  const { container, unmount } = mount(
+    <Avatar name='Ada Lovelace' src='https://cdn.example.com/ada.jpg' />,
+  )
+  const img = must(container.querySelector('img'))
+
+  act(() => img.dispatchEvent(new Event('load')))
+
+  const root = must(container.querySelector('[data-space-ui="avatar"]'))
+  assertEquals(root.getAttribute('data-loaded'), 'true')
+  assertEquals(root.getAttribute('data-pending'), null)
+
+  unmount()
+})
+
+Deno.test(
+  'Avatar: a real error event shows the initials fallback with neither data-loaded nor data-pending',
+  () => {
+    const { container, unmount } = mount(
+      <Avatar name='Ada Lovelace' src='https://cdn.example.com/broken.jpg' />,
+    )
+    const img = must(container.querySelector('img'))
+
+    act(() => img.dispatchEvent(new Event('error')))
+
+    const root = must(container.querySelector('[data-space-ui="avatar"]'))
+    assertEquals(root.getAttribute('data-loaded'), null)
+    assertEquals(root.getAttribute('data-pending'), null)
+
+    unmount()
+  },
+)

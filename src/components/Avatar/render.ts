@@ -1,19 +1,24 @@
 import type { CreateElement } from 'typings/renderer.ts'
+import type { ImageLoadState } from 'shared/image-load-state.ts'
+import { deriveStableCometId } from 'shared/stable-comet-id.ts'
 import { createImage } from '../Image/render.ts'
 import { getInitials } from './get-initials.ts'
 import type { AvatarBaseProps } from './types.ts'
 import { AVATAR_SIZE_PX } from './types.ts'
 
 /** The subset of hooks this component's shared body needs, injected alongside `h` — same
- * `render.ts`-factory technique `Input/render.ts`'s own `InputHooks` established. `useId` scopes
- * this component's own sizing CSS to a single instance — see `createAvatar`'s own "Sizing is real,
- * not decorative" doc. `useEffect` drives the already-broken-image detection described in "An
- * image already broken before hydration" below. */
+ * `render.ts`-factory technique `Input/render.ts`'s own `InputHooks` established.
+ * `useImageLoadState` is itself a per-renderer hook (`shared/use-image-load-state.ts`/`.preact.ts`),
+ * injected the same way `Popover/render.ts`'s own `PopoverHooks.usePosition` already is — it drives
+ * the already-broken/already-loaded detection described in "An image already broken before
+ * hydration" below. No `useId` here (unlike an earlier version of this file) — see `createAvatar`'s
+ * own "Sizing is real, not decorative" doc for why. */
 export type AvatarHooks = {
-  useState: <T>(initial: T) => [T, (value: T | ((current: T) => T)) => void]
-  useId: () => string
-  useEffect: (effect: () => void | (() => void), deps: unknown[]) => void
   useRef: <T>(initial: T) => { current: T }
+  useImageLoadState: (
+    src: string | undefined,
+    rootRef: { current: HTMLElement | null },
+  ) => ImageLoadState
 }
 
 /**
@@ -28,17 +33,17 @@ export type AvatarHooks = {
  *
  * ## Fallback state: derived during render, not a `useEffect`
  *
- * `imageFailed` resets to `false` the moment `src` itself changes to a new value — computed
- * synchronously during render (comparing against a `previousSrc` state slot, same technique
- * `MultiSelect/render.ts`'s own `optionsKey`/`previousOptionsKey` reset already establishes) rather
- * than a `useEffect`, so a caller swapping to a different, working image after a prior failure
- * shows it immediately on the very next render, with no extra effect-driven render pass in between.
+ * `failed`/`loaded` (from `shared/use-image-load-state.ts`'s own `useImageLoadState`, also this
+ * component's own new `Thumbnail` sibling's real second consumer) reset to `false` the moment `src`
+ * itself changes to a new value — see that hook's own doc for the full reset mechanism, not
+ * repeated here — so a caller swapping to a different, working image after a prior failure shows
+ * it immediately on the very next render, with no extra effect-driven render pass in between.
  *
  * ## Sizing is real, not decorative
  *
  * `width`/`height` (resolved from {@linkcode AvatarBaseProps.size}, a named token via
  * `AVATAR_SIZE_PX` or an explicit pixel number) are applied via a self-rendered
- * `<style nonce={nonce}>` element, scoped to this instance via `useId` — the same real
+ * `<style nonce={nonce}>` element, scoped to this instance via `data-avatar-id` — the same real
  * CLS-prevention/layout-reservation footing `Image.width`/`Image.height` already have, never a
  * "visual opinion" this package's own no-default-styling discipline would otherwise exclude, and
  * never an inline `style` attribute either (a real, confirmed CSP violation under a nonce-based
@@ -52,6 +57,19 @@ export type AvatarHooks = {
  * `types.ts`'s own `AvatarShape` doc for the full reasoning, the same "structural CSS lives in an
  * optional companion file" precedent `Card`'s own `card.css` already establishes.
  *
+ * `data-avatar-id` is `deriveStableCometId`'s own output (`shared/stable-comet-id.ts`), not the
+ * renderer's bare `useId()` an earlier version of this file used — the exact same hydration-root
+ * hazard that function's own doc diagnoses for `Menu`/`DatePicker` applies here too: `useId()` is
+ * only stable WITHIN one hydration root, counting from wherever that root's render starts, and
+ * `Avatar` can end up composed inside a ready-made Comet's own isolated hydration root just as
+ * easily as either of those (a page rendering more than one `Avatar` inside a Comet boundary is the
+ * common case, not an edge case, unlike `NavDrawer`'s own single `Menu`). Seeded from `name` and the
+ * resolved `pixels` (never `shape`, which the sizing CSS itself never reads) — both already
+ * identical between the server render and the client hydration, since they're plain props. Two
+ * `Avatar`s sharing the exact same `name` AND the same resolved size collide on id, same accepted,
+ * narrow residual `Menu`'s own doc already documents — harmless here specifically, since colliding
+ * instances would compute the identical `sizeCss` anyway.
+ *
  * ## Accessible name: always `name`, image or fallback either way
  *
  * The image branch passes {@linkcode AvatarBaseProps.name} straight through as `Image`'s own
@@ -60,34 +78,40 @@ export type AvatarHooks = {
  * real image" pattern, so a screen reader announces the person's name either way, never the literal
  * two-letter initials themselves.
  *
- * ## An image already broken before hydration
+ * ## An image already broken (or already loaded) before hydration
  *
- * `onError` only catches a failure that happens AFTER it's attached — a server-rendered `<img>`
- * can already have failed to load by the time this component's own client bundle hydrates
- * (especially likely for a fast DNS/404 failure), and that native `error` event, having fired on
- * an element with no listener yet, is gone for good. A `complete`/`naturalWidth` synchronous probe
- * on mount can't cover this: `jsdom`/`happy-dom` report EVERY `<img>` as `complete: true,
- * naturalWidth: 0` regardless of real load state (neither environment actually fetches/decodes
- * images), making that signal indistinguishable from "genuinely already failed" — a real, unusable
- * false positive, not just a test inconvenience, since the exact same ambiguity exists for a real
- * `<img>` a real browser hasn't started loading yet.
+ * `onError`/`onLoad` only catch an event that happens AFTER they're attached — a server-rendered
+ * `<img>` can already have failed, or already have finished loading, by the time this component's
+ * own client bundle hydrates (especially likely for a fast DNS/404 failure or a cache hit), and
+ * that native event, having fired on an element with no listener yet, is gone for good. A
+ * `complete`/`naturalWidth` synchronous probe on mount can't cover this: `jsdom`/`happy-dom` report
+ * EVERY `<img>` as `complete: true, naturalWidth: 0` regardless of real load state (neither
+ * environment actually fetches/decodes images), making that signal indistinguishable from
+ * "genuinely already failed" — a real, unusable false positive, not just a test inconvenience,
+ * since the exact same ambiguity exists for a real `<img>` a real browser hasn't started loading
+ * yet.
  *
- * `HTMLImageElement.decode()` doesn't have that ambiguity: it returns a promise that resolves once
- * the image is decoded and ready, or rejects if it can't be — including an image whose failure
- * already happened before this effect ever ran, since a real browser keeps that failed state on
- * the element rather than discarding it. An effect (client-only, so this never runs during SSR)
- * finds this instance's own `<img>` via a ref on the ROOT `<span>` (never one threaded into
- * `Image` itself, which deliberately exposes none — see its own doc; `querySelector('img')` inside
- * this component's own subtree is what reaches the real `<img>` `Image` renders) and calls
- * `decode()` once per `src`; a rejection swaps to the initials fallback the same way `onError`
- * does. Both mechanisms stay registered side by side rather than one replacing the other: `onError`
- * is cheaper and already covers the ordinary "fails after hydration" case with no promise
- * overhead, and an environment where `decode` isn't a function (feature-detected, never assumed)
- * falls back to `onError` alone, exactly today's behavior. `happy-dom`'s own `decode()` is a
- * permanently-resolving stub — real per-environment behavior, not a workaround here — so this
- * package's own test suite exercises the rejection path by overriding
+ * `shared/use-image-load-state.ts`'s own `useImageLoadState` closes this gap via
+ * `HTMLImageElement.decode()`, which has no such ambiguity: it returns a promise that resolves once
+ * the image is decoded and ready, or rejects if it can't be — either way reflecting whatever
+ * already happened before this hook's own effect ever ran, since a real browser keeps that
+ * resolved/failed state on the element rather than discarding it. See that hook's own doc for the
+ * full mechanism (why `decode()`, why a `querySelector` scoped to `rootRef`'s own subtree rather
+ * than a ref threaded into `Image` itself, which deliberately exposes none). `happy-dom`'s own
+ * `decode()` is a permanently-resolving stub — real per-environment behavior, not a workaround here
+ * — so this package's own test suite exercises the rejection path by overriding
  * `HTMLImageElement.prototype.decode` directly rather than relying on a real failure `happy-dom`
  * can't simulate; see `avatar.test.tsx`/`avatar-preact.test.tsx`'s own "decode() rejects" tests.
+ *
+ * ## `data-loaded`/`data-pending` — a real state, not just fail-vs-not
+ *
+ * The root `<span>` carries `data-loaded="true"` once the image has confirmed-loaded, or
+ * `data-pending="true"` while a real `src` is set and neither `loaded` nor `failed` has resolved
+ * yet — never both, and neither at all once the initials fallback is showing (nothing left
+ * pending or loaded once there's no image in the DOM). A consumer wanting a pending-state visual
+ * treatment (a pulse, a dimmed image) targets `[data-space-ui='avatar'][data-pending]` in its own
+ * CSS — this component ships no default look for it, same "`className`/`data-*` are the only
+ * styling mechanism" discipline every component here follows.
  *
  * ## `crossOrigin` — opt-in, forwarded unchanged to `Image`
  *
@@ -107,40 +131,18 @@ export function createAvatar<E>(
   return function Avatar(props: AvatarBaseProps): E {
     const { name, src, shape = 'circle', size = 'md', id, className, nonce, crossOrigin } = props
 
-    const avatarId = hooks.useId()
     const pixels = typeof size === 'number' ? size : AVATAR_SIZE_PX[size]
+    const avatarId = deriveStableCometId(JSON.stringify({ name, pixels }), 'avatar')
     const sizeCss =
       `[data-avatar-id='${avatarId}']{display:inline-block;width:${pixels}px;height:${pixels}px}`
 
-    const [previousSrc, setPreviousSrc] = hooks.useState(src)
-    const [imageFailed, setImageFailed] = hooks.useState(false)
-    if (src !== previousSrc) {
-      setPreviousSrc(src)
-      setImageFailed(false)
-    }
-
     const rootRef = hooks.useRef<HTMLSpanElement | null>(null)
+    const { failed, loaded, onLoad, onError } = hooks.useImageLoadState(src, rootRef)
 
-    // Catches a failure that already happened before this effect ran — see this function's own
-    // "An image already broken before hydration" doc above for the full "why `decode()`, why a
-    // `querySelector` scoped to this instance's own root rather than a ref threaded into `Image`".
-    hooks.useEffect(() => {
-      if (!src) return
-      const img = rootRef.current?.querySelector('img')
-      if (!img || typeof img.decode !== 'function') return
-      let cancelled = false
-      img.decode().catch(() => {
-        if (!cancelled) setImageFailed(true)
-      })
-      return () => {
-        cancelled = true
-      }
-    }, [src])
-
-    const showImage = Boolean(src) && !imageFailed
+    const showImage = Boolean(src) && !failed
 
     const content = showImage
-      ? Image({ src: src as string, alt: name, crossOrigin, onError: () => setImageFailed(true) })
+      ? Image({ src: src as string, alt: name, crossOrigin, onLoad, onError })
       : h(
         'span',
         { role: 'img', 'aria-label': name, 'data-space-ui': 'avatar-initials' },
@@ -156,6 +158,8 @@ export function createAvatar<E>(
         'data-space-ui': 'avatar',
         'data-shape': shape,
         'data-avatar-id': avatarId,
+        'data-loaded': showImage && loaded ? 'true' : undefined,
+        'data-pending': showImage && !loaded ? 'true' : undefined,
       },
       h('style', { key: 'style', nonce }, sizeCss),
       content,

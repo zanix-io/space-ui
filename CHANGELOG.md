@@ -5,9 +5,66 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/) and this project
 adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-## [2.1.0-rc.6] - 2026-09-13
+## [2.1.0] - 2026-09-13
+
+### Fixed
+
+- **`Avatar`** — its self-rendered sizing `<style>` was scoped via the renderer's own bare
+  `useId()`, the same hydration-root hazard already fixed in `Menu`/`DatePicker`: stable only WITHIN
+  one hydration root, so a page composing more than one `Avatar` inside a Comet's own isolated
+  hydration boundary (the common case for this component, not an edge case) could mismatch between
+  the server render and the client hydration. Now uses `deriveStableCometId`
+  (`shared/stable-comet-id.ts`), seeded from `name` and the resolved pixel size — both already
+  identical on both sides — same accepted, narrow residual (two `Avatar`s sharing name AND size
+  collide on id, harmless since they'd compute the same `sizeCss` anyway) `Menu`'s own doc already
+  documents. Drops the `useId` hook from `AvatarHooks` entirely — no longer needed.
+
+### Changed
+
+- **`Avatar`** — its own previously-inline `imageFailed`/`decode()` mechanism now consumes the new
+  `shared/use-image-load-state.ts`/`.preact.ts` (below) instead of a local copy — no public contract
+  change (same props, same initials-fallback behavior). Also now exposes
+  `data-loaded`/`data-pending` on its own root, reflecting a real `loaded` state this component
+  never tracked explicitly before (previously only fail-vs-not) — additive, nothing existing changes
+  shape.
+- **`shared/use-image-load-state.ts`/`.preact.ts`** (new, internal — not exported from
+  `mod.ts`/`mod-preact.ts`, same "no consumer-app evidence yet points at wanting this as its own
+  public primitive" bar `script-loader-dom.ts` is held to) — the real, confirmed load/fail/pending
+  signal for an `<img>` a component doesn't fully control the mount timing of: `onLoad`/`onError`
+  pass-through PLUS an `HTMLImageElement.decode()` probe catching a load or a failure that already
+  happened before hydration (a real gap `onLoad`/`onError` alone can't close, since neither native
+  event fires for something that already happened before a listener attaches). Extracted from
+  `Avatar/render.ts`'s own previously-inline version once `Thumbnail` needed the identical mechanism
+  — a real, confirmed second consumer, not a speculative extraction. The result TYPE
+  (`ImageLoadState`) lives in its own new, dependency-free `shared/image-load-state.ts` (no
+  `react`/`preact` import at all), so `Avatar`'s and `Thumbnail`'s shared `render.ts` bodies can
+  import it without ever reaching either per-renderer hook file's own real code dependency —
+  `deno
+  info`'s own dependency listing is per-module, not per-import-site, so a module reached
+  only through a `type`-only edge still reports every one of its own real code dependencies too.
+  Confirmed via this package's own `dependency-boundary.test.ts` (a new `Thumbnail` row in
+  `ROOT_BARREL_COMPONENTS`, both entrypoints re-verified to still never cross-reach the other
+  renderer's own package).
 
 ### Added
+
+- **`Thumbnail`** — a new root-barrel component, `Avatar`'s closest sibling for non-person image
+  content (a product photo, a video thumbnail, ...): a real, confirmed duplication gap closed — a
+  consumer app had reimplemented `Avatar`'s own `onError`/`decode()` mechanism almost verbatim in
+  its own local Comet, since `Image` is deliberately unopinionated (no internal load state) and
+  nothing in this catalog covered "an image with a caller-supplied fallback" for content with no
+  derivable stand-in the way `Avatar`'s own initials are. `fallback: () => Node` is a required
+  render-prop (never a fixed built-in icon — the fallback content varies per consumer, a gallery
+  icon vs. a video-camera glyph vs. anything else). Composes the unmodified, comet-safe root-barrel
+  `Image` for the real image, and the new `shared/use-image-load-state.ts`/`.preact.ts` (see below)
+  for the real pending/loaded/failed detection. While pending, also composes the unmodified
+  `Skeleton` as a sibling of the still-loading `<img>` — never a replacement for it, since the real
+  `<img>` has to stay mounted for the load/decode detection to have anything to observe — unmounted
+  the moment `loaded`/`failed` resolves either way; `Skeleton` itself still ships no
+  width/height/animation opinion of its own, so this composition costs nothing beyond what a
+  consumer already invested in styling `[data-space-ui='skeleton']` elsewhere. Exposes
+  `data-loaded`/`data-pending` on its own root — never both, and neither at all once the fallback is
+  showing. Zero `@zanix/space` dependency, ships from the root barrel (`.`/`./preact`).
 
 - **`Input.inputMode`/`onPaste`/`autoFocus`** — three real gaps closed together, all needed by the
   same confirmed motivating consumer: a six-box OTP/verification-code field (`@zanix/iam`'s own new
@@ -45,11 +102,6 @@ adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
   — tinted via `stroke="currentColor"` rather than the other 17 symbols' `fill="currentColor"`, both
   documented in `NOTICE.md`'s own new "Zanix-original additions" section and enforced by
   `catalog-integrity.test.ts`.
-
-## [2.1.0] - 2026-09-08
-
-### Added
-
 - **`PasswordInput`**, **`Countdown`**, **`Avatar`**, **`Chip`**, **`EmptyState`** — five new
   components, all zero-`@zanix/space` dependency, shipping from the default `.`/`./preact` barrel.
   See `docs/architecture.md`'s build-order table (rows 25–29) and `README.md`'s "Current status" for

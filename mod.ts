@@ -309,6 +309,14 @@ export type { AvatarProps } from 'components/Avatar/index.ts'
 export type { AvatarBaseProps, AvatarShape, AvatarSize } from 'components/Avatar/types.ts'
 export { AVATAR_SIZE_PX } from 'components/Avatar/types.ts'
 
+// `Thumbnail` — `Avatar`'s closest sibling for non-person image content (a product photo, a video
+// thumbnail, ...): composes the unmodified, comet-safe root-barrel `Image` and `Skeleton`, plus
+// `shared/use-image-load-state.ts` (extracted from `Avatar`'s own previously-inline `onError`/
+// `decode()` pair, now a real, confirmed second consumer). Zero `@zanix/space` dependency.
+export { Thumbnail } from 'components/Thumbnail/index.ts'
+export type { ThumbnailProps } from 'components/Thumbnail/index.ts'
+export type { ThumbnailBaseProps } from 'components/Thumbnail/types.ts'
+
 // `Chip` — composes the unmodified `Button` (plus `shared/close-button-icon.ts`'s own default
 // glyph) for its own removable variant's remove control; zero `@zanix/space` dependency.
 export { Chip } from 'components/Chip/index.ts'

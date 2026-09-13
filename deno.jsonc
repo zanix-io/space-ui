@@ -1,6 +1,6 @@
 {
   "name": "@zanix/space-ui",
-  "version": "2.1.0-rc.6",
+  "version": "2.1.0",
   "zanix": {
     "project": "library"
   },
@@ -192,7 +192,9 @@
     "./runtime/rich-text": "./src/runtime/rich-text.ts",
     "./runtime/rich-text/preact": "./src/runtime/rich-text.preact.ts",
     "./runtime/nav-drawer": "./src/runtime/nav-drawer.ts",
-    "./runtime/nav-drawer/preact": "./src/runtime/nav-drawer.preact.ts"
+    "./runtime/nav-drawer/preact": "./src/runtime/nav-drawer.preact.ts",
+    "./runtime/catalog-icon": "./src/runtime/catalog-icon.ts",
+    "./runtime/catalog-icon/preact": "./src/runtime/catalog-icon.preact.ts"
   },
   "nodeModulesDir": "auto",
   "publish": {

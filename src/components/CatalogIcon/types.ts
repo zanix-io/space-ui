@@ -40,6 +40,12 @@ export type CatalogIconName =
   | 'triangle-exclamation'
   | 'circle-info'
   | 'circle-check'
+  | 'heart'
+  | 'globe'
+  | 'users'
+  | 'user-check'
+  | 'lock'
+  | 'trash'
   | 'verified'
   | 'clock'
   | 'shield'
@@ -74,6 +80,12 @@ export const CATALOG_VIEWBOX: Record<CatalogIconName, string> = {
   'triangle-exclamation': '0 0 512 512',
   'circle-info': '0 0 512 512',
   'circle-check': '0 0 512 512',
+  heart: '0 0 512 512',
+  globe: '0 0 512 512',
+  users: '0 0 640 512',
+  'user-check': '0 0 640 512',
+  lock: '0 0 384 512',
+  trash: '0 0 448 512',
   verified: '0 0 24 24',
   clock: '0 0 24 24',
   shield: '0 0 24 24',

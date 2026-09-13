@@ -1,7 +1,8 @@
-import { useEffect, useId, useRef, useState } from 'react'
+import { useRef } from 'react'
 import type { ReactElement } from 'react'
 import type { CreateElement } from 'typings/renderer.ts'
 import { createElementWithNonceHydrationFix } from 'shared/create-element-nonce-hydration-fix.ts'
+import { useImageLoadState } from 'shared/use-image-load-state.ts'
 import { createAvatar } from './render.ts'
 import type { AvatarBaseProps } from './types.ts'
 
@@ -34,5 +35,5 @@ export type AvatarProps = AvatarBaseProps
  */
 export const Avatar: (props: AvatarProps) => ReactElement = createAvatar<ReactElement>(
   createElementWithNonceHydrationFix as unknown as CreateElement<ReactElement>,
-  { useState, useId, useEffect, useRef },
+  { useRef, useImageLoadState },
 )

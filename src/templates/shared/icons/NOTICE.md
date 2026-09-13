@@ -27,7 +27,7 @@ generated project, copied by hand, etc.).
 
 ## What was curated (the change being indicated, per CC BY 4.0 §3)
 
-- **17 icons selected**, all from the `solid` style. Zero brand/social icons — Font Awesome's own
+- **23 icons selected**, all from the `solid` style. Zero brand/social icons — Font Awesome's own
   license file carries a separate restriction for those ("do not use brand logos for any purpose
   except to represent the company, product, or service to which they refer"), and this catalog never
   touches that question because it doesn't include any.
@@ -43,12 +43,14 @@ generated project, copied by hand, etc.).
 - `svgo@^3`'s `cleanupIds` transform, left unguided, strips every `<symbol id>` down to none if run
   against a multi-symbol sprite like this one — see `docs/icons.md` ("SVG optimization") for how a
   build step should configure `svgo` to preserve them.
-- **10 of the 17 have prior usage** in Zanix's own component libraries; the other **7 are
-  additions** to round out the default set.
-- **The public name of one icon differs from its upstream file name**: `search` is sourced from Font
-  Awesome's `magnifying-glass.svg` — Zanix's own chosen vocabulary, not inherited verbatim from the
-  provider, so a future source swap never has to rename this icon's public id.
-- Each symbol keeps its own real `viewBox` — NOT normalized to a single shared value (7 of the 17
+- **10 of the original 17 have prior usage** in Zanix's own component libraries; **7 rounded out**
+  that first curated set; **6 more** (`heart`/`globe`/`users`/`user-check`/`lock`/`trash`) were
+  added for a real, concrete consumer — see "Real-world additions" below.
+- **The public name of two icons differs from their upstream file name**: `search` is sourced from
+  Font Awesome's `magnifying-glass.svg`, `trash` from `trash-can.svg` — Zanix's own chosen
+  vocabulary, not inherited verbatim from the provider, so a future source swap never has to rename
+  either icon's public id.
+- Each symbol keeps its own real `viewBox` — NOT normalized to a single shared value (11 of the 23
   use a narrower box than `0 0 512 512`; see `CATALOG_VIEWBOX` in `@zanix/space-ui`'s own
   `src/components/CatalogIcon/types.ts`).
 - Every path kept its original `fill="currentColor"` — no color was hardcoded, so the catalog tints
@@ -59,8 +61,8 @@ generated project, copied by hand, etc.).
 
 Font Awesome's own `LICENSES/fontawesome-free-7.3.1.txt` states: _"Downloaded Font Awesome Free
 files already contain embedded comments with sufficient attribution."_ Rather than duplicate that
-comment 17 times (one per symbol), this sprite carries **one combined attribution comment** at the
-top of `catalog.svg`, copied verbatim from the source files:
+comment once per symbol, this sprite carries **one combined attribution comment** at the top of
+`catalog.svg`, copied verbatim from the source files:
 
 ```
 <!--! Font Awesome Free 7.3.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2026 Fonticons, Inc. -->
@@ -69,14 +71,35 @@ top of `catalog.svg`, copied verbatim from the source files:
 Do not remove this comment when copying/regenerating this file — see Font Awesome's own request in
 their license ("we ask that you do not actively work to remove them from files").
 
-## The 17 Font Awesome icons in this catalog
+## The 23 Font Awesome icons in this catalog
 
 `spinner`, `close`, `gear`, `phone`, `envelope`, `arrow-up`, `arrow-down`, `arrow-left`,
 `arrow-right`, `map-location-dot`, `search`, `check`, `plus`, `minus`, `triangle-exclamation`,
-`circle-info`, `circle-check` — this list, `CatalogIconName` (`@zanix/space-ui`'s
-`src/components/CatalogIcon/types.ts`), `CATALOG_VIEWBOX`, and the `<symbol id="...">` set inside
-`catalog.svg` are meant to always agree exactly; `space-ui`'s own test suite checks this (see
-`catalog-integrity.test.ts`).
+`circle-info`, `circle-check`, `heart`, `globe`, `users`, `user-check`, `lock`, `trash` — this list,
+`CatalogIconName` (`@zanix/space-ui`'s `src/components/CatalogIcon/types.ts`), `CATALOG_VIEWBOX`,
+and the `<symbol id="...">` set inside `catalog.svg` are meant to always agree exactly; `space-ui`'s
+own test suite checks this (see `catalog-integrity.test.ts`).
+
+## Real-world additions: `heart`, `globe`, `users`, `user-check`, `lock`, `trash`
+
+Added for `@presenza/web`'s own wishlist workspace (a "who can see this list" audience picker —
+`everyone`/`connections`/`custom-include`/`custom-include`-empty, the same `VisibilityScope`
+primitive `@presenza/domain-kit` documents as reusable across any audience-scoped content) — a real
+consumer need, not a speculative "might want this later" addition:
+
+- **`heart`** — a saved/favorites-list indicator.
+- **`globe`** — "everyone can see this."
+- **`users`** — "only my connections."
+- **`user-check`** — "only these specific people."
+- **`lock`** — "only me."
+- **`trash`** — a delete action — this one has no audience-picker role at all, added alongside the
+  other five because it filled a real, separate gap in this catalog (no delete/remove glyph existed
+  here yet, despite `close`/`minus` covering adjacent but distinct actions) surfaced by the same
+  feature.
+
+All six are stock Font Awesome Free 7.3.1 Solid icons — no different in provenance/license from the
+original 17, just curated later, against a real call site instead of "rounding out" the set in the
+abstract.
 
 ## Zanix-original additions: `verified`, `clock`, `shield`
 

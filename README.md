@@ -32,7 +32,7 @@ ahead of time:
 - ✅ **`Icon`** — an SVG sprite icon (`<svg><use href="#..." /></svg>`). Takes an already-resolved
   sprite `href`, a symbol `name`, and an explicit `viewBox` — no client-side fetch-and-sniff, no
   flash of an empty icon while a real `viewBox` loads in.
-- ✅ **`CatalogIcon`** — `Icon`, pre-wired to an optional, curated default icon catalog (20 common
+- ✅ **`CatalogIcon`** — `Icon`, pre-wired to an optional, curated default icon catalog (26 common
   UI glyphs, `CC BY 4.0`-licensed, no brand icons). Resolves a known `name` to the catalog's own
   `viewBox` and delegates the render to the unmodified `Icon` — `href` is still yours to provide.
   Entirely opt-in: nothing here is loaded, imported, or scaffolded unless you reach for it. Built on
@@ -594,6 +594,16 @@ ahead of time:
   hostname but a different port (a common same-machine-different-service topology) gets that app's
   cookies attached ambiently (cookies are host-scoped, never port-scoped), and the image host's own
   response can clobber the viewing app's real session cookie.
+- ✅ **`Thumbnail`** — `Avatar`'s closest sibling for non-person image content (a product photo, a
+  video thumbnail, ...): a required `fallback: () => Node` render-prop (never a fixed built-in icon)
+  stands in whenever `src` is omitted or the image fails to load, the same "already-happened-before-
+  hydration" detection `Avatar` has, via the shared `shared/use-image-load-state.ts`/`.preact.ts`
+  hook (extracted out of `Avatar`'s own previously-inline mechanism once this component needed the
+  identical one). Also exposes a real `loaded` state (new, not just fail-vs-not) as `data-loaded`/
+  `data-pending` on its own root — neither attribute is ever present alongside the fallback. While
+  pending, composes the unmodified `Skeleton` as a sibling of the still-loading `<img>` (unmounted
+  the moment it resolves either way), giving a consumer's existing `[data-space-ui='skeleton']` CSS
+  a free second use. Composes the unmodified, comet-safe root-barrel `Image` for the real image.
 - ✅ **`Chip`** — a pill-shaped label: static (informational) when `onRemove` is omitted, or
   removable (a real, keyboard-operable "×" button, `aria-label="Remove {label}"`) when it's given.
   Composes the unmodified `Button` plus `shared/close-button-icon.ts`'s own default glyph for the
@@ -609,7 +619,7 @@ ahead of time:
   render-props rather than a bundled `Button`/`Link` dependency — this leaf component stays
   decoupled from either, the caller composes whichever fits.
 
-All forty-five ship for **both React and Preact** (see [Installation](#installation)).
+All forty-six ship for **both React and Preact** (see [Installation](#installation)).
 
 Also included, though not a rendering component: **`IntlProvider`/`useIntl`/`createFormatter`** —
 this package's own ICU message-formatting runtime (`formatMessage(id, values)` for plain messages,

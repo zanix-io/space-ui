@@ -1,6 +1,6 @@
 # Default icon catalog
 
-An optional, curated set of 20 common UI icons (17 from Font Awesome, plus three original Zanix
+An optional, curated set of 26 common UI icons (23 from Font Awesome, plus three original Zanix
 glyphs — see "`catalog.svg`" below), available to any component/consumer through `CatalogIcon` — a
 thin resolver over the unmodified `Icon`, never a second icon system. This document covers the
 catalog's architecture, its license/attribution, and the `--icons` scaffold flag
@@ -35,17 +35,20 @@ no network call, no side effect anywhere in this package's module graph.
 
 ## `CatalogIconName`
 
-The 20 names are a closed TypeScript union, not a bare `string` — passing an unknown name is a
+The 26 names are a closed TypeScript union, not a bare `string` — passing an unknown name is a
 compile-time error, never a silently broken `<use href="...#undefined">` at runtime:
 
 `spinner`, `close`, `gear`, `phone`, `envelope`, `arrow-up`, `arrow-down`, `arrow-left`,
 `arrow-right`, `map-location-dot`, `search`, `check`, `plus`, `minus`, `triangle-exclamation`,
-`circle-info`, `circle-check`, `verified`, `clock`, `shield`.
+`circle-info`, `circle-check`, `heart`, `globe`, `users`, `user-check`, `lock`, `trash`, `verified`,
+`clock`, `shield`.
 
-Ten of these have real historical usage in the legacy Zanix codebase this package descends from; the
-other seven are deliberate additions, each justified individually (near-universal UI needs, or
+Ten of these have real historical usage in the legacy Zanix codebase this package descends from;
+seven more were deliberate additions, each justified individually (near-universal UI needs, or
 direct support for the `shared/behavior.css` patterns already rescued — see
-[`docs/styling.md`](./styling.md)). No brand/social icon is in this list — see below for why.
+[`docs/styling.md`](./styling.md)); the newest six (`heart`/`globe`/`users`/`user-check`/`lock`/
+`trash`) were added against a real consumer need instead — see `NOTICE.md`'s own "Real-world
+additions" section. No brand/social icon is in this list — see below for why.
 
 ## Building your own catalog with `createCatalogIcon`
 
@@ -57,7 +60,7 @@ createCatalogIcon: (h, viewBoxByName) => (props) => E
 ```
 
 `CatalogIcon` itself is exactly `createCatalogIcon(h, CATALOG_VIEWBOX)`, bound once per renderer at
-`index.ts`/`index.preact.ts`. Nothing about the factory is specific to that particular 20-icon set —
+`index.ts`/`index.preact.ts`. Nothing about the factory is specific to that particular 26-icon set —
 `viewBoxByName` is a plain parameter, so a project with its own curated sprite (a design system's
 icon set, a different vendor's, a subset of this catalog plus project-specific additions) gets the
 exact same "known `name` → real `viewBox`, no lookup at the call site, unknown `name` is a compile
@@ -92,7 +95,7 @@ The same call, once more with `preact`'s `h` in place of `createElement`, gives 
 look up — a single icon rendered with a `viewBox` you already know at the call site doesn't need a
 factory at all, `Icon` already covers that directly. `createCatalogIcon` earns its keep specifically
 when there's a set worth binding once, the same problem this package's own `CatalogIcon` solves for
-its curated 20 icons.
+its curated 26 icons.
 
 **When to reach for this instead of just extending `CATALOG_VIEWBOX`:** you can't —
 `CATALOG_VIEWBOX` and `CatalogIconName` are this package's own closed set, not extensible from
@@ -112,9 +115,9 @@ pays nothing for its existence — no CSS, no asset, no side effect, no network 
 ## `catalog.svg`
 
 A single, curated SVG sprite at `src/templates/shared/icons/catalog.svg` — one `<symbol id="...">`
-per `CatalogIconName`, each with its own real `viewBox` (not normalized to a shared value: 10 of the
-20 use a narrower box than the most common `0 0 512 512`, `verified`/`clock`/`shield`'s own
-`0 0 24 24` included). ~7 KB uncompressed, ~2 KB gzip. 17 of the 20 symbols are Font
+per `CatalogIconName`, each with its own real `viewBox` (not normalized to a shared value: 11 of the
+26 use a narrower box than the most common `0 0 512 512`, `verified`/`clock`/`shield`'s own
+`0 0 24 24` included). ~9 KB uncompressed, ~2.5 KB gzip. 23 of the 26 symbols are Font
 Awesome-sourced; `verified`/`clock`/`shield` are original Zanix artwork — see `NOTICE.md`'s own
 "Zanix-original addition" section.
 

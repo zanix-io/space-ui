@@ -473,6 +473,11 @@ export type { AvatarProps } from 'components/Avatar/index.preact.ts'
 export type { AvatarBaseProps, AvatarShape, AvatarSize } from 'components/Avatar/types.ts'
 export { AVATAR_SIZE_PX } from 'components/Avatar/types.ts'
 
+// See `mod.ts`'s own comment on `Thumbnail` — same reasoning, Preact binding.
+export { Thumbnail } from 'components/Thumbnail/index.preact.ts'
+export type { ThumbnailProps } from 'components/Thumbnail/index.preact.ts'
+export type { ThumbnailBaseProps } from 'components/Thumbnail/types.ts'
+
 export { Chip } from 'components/Chip/index.preact.ts'
 export type { ChipProps } from 'components/Chip/index.preact.ts'
 export type { ChipBaseProps } from 'components/Chip/types.ts'

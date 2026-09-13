@@ -349,6 +349,7 @@ const ROOT_BARREL_COMPONENTS = [
   'Table',
   'Tabs',
   'Textarea',
+  'Thumbnail',
   'Toast',
   'Tooltip',
   'Turnstile',
@@ -482,7 +483,7 @@ function expectedSubpathsFor(
   return renderer === 'React' ? perRenderer.react : perRenderer.preact
 }
 
-const ALL_RUNTIME_COMPONENTS = ['Video', 'Image', 'RichText', 'NavDrawer']
+const ALL_RUNTIME_COMPONENTS = ['Video', 'Image', 'CatalogIcon', 'RichText', 'NavDrawer']
 
 const RUNTIME_COMPONENTS: readonly RuntimeComponentExpectation[] = [
   {
@@ -502,6 +503,15 @@ const RUNTIME_COMPONENTS: readonly RuntimeComponentExpectation[] = [
     composes: [],
   },
   {
+    name: 'CatalogIcon',
+    reactEntry: 'src/runtime/catalog-icon.ts',
+    preactEntry: 'src/runtime/catalog-icon.preact.ts',
+    // Same shape as `Image`'s own row — `CatalogIcon/render.ts`'s `resolveFileHref` calls
+    // `resolveAssetHref` directly for a relative `href`, nothing else.
+    zanixSpaceSubpaths: ['assets-manifest'],
+    composes: [],
+  },
+  {
     name: 'RichText',
     reactEntry: 'src/runtime/rich-text.ts',
     preactEntry: 'src/runtime/rich-text.preact.ts',
@@ -509,8 +519,12 @@ const RUNTIME_COMPONENTS: readonly RuntimeComponentExpectation[] = [
     // `Image`'s/`Video`'s own `render.ts` factories for its `img`/`video` tags (and `ImgButton`'s
     // own `render.ts` for `ibtn` — not a `./runtime/*` sibling anymore, see this table's own header
     // comment) — `video-source` is reached transitively THROUGH composing `Video`, never directly.
+    // `CatalogIcon` is real composition too (`RichText/tags.ts`'s own `icon` tag, `createCatalogIcon
+    // (h, CATALOG_VIEWBOX)` with no resolver — comet-safe, matching `CatalogIcon`'s own root-barrel
+    // binding, never `./runtime/catalog-icon`'s auto-resolving one) — pre-existing, only surfaced
+    // once `CatalogIcon` joined `ALL_RUNTIME_COMPONENTS` below.
     zanixSpaceSubpaths: ['assets-manifest', 'video-source'],
-    composes: ['Image', 'Video'],
+    composes: ['Image', 'Video', 'CatalogIcon'],
   },
   {
     name: 'NavDrawer',
