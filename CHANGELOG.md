@@ -5,6 +5,30 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/) and this project
 adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [2.2.0] - 2026-09-13
+
+### Added
+
+- **`Button`: `aria-pressed` passthrough** — the WAI-ARIA "pressed button" toggle pattern (a button
+  that flips a persistent on/off state without changing its own implicit `role="button"`), same
+  "plain attribute passthrough" contract as the existing `aria-expanded`/`aria-controls`/
+  `aria-current` props — no component-owned toggle logic, forwarded verbatim to the real `<button>`.
+  Accepts the full ARIA token set (`true`/`false`/`'mixed'`). Closes a gap this package's own docs
+  already anticipated (`RadioGroup`'s and `docs/architecture.md`'s own notes on why a multi-select
+  toggle group was scoped out) — added once a real consumer needed it (`@presenza/web`'s wishlist
+  quick-add rows, a set of independently-pressable "add to this list" toggle buttons).
+
+- **`CatalogIconName`/`catalog.svg`: `bookmark`** — a "save this to a list" action icon, the
+  catalog's 27th symbol. Added against a real consumer need (a quick "add to wishlist" control on a
+  product card, `@presenza/web`'s own Discovery/Home grid), same "curated against an actual call
+  site, not rounded out in the abstract" bar every other real-world addition here already meets —
+  see `NOTICE.md`'s own "Real-world additions" section for the full accounting. Deliberately
+  distinct from `heart`: that name already means "the fixed Favorites list" specifically in that
+  same consumer's UI, so reusing it for a generic "add to ANY of my lists" action would overload one
+  glyph with two different meanings in the same app. Real Font Awesome Free 7.3.1 Solid source
+  (`bookmark.svg`), `viewBox="0 0 384 512"` — no different in provenance/license from the rest of
+  this catalog.
+
 ## [2.1.0] - 2026-09-13
 
 ### Fixed

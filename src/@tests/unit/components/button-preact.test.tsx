@@ -113,6 +113,30 @@ Deno.test('Button (preact): without aria-current, no such attribute is rendered'
   assertEquals(html.includes('aria-current'), false)
 })
 
+Deno.test('Button (preact): aria-pressed reaches the real DOM verbatim', () => {
+  const html = render(Button({ onClick: () => {}, 'aria-pressed': true, children: 'Bold' }))
+
+  assertStringIncludes(html, 'aria-pressed="true"')
+})
+
+Deno.test('Button (preact): aria-pressed={false} renders "false", never omitted', () => {
+  const html = render(Button({ onClick: () => {}, 'aria-pressed': false, children: 'Bold' }))
+
+  assertStringIncludes(html, 'aria-pressed="false"')
+})
+
+Deno.test('Button (preact): aria-pressed="mixed" is forwarded verbatim', () => {
+  const html = render(Button({ onClick: () => {}, 'aria-pressed': 'mixed', children: 'Bold' }))
+
+  assertStringIncludes(html, 'aria-pressed="mixed"')
+})
+
+Deno.test('Button (preact): without aria-pressed, no such attribute is rendered', () => {
+  const html = render(Button({ onClick: () => {}, children: 'Bold' }))
+
+  assertEquals(html.includes('aria-pressed'), false)
+})
+
 Deno.test(
   'Button (preact): name/value identify which submit button was pressed in a multi-action form',
   () => {

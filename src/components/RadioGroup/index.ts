@@ -29,8 +29,9 @@ export type RadioGroupProps = RadioGroupBaseProps & {
  * not how it's styled, so no separate component exists for that case. Deliberately does NOT cover a
  * multi-select toggle group (several independently-pressable buttons, `aria-pressed` rather than
  * `aria-checked`, no roving tabindex at all under the WAI-ARIA APG's own guidance) — a genuinely
- * different widget, `Button` doesn't support `aria-pressed` yet either, and nothing here has needed
- * it.
+ * different widget; `Button` now supports `aria-pressed` (a plain passthrough, see its own doc),
+ * but no dedicated multi-select toggle-group component exists here yet, since nothing has needed
+ * the roving/grouping behavior itself.
  *
  * First real consumer of `createRovingKeyDownHandler` (`shared/roving-focus.ts`), built ahead of
  * one — this is the concrete shape that justified it: the WAI-ARIA APG's own radiogroup pattern is

@@ -76,6 +76,21 @@ export type BaseButtonProps = {
    * also valid per spec, distinct from the enumerated tokens); most callers only ever need `true`.
    */
   'aria-current'?: boolean | 'page' | 'step' | 'location' | 'date' | 'time'
+  /**
+   * Plain native ARIA passthrough for the WAI-ARIA "pressed button" toggle pattern — a button that
+   * flips a persistent on/off state without changing its own implicit `role="button"`, unlike
+   * `role="switch"` (a real role change with its own required `checked` companion, see
+   * {@linkcode CheckedButtonRole}'s own doc) or a roving-tabindex `role="radio"` set (`RadioGroup`'s
+   * own single-select pattern). Same "plain attribute passthrough" contract as `title`/
+   * `aria-expanded`/`aria-current` above, forwarded verbatim as the literal `aria-pressed`
+   * attribute — no component-owned pressed/toggle logic lives here, the caller always owns whether
+   * the button is currently pressed, the same way `aria-current`'s caller owns the current
+   * selection. Accepts the full token set the ARIA spec defines for `aria-pressed` (`true`/`false`,
+   * or `'mixed'` for a toggle representing a partially-applied state across a mixed selection —
+   * e.g. a "bold" button while both bold and non-bold text are selected); most callers only ever
+   * need a plain boolean.
+   */
+  'aria-pressed'?: boolean | 'mixed'
 }
 
 /**

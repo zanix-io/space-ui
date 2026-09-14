@@ -118,6 +118,34 @@ Deno.test('Button: without aria-current, no such attribute is rendered', () => {
   assertEquals(html.includes('aria-current'), false)
 })
 
+Deno.test('Button: aria-pressed reaches the real DOM verbatim', () => {
+  const html = renderToStaticMarkup(<Button onClick={() => {}} aria-pressed>Bold</Button>)
+
+  assertStringIncludes(html, 'aria-pressed="true"')
+})
+
+Deno.test('Button: aria-pressed={false} renders the literal "false" string, never omitted', () => {
+  const html = renderToStaticMarkup(
+    <Button onClick={() => {}} aria-pressed={false}>Bold</Button>,
+  )
+
+  assertStringIncludes(html, 'aria-pressed="false"')
+})
+
+Deno.test('Button: aria-pressed="mixed" is forwarded verbatim', () => {
+  const html = renderToStaticMarkup(
+    <Button onClick={() => {}} aria-pressed='mixed'>Bold</Button>,
+  )
+
+  assertStringIncludes(html, 'aria-pressed="mixed"')
+})
+
+Deno.test('Button: without aria-pressed, no such attribute is rendered', () => {
+  const html = renderToStaticMarkup(<Button onClick={() => {}}>Bold</Button>)
+
+  assertEquals(html.includes('aria-pressed'), false)
+})
+
 Deno.test(
   'Button: without a role override, no role attribute is rendered (native semantics apply)',
   () => {

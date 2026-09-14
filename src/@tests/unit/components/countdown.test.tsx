@@ -196,16 +196,22 @@ Deno.test('Countdown: ring variant renders an SVG with two circles, data-variant
   clock.restore()
 })
 
-// `stroke-dashoffset`/`transition` live in the `<style nonce>` element's own text content, never an
-// inline `style` attribute — a real, confirmed CSP violation the previous `style`-object version had
-// under a nonce-based `style-src`; see `Countdown/render.ts`'s own doc, "every stroke declaration
-// lives in a self-rendered `<style nonce={nonce}>` element", for the full reasoning. This component
-// re-renders the whole CSS text fresh on every tick — read it off the `<style>` element's own
-// `textContent`, never `circle.style.strokeDashoffset` (there is no such inline style anymore).
+// `transition` lives in the `<style nonce>` element's own text content, never an inline `style`
+// attribute — a real, confirmed CSP violation the previous `style`-object version had under a
+// nonce-based `style-src`; see `Countdown/render.ts`'s own doc, "every stroke declaration lives in
+// a self-rendered `<style nonce={nonce}>` element", for the full reasoning.
+//
+// `stroke-dashoffset` specifically is deliberately NOT in that `<style>` text (a SECOND, later real
+// CSP violation this file's own doc account covers in full: re-touching an already-inserted nonce'd
+// `<style>` element's content on every tick broke the SAME way the original inline-`style` version
+// did) — it's a real SVG presentation ATTRIBUTE on the progress `<circle>` itself now, applied via a
+// direct `setAttribute` call in this component's own effect. Read it back the same way, never off
+// `circle.style.strokeDashoffset` (no such inline style either) nor the `<style>` text (it's not
+// there anymore).
 function progressStrokeDashoffset(root: Element): number {
-  const styleEl = must(root.querySelector('style'))
-  const match = (styleEl.textContent ?? '').match(/stroke-dashoffset:([\d.]+)px/)
-  return match ? Number.parseFloat(match[1]) : NaN
+  const circle = must(root.querySelector('circle[data-countdown-ring="progress"]'))
+  const raw = circle.getAttribute('stroke-dashoffset')
+  return raw ? Number.parseFloat(raw) : NaN
 }
 
 function progressTransition(root: Element): string | null {
@@ -226,6 +232,43 @@ Deno.test('Countdown: ring stroke-dashoffset shrinks toward zero as time elapses
   act(() => clock.advance(5000))
   const halfwayOffset = progressStrokeDashoffset(root)
   assertEquals(halfwayOffset > 0, true)
+
+  unmount()
+  clock.restore()
+})
+
+/**
+ * Real, confirmed CSP violation this closes (see `Countdown/render.ts`'s own top-of-file doc for
+ * the full account): re-touching an already-inserted nonce'd `<style>` element's own text content
+ * on every tick — which `stroke-dashoffset` living there used to do — broke under a real browser's
+ * CSP enforcement (`Applying inline style violates ... a nonce (...) is required`), even though
+ * this same jsdom-backed harness has no CSP engine of its own to reproduce that violation directly.
+ * What IS verifiable here, and is the actual code-level fix: the ring `<style>` element's own
+ * `nonce` attribute AND text content never change across ticks — proving nothing here calls back
+ * into it after the first render — while `stroke-dashoffset` keeps updating via the progress
+ * circle's own attribute instead.
+ */
+Deno.test('Countdown: the ring <style> element (nonce + text) never changes across ticks — only the circle attribute does', () => {
+  const clock = installIntervalClock()
+  const { root, unmount } = mount(
+    <Countdown target={Date.now() + 10_000} variant='ring' nonce='abc123' />,
+  )
+
+  const styleEl = must(root.querySelector('style[nonce]'))
+  const initialNonce = styleEl.getAttribute('nonce')
+  const initialStyleText = styleEl.textContent
+  assertEquals(initialNonce, 'abc123')
+  // No `stroke-dashoffset:` DECLARATION — `transition:...stroke-dashoffset 0.25s linear` (naming
+  // WHICH property to animate) legitimately contains that same substring, so this checks for the
+  // declaration form specifically, not a bare substring match.
+  assertEquals(/stroke-dashoffset:[\d.]/.test(initialStyleText ?? ''), false)
+
+  act(() => clock.advance(5000))
+
+  assertEquals(root.querySelector('style[nonce]'), styleEl) // same DOM node, never replaced
+  assertEquals(styleEl.getAttribute('nonce'), initialNonce)
+  assertEquals(styleEl.textContent, initialStyleText) // untouched — only the circle attribute moved
+  assertEquals(progressStrokeDashoffset(root) > 0, true)
 
   unmount()
   clock.restore()

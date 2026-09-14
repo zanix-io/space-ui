@@ -32,7 +32,7 @@ ahead of time:
 - ✅ **`Icon`** — an SVG sprite icon (`<svg><use href="#..." /></svg>`). Takes an already-resolved
   sprite `href`, a symbol `name`, and an explicit `viewBox` — no client-side fetch-and-sniff, no
   flash of an empty icon while a real `viewBox` loads in.
-- ✅ **`CatalogIcon`** — `Icon`, pre-wired to an optional, curated default icon catalog (26 common
+- ✅ **`CatalogIcon`** — `Icon`, pre-wired to an optional, curated default icon catalog (27 common
   UI glyphs, `CC BY 4.0`-licensed, no brand icons). Resolves a known `name` to the catalog's own
   `viewBox` and delegates the render to the unmodified `Icon` — `href` is still yours to provide.
   Entirely opt-in: nothing here is loaded, imported, or scaffolded unless you reach for it. Built on
@@ -58,9 +58,10 @@ ahead of time:
   an anchor styled to look like one). `onClick` optional, `name`/`value` for multi-action forms, no
   forced accessible-name prop when visible text already provides one. `role="switch"`/`"tab"`/etc.
   require their own WAI-ARIA companion state (`checked`/`selected`) at the type level — impossible
-  to forget, not just documented. Plain `aria-expanded`/`aria-controls`/`aria-current` passthrough
-  for any button that discloses, controls, or represents the current selection among others,
-  forwarded verbatim to the real `<button>`.
+  to forget, not just documented. Plain
+  `aria-expanded`/`aria-controls`/`aria-current`/`aria-pressed` passthrough for any button that
+  discloses, controls, represents the current selection among others, or toggles a persistent on/off
+  state without changing its own `role`, forwarded verbatim to the real `<button>`.
 - ✅ **`IFrame`** — a real, standalone `<iframe>` primitive (not private to any other component — a
   future `Video` embed, a map, a scheduling widget all reuse this same one). `title` is required — a
   real accessibility guarantee, never optional. `loading="lazy"` is browser-native, no

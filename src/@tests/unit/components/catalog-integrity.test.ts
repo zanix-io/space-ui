@@ -119,8 +119,8 @@ Deno.test('catalog.svg: is a small curated set, not the legacy 1446-symbol base.
 
   assertEquals(
     count,
-    26,
-    'expected exactly the 23 Font Awesome icons plus the three Zanix-original',
+    27,
+    'expected exactly the 24 Font Awesome icons plus the three Zanix-original',
   )
   assert(count < 50, 'catalog.svg must stay a small curated set, never a full icon library')
 })

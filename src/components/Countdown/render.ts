@@ -104,34 +104,59 @@ function defaultAnnouncement(remainingMs: number): string {
  * ## `'ring'` variant: every stroke declaration lives in a self-rendered `<style nonce={nonce}>`
  * element, never an inline `style` attribute
  *
- * `stroke-width`/`stroke-dasharray`/`stroke-dashoffset`/`stroke-linecap`/`transition` all used to be
- * applied via each circle's own inline `style` object — a real, confirmed CSP violation under a
- * nonce-based `style-src` (`@zanix/space`'s own zero-config default is exactly this shape): a CSP
- * nonce never applies to a `style="..."` attribute, only to a `<style>` element, and both React's
- * and Preact's own `style` PROP application go through that same attribute-level mechanism
- * internally (see `overlay-position-css.ts`'s own module doc for the full reasoning, identical
- * cause). Fixed the same way `Tooltip`/`Popover`/`Select` already fix their own dynamic positioning:
- * each circle carries a `data-countdown-ring-id`/`data-countdown-ring` marker instead of `style`,
- * and the actual declarations live in CSS text built fresh every render (this component already
- * re-renders on every `TICK_INTERVAL_MS` tick regardless, so recomputing this text alongside
- * `valueSpan`'s own text costs nothing extra) and rendered via a nonce'd `<style>` element —
+ * `stroke-width`/`stroke-dasharray`/`stroke-linecap`/`transition` all used to be applied via each
+ * circle's own inline `style` object — a real, confirmed CSP violation under a nonce-based
+ * `style-src` (`@zanix/space`'s own zero-config default is exactly this shape): a CSP nonce never
+ * applies to a `style="..."` attribute, only to a `<style>` element, and both React's and Preact's
+ * own `style` PROP application go through that same attribute-level mechanism internally (see
+ * `overlay-position-css.ts`'s own module doc for the full reasoning, identical cause). Fixed the
+ * same way `Tooltip`/`Popover`/`Select` already fix their own dynamic positioning: each circle
+ * carries a `data-countdown-ring-id`/`data-countdown-ring` marker instead of `style`, and the
+ * actual declarations live in CSS text rendered via a nonce'd `<style>` element —
  * `CountdownHooks.useId` scopes that CSS to THIS instance specifically, so two `Countdown` rings on
  * the same page never fight over the same rule. See `CountdownBaseProps.nonce`'s own doc for the
  * full CSP contract.
  *
- * `stroke-width`/`stroke-dasharray`/`stroke-dashoffset`/`stroke-linecap` are real SVG PRESENTATION
- * attributes with a hyphen in their own DOM name — a real, separately-confirmed React/Preact
- * divergence exists for the bare camelCase ATTRIBUTE form of these (React remaps it via its own
- * internal SVG attribute table; Preact does not, silently no-opping it) — moot here since every one
- * of them now lives in CSS text instead, never a JSX attribute or a `style` object either. Every
- * numeric value is given an explicit `'px'` suffix as a STRING in that CSS text for the identical
- * reason: React/Preact's own `style`-OBJECT default-unit handling for `stroke-width` diverges too
- * (unitless vs. `'px'`-appended), which building the CSS text as a plain string sidesteps entirely,
- * the same way the previous `style`-object version already did. `stroke`/`fill`/`cx`/`cy`/`r`/
- * `transform`/`opacity`/`viewBox` all stay plain attributes — none of them has a hyphenated real DOM
- * name, so neither divergence applies to any of them (the track circle's own dimming uses
- * whole-element `opacity` rather than `stroke-opacity` specifically to stay in this safe,
- * single-word set, harmless here since that circle's `fill` is already `'none'`).
+ * **`stroke-dashoffset` deliberately does NOT live in that `<style>` text — a real, confirmed CSP
+ * violation this fix closes.** It used to, alongside the other four declarations, recomputed fresh
+ * on every `TICK_INTERVAL_MS` tick. That worked for exactly one render: browsers hide a `<style>`
+ * element's own `nonce` from `getAttribute('nonce')` (masked to `""`) the instant its content is
+ * first applied — a deliberate anti-exfiltration measure, not a bug — and updating that SAME
+ * element's text content again later (the very next tick) re-triggers the browser's own CSP check
+ * against whatever it reads back for that attribute at THAT moment, which is no longer the real
+ * value. Confirmed live: `Applying inline style violates the following Content Security Policy
+ * directive 'style-src' ... a nonce (...) is required to enable inline execution` — thrown from
+ * inside `preact.js`, the SECOND tick onward, never the first, and the ring silently stops
+ * animating (this component has no error boundary of its own to catch a browser-level CSP
+ * violation; it isn't a thrown JS exception at all). `stroke-width`/`stroke-dasharray`/
+ * `stroke-linecap`/`transition` are all genuinely STATIC per instance (fixed at mount, from `size`/
+ * `strokeWidth`/`reducedMotion` — none of them change per tick) — only `stroke-dashoffset` does, so
+ * only it needed moving. It's now a real SVG presentation attribute, but deliberately NEVER a JSX
+ * prop at all — the real, separately-confirmed React/Preact divergence for this exact attribute's
+ * bare camelCase form (React remaps `strokeDashoffset` via its own internal SVG attribute table;
+ * Preact does not, silently no-opping it) has no spelling that satisfies both renderers at once
+ * (confirmed: the literal hyphenated string `'stroke-dashoffset'` as a prop key, which Preact DOES
+ * accept, makes React log `Invalid DOM property` and never actually apply it). Applied instead via
+ * a direct `progressRingRef.current.setAttribute('stroke-dashoffset', ...)` call in this
+ * component's own effect, on every render including the first — a plain DOM API call neither
+ * renderer's own prop diffing ever touches, sidestepping the divergence above AND the CSP timing
+ * issue (a plain attribute set via `setAttribute` isn't a "style" mechanism CSP's `style-src`
+ * governs at all). The markup carries no explicit `stroke-dashoffset` before that effect runs —
+ * harmless, since SVG's own default (`0`) already matches what `dashOffset` itself computes to
+ * before mount (`progress` starts at `1`, the "no `remainingMs` yet" SSR default, and
+ * `circumference * (1 - 1)` is `0`).
+ *
+ * `stroke-width`/`stroke-dasharray`/`stroke-linecap` are real SVG PRESENTATION attributes with a
+ * hyphen in their own DOM name too — moot for them since they stay in CSS text, never a JSX
+ * attribute or a `style` object either. Every numeric value in that CSS text is given an explicit
+ * `'px'` suffix as a STRING for the identical divergence reason `stroke-width` itself would
+ * otherwise hit as a `style`-OBJECT default-unit mismatch (unitless vs. `'px'`-appended) — building
+ * the CSS text as a plain string sidesteps that entirely, the same way the previous `style`-object
+ * version already did. `stroke`/`fill`/`cx`/`cy`/`r`/`transform`/`opacity`/`viewBox` all stay plain
+ * attributes — none of them has a hyphenated real DOM name, so neither divergence applies to any of
+ * them (the track circle's own dimming uses whole-element `opacity` rather than `stroke-opacity`
+ * specifically to stay in this safe, single-word set, harmless here since that circle's `fill` is
+ * already `'none'`).
  */
 export function createCountdown<E>(
   h: CreateElement<E>,
@@ -160,6 +185,14 @@ export function createCountdown<E>(
     const totalMsRef = hooks.useRef<number | null>(null)
     const completedRef = hooks.useRef(false)
     const announcedMinuteRef = hooks.useRef<number | null>(null)
+    // The one per-tick-varying ring declaration — see this module's own doc for why it's applied
+    // via a direct `setAttribute` call every tick instead of living in the nonce'd `<style>` text
+    // alongside the other, genuinely static ones.
+    const progressRingRef = hooks.useRef<
+      { setAttribute?: (name: string, value: string) => void } | null
+    >(
+      null,
+    )
 
     hooks.useEffect(() => {
       if (typeof matchMedia !== 'function') return
@@ -201,6 +234,27 @@ export function createCountdown<E>(
       return () => clearInterval(intervalId)
     }, [targetMs])
 
+    // Hoisted above the `variant === 'ring'` branch below — `useEffect` must run unconditionally,
+    // in the same order every render, so `dashOffset` (its own dependency) has to be computed out
+    // here regardless of `variant`. Harmless busywork on a `'numeric'` render (a few arithmetic ops,
+    // never used): keeping ONE computation rather than two in sync is worth more than skipping it.
+    const radius = (size - strokeWidth) / 2
+    const circumference = 2 * Math.PI * radius
+    const total = totalMsRef.current
+    const progress = remainingMs === null || !total
+      ? 1
+      : Math.min(1, Math.max(0, remainingMs / total))
+    const dashOffset = circumference * (1 - progress)
+
+    // Real, confirmed CSP violation this closes — see this module's own top-of-file doc for the
+    // full account of why `stroke-dashoffset` can never go back to living in the nonce'd `<style>`
+    // text alongside the other, genuinely static ring declarations. Applied directly, bypassing
+    // Preact's own prop diffing (and the real divergence it has for this attribute's bare camelCase
+    // JSX form) entirely — a no-op on a `'numeric'` render, where the ref below is never attached.
+    hooks.useEffect(() => {
+      progressRingRef.current?.setAttribute?.('stroke-dashoffset', `${dashOffset}px`)
+    }, [dashOffset])
+
     // Backs the live region's own `liveRegionProps`-supplied `VISUALLY_HIDDEN_ATTR` marker — a
     // self-rendered `<style nonce={nonce}>` element, never an inline `style` attribute (see this
     // module's own top-of-file doc). Rendered whenever the live region itself is, never otherwise.
@@ -213,20 +267,13 @@ export function createCountdown<E>(
     const valueSpan = h('span', { key: 'value', 'aria-hidden': 'true' }, valueText)
 
     if (variant === 'ring') {
-      const radius = (size - strokeWidth) / 2
-      const circumference = 2 * Math.PI * radius
-      const total = totalMsRef.current
-      const progress = remainingMs === null || !total
-        ? 1
-        : Math.min(1, Math.max(0, remainingMs / total))
-      const dashOffset = circumference * (1 - progress)
-
       const trackSelector = `[data-countdown-ring-id='${ringId}'][data-countdown-ring='track']`
       const progressSelector =
         `[data-countdown-ring-id='${ringId}'][data-countdown-ring='progress']`
+      // `stroke-dashoffset` deliberately absent — see this module's own top-of-file doc.
       const ringCss = `${trackSelector}{stroke-width:${strokeWidth}px}` +
         `${progressSelector}{stroke-width:${strokeWidth}px;stroke-linecap:round;` +
-        `stroke-dasharray:${circumference}px;stroke-dashoffset:${dashOffset}px;` +
+        `stroke-dasharray:${circumference}px;` +
         `transition:${reducedMotion ? 'none' : 'stroke-dashoffset 0.25s linear'}}`
 
       const ring = h(
@@ -251,6 +298,15 @@ export function createCountdown<E>(
           'data-countdown-ring': 'track',
         }),
         h('circle', {
+          // `ref` — see this module's own top-of-file doc: `stroke-dashoffset`, the one dynamic ring
+          // declaration, is deliberately NEVER a JSX prop here (React only recognizes it as its own
+          // camelCase `strokeDashoffset`; Preact only as this exact hyphenated string — no spelling
+          // satisfies both). Left unset in markup entirely — SVG's own default (`0`) already matches
+          // what `dashOffset` itself computes to before mount (`progress` starts at `1`, the "no
+          // remainingMs yet" SSR default, and `circumference * (1 - 1)` is `0`) — and applied for
+          // real, on every render including the first, via the `useEffect` above, a plain
+          // `setAttribute` call this component's normal prop diffing never touches either way.
+          ref: progressRingRef,
           cx: size / 2,
           cy: size / 2,
           r: radius,

@@ -27,7 +27,7 @@ generated project, copied by hand, etc.).
 
 ## What was curated (the change being indicated, per CC BY 4.0 §3)
 
-- **23 icons selected**, all from the `solid` style. Zero brand/social icons — Font Awesome's own
+- **24 icons selected**, all from the `solid` style. Zero brand/social icons — Font Awesome's own
   license file carries a separate restriction for those ("do not use brand logos for any purpose
   except to represent the company, product, or service to which they refer"), and this catalog never
   touches that question because it doesn't include any.
@@ -44,13 +44,13 @@ generated project, copied by hand, etc.).
   against a multi-symbol sprite like this one — see `docs/icons.md` ("SVG optimization") for how a
   build step should configure `svgo` to preserve them.
 - **10 of the original 17 have prior usage** in Zanix's own component libraries; **7 rounded out**
-  that first curated set; **6 more** (`heart`/`globe`/`users`/`user-check`/`lock`/`trash`) were
-  added for a real, concrete consumer — see "Real-world additions" below.
+  that first curated set; **7 more** (`heart`/`globe`/`users`/`user-check`/`lock`/`trash`/
+  `bookmark`) were added for a real, concrete consumer — see "Real-world additions" below.
 - **The public name of two icons differs from their upstream file name**: `search` is sourced from
   Font Awesome's `magnifying-glass.svg`, `trash` from `trash-can.svg` — Zanix's own chosen
   vocabulary, not inherited verbatim from the provider, so a future source swap never has to rename
   either icon's public id.
-- Each symbol keeps its own real `viewBox` — NOT normalized to a single shared value (11 of the 23
+- Each symbol keeps its own real `viewBox` — NOT normalized to a single shared value (12 of the 24
   use a narrower box than `0 0 512 512`; see `CATALOG_VIEWBOX` in `@zanix/space-ui`'s own
   `src/components/CatalogIcon/types.ts`).
 - Every path kept its original `fill="currentColor"` — no color was hardcoded, so the catalog tints
@@ -71,16 +71,16 @@ comment once per symbol, this sprite carries **one combined attribution comment*
 Do not remove this comment when copying/regenerating this file — see Font Awesome's own request in
 their license ("we ask that you do not actively work to remove them from files").
 
-## The 23 Font Awesome icons in this catalog
+## The 24 Font Awesome icons in this catalog
 
 `spinner`, `close`, `gear`, `phone`, `envelope`, `arrow-up`, `arrow-down`, `arrow-left`,
 `arrow-right`, `map-location-dot`, `search`, `check`, `plus`, `minus`, `triangle-exclamation`,
-`circle-info`, `circle-check`, `heart`, `globe`, `users`, `user-check`, `lock`, `trash` — this list,
-`CatalogIconName` (`@zanix/space-ui`'s `src/components/CatalogIcon/types.ts`), `CATALOG_VIEWBOX`,
-and the `<symbol id="...">` set inside `catalog.svg` are meant to always agree exactly; `space-ui`'s
-own test suite checks this (see `catalog-integrity.test.ts`).
+`circle-info`, `circle-check`, `heart`, `globe`, `users`, `user-check`, `lock`, `trash`, `bookmark`
+— this list, `CatalogIconName` (`@zanix/space-ui`'s `src/components/CatalogIcon/types.ts`),
+`CATALOG_VIEWBOX`, and the `<symbol id="...">` set inside `catalog.svg` are meant to always agree
+exactly; `space-ui`'s own test suite checks this (see `catalog-integrity.test.ts`).
 
-## Real-world additions: `heart`, `globe`, `users`, `user-check`, `lock`, `trash`
+## Real-world additions: `heart`, `globe`, `users`, `user-check`, `lock`, `trash`, `bookmark`
 
 Added for `@presenza/web`'s own wishlist workspace (a "who can see this list" audience picker —
 `everyone`/`connections`/`custom-include`/`custom-include`-empty, the same `VisibilityScope`
@@ -96,10 +96,15 @@ consumer need, not a speculative "might want this later" addition:
   other five because it filled a real, separate gap in this catalog (no delete/remove glyph existed
   here yet, despite `close`/`minus` covering adjacent but distinct actions) surfaced by the same
   feature.
+- **`bookmark`** — a "save this to a wishlist" action, for a quick-add control on a product card
+  (`@presenza/web`'s own Discovery/Home product grid) — deliberately distinct from `heart` above:
+  `heart` already means "the fixed Favorites list" specifically elsewhere in this same consumer's
+  UI, so reusing it here (a generic "add to ANY of my lists" action, not specifically Favorites)
+  would overload one glyph with two different meanings in the same app.
 
-All six are stock Font Awesome Free 7.3.1 Solid icons — no different in provenance/license from the
-original 17, just curated later, against a real call site instead of "rounding out" the set in the
-abstract.
+All seven are stock Font Awesome Free 7.3.1 Solid icons — no different in provenance/license from
+the original 17, just curated later, against a real call site instead of "rounding out" the set in
+the abstract.
 
 ## Zanix-original additions: `verified`, `clock`, `shield`
 

@@ -73,12 +73,15 @@ Deno.test('Countdown (preact): aria-live announces at whole-minute boundaries, n
   clock.restore()
 })
 
-// See `countdown.test.tsx`'s own identical helper doc — `stroke-dashoffset` lives in the
-// `<style nonce>` element's own text content, never an inline `style` attribute.
+// See `countdown.test.tsx`'s own identical helper doc — `stroke-dashoffset` is a real SVG
+// presentation attribute on the progress `<circle>` itself, applied via `setAttribute` in this
+// component's own effect, deliberately never a JSX prop (no spelling satisfies both renderers) and
+// never in the `<style nonce>` element's own text content either (re-touching that on every tick is
+// the exact CSP violation this fix closes).
 function progressStrokeDashoffset(root: Element): number {
-  const styleEl = must(root.querySelector('style'))
-  const match = (styleEl.textContent ?? '').match(/stroke-dashoffset:([\d.]+)px/)
-  return match ? Number.parseFloat(match[1]) : NaN
+  const circle = must(root.querySelector('circle[data-countdown-ring="progress"]'))
+  const raw = circle.getAttribute('stroke-dashoffset')
+  return raw ? Number.parseFloat(raw) : NaN
 }
 
 Deno.test('Countdown (preact): ring variant renders two circles, progress shrinks over time', () => {

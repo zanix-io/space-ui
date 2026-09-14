@@ -46,6 +46,7 @@ export type CatalogIconName =
   | 'user-check'
   | 'lock'
   | 'trash'
+  | 'bookmark'
   | 'verified'
   | 'clock'
   | 'shield'
@@ -53,8 +54,9 @@ export type CatalogIconName =
 /**
  * Per-name `viewBox`, matching the real upstream Font Awesome Free 7.3.1 SVG for each icon
  * (`unpkg.com/@fortawesome/fontawesome-free@7.3.1/svgs/solid/{file}.svg`) — NOT assumed uniform:
- * 7 of these 17 use a narrower viewBox (`384 512`, `448 512`, or `640 512`) than the rest's
- * `0 0 512 512`.
+ * 12 of these 24 use a narrower viewBox (`384 512`, `448 512`, or `640 512`) than the rest's
+ * `0 0 512 512`. (This count was stale at "7 of 17" — left over from before this catalog grew past
+ * its original 17-icon Font Awesome set; corrected here alongside adding `bookmark`.)
  *
  * The catalog symbol `id` is the name itself — no separate provider-specific id to track
  * (`search`'s own upstream file is `magnifying-glass.svg`; the public name is Zanix's own
@@ -86,6 +88,7 @@ export const CATALOG_VIEWBOX: Record<CatalogIconName, string> = {
   'user-check': '0 0 640 512',
   lock: '0 0 384 512',
   trash: '0 0 448 512',
+  bookmark: '0 0 384 512',
   verified: '0 0 24 24',
   clock: '0 0 24 24',
   shield: '0 0 24 24',

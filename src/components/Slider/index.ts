@@ -98,7 +98,8 @@ export type SliderProps = SliderBaseProps & { children: ReactNode }
  * there was no way at all to pause without a mouse. Here, a `Button` (rendered only when
  * `autoPlayInterval` is given) is the one explicit,
  * accessible mechanism — its own accessible name changes between "Pause slideshow"/"Play slideshow"
- * rather than needing an `aria-pressed` this package's `Button` doesn't expose. Hovering the
+ * rather than an `aria-pressed` toggle (`Button` supports `aria-pressed` too, see its own doc; the
+ * name-swap is the deliberate choice here, not a capability gap). Hovering the
  * carousel (`mouseenter`/`mouseleave`) is a real, kept complement, but a STRICTLY LOWER-PRIORITY
  * signal: it can only pause an otherwise-playing carousel, never resume one the user paused
  * manually — `hoverPaused` and `isPlaying` are two independent pieces of state precisely so
