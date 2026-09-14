@@ -353,6 +353,25 @@ Deno.test('Select (preact): the listbox is positioned via the trigger reference 
   unmount()
 })
 
+Deno.test('Select (preact): the listbox min-width matches the trigger — never narrower than the control it belongs to', () => {
+  const { container, unmount } = mount(basicProps())
+  const trigger = must(container.querySelector('button'))
+  stubRect(trigger, { x: 20, y: 40, width: 417, height: 38 })
+
+  act(() => {
+    trigger.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+  })
+  const listbox = must(container.querySelector<HTMLElement>('[data-space-ui="select-listbox"]'))
+  stubRect(listbox, { x: 0, y: 0, width: 186, height: 144 })
+
+  act(() => dispatchWindowEvent(new Event('resize')))
+
+  const rule = getDynamicRule(container, listbox, 'data-select-id')
+  assertEquals(rule.style.minWidth, '417px')
+
+  unmount()
+})
+
 // --- controlled / uncontrolled -----------------------------------------------------------------
 
 Deno.test('Select (preact): uncontrolled open — onOpenChange fires, still opens', () => {

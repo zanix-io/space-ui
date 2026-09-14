@@ -317,9 +317,13 @@ export function createMultiSelect<E>(
       return () => removeDynamicRule(styleEl, dynamicRuleRef)
     }, [listboxVisible])
 
-    // Applies the CSSOM rule's own `transform`/`visibility` on every position update —
+    // Applies the CSSOM rule's own `transform`/`visibility`/`min-width` on every position update —
     // `useLayoutEffect`, not `useEffect`, so this runs synchronously before the browser paints,
-    // same reasoning `Select`'s own identical effect documents.
+    // same reasoning `Select`'s own identical effect documents. `min-width` is the same real,
+    // confirmed fix `Select/render.ts`'s own identical effect documents in full (not repeated here)
+    // — this component's `<ul>` never had a width of its own either, purely relying on the same
+    // shrink-to-fit auto-sizing that can land narrower than the reference `<input>` for a long
+    // option label. Pinned to the `<input>`'s own measured width, same reasoning.
     hooks.useLayoutEffect(() => {
       const rule = dynamicRuleRef.current
       if (!rule) return
@@ -328,6 +332,10 @@ export function createMultiSelect<E>(
         position ? `translate(${position.x}px, ${position.y}px)` : '',
       )
       rule.style.setProperty('visibility', position ? 'visible' : 'hidden')
+      rule.style.setProperty(
+        'min-width',
+        position ? `${inputRef.current?.getBoundingClientRect().width ?? 0}px` : '',
+      )
     }, [position])
 
     const describedBy = [ariaDescribedBy, descriptionId].filter(Boolean).join(' ')

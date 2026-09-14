@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/) and this project
 adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [2.2.1] - 2026-09-14
+
+### Fixed
+
+- **`Select`/`MultiSelect`: listbox width never narrower than the control it belongs to** — neither
+  component's own listbox (`<ul>`, `position: fixed`) carried a width rule of its own beyond
+  `position`/`top`/`left`/margins, so the browser's shrink-to-fit sizing for a `width: auto` element
+  with wrapping option text could land narrower than the reference `<button>`/`<input>` once one
+  option's label ran long relative to the others — confirmed via a live repro (a 417px-wide trigger
+  next to a 186px listbox, an option reading "Solo personas específicas" wrapping/visually clipping
+  inside it). Each component's own dynamic per-instance CSSOM rule now also pins `min-width` to its
+  reference element's own measured width, applied in the same `useLayoutEffect` that already sets
+  `transform`/`visibility` — matching a native `<select>`'s own dropdown sizing, while still growing
+  wider for a genuinely longer label.
+
 ## [2.2.0] - 2026-09-13
 
 ### Added

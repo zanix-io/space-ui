@@ -559,6 +559,27 @@ Deno.test('MultiSelect: the listbox is positioned via the input reference rect',
   unmount()
 })
 
+Deno.test('MultiSelect: the listbox min-width matches the input — never narrower than the control it belongs to', () => {
+  const { container, unmount } = mount(<MultiSelect {...basicProps()} />)
+  const input = must(container.querySelector<HTMLInputElement>('input'))
+  stubRect(input, { x: 20, y: 40, width: 417, height: 38 })
+
+  act(() => {
+    input.dispatchEvent(new FocusEvent('focusin', { bubbles: true }))
+  })
+  const listbox = must(
+    container.querySelector<HTMLElement>('[data-space-ui="multi-select-listbox"]'),
+  )
+  stubRect(listbox, { x: 0, y: 0, width: 186, height: 144 })
+
+  act(() => dispatchWindowEvent(new Event('resize')))
+
+  const rule = getDynamicRule(container, listbox, 'data-multi-select-id')
+  assertEquals(rule.style.minWidth, '417px')
+
+  unmount()
+})
+
 // --- id/className ----------------------------------------------------------------------------
 
 Deno.test('MultiSelect: id/className land on the input', () => {

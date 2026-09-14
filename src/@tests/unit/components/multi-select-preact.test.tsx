@@ -462,6 +462,27 @@ Deno.test('MultiSelect (preact): the listbox is positioned via the input referen
   unmount()
 })
 
+Deno.test('MultiSelect (preact): the listbox min-width matches the input — never narrower than the control it belongs to', () => {
+  const { container, unmount } = mount(basicProps())
+  const input = must(container.querySelector<HTMLInputElement>('input'))
+  stubRect(input, { x: 20, y: 40, width: 417, height: 38 })
+
+  act(() => {
+    input.dispatchEvent(new Event('focus'))
+  })
+  const listbox = must(
+    container.querySelector<HTMLElement>('[data-space-ui="multi-select-listbox"]'),
+  )
+  stubRect(listbox, { x: 0, y: 0, width: 186, height: 144 })
+
+  act(() => dispatchWindowEvent(new Event('resize')))
+
+  const rule = getDynamicRule(container, listbox, 'data-multi-select-id')
+  assertEquals(rule.style.minWidth, '417px')
+
+  unmount()
+})
+
 Deno.test('MultiSelect (preact): nonce lands on the always-rendered wrapper <style> element', () => {
   const html = renderToString(h(MultiSelect, { nonce: 'abc123', options: [] }))
 

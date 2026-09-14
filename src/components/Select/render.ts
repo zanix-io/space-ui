@@ -164,9 +164,21 @@ export function createSelect<E>(
       return () => removeDynamicRule(styleEl, dynamicRuleRef)
     }, [open])
 
-    // Applies the CSSOM rule's own `transform`/`visibility` on every position update —
+    // Applies the CSSOM rule's own `transform`/`visibility`/`min-width` on every position update —
     // `useLayoutEffect`, not `useEffect`, so this runs synchronously before the browser paints,
     // same reasoning `Popover`'s own identical effect documents.
+    //
+    // `min-width` is the real fix for a confirmed bug: this component never gave its own `<ul>` any
+    // width at all (`SELECT_LISTBOX_POSITION_CSS` above only sets `position`/`top`/`left`/margins),
+    // so the browser's own shrink-to-fit sizing for a `position: fixed`, `width: auto` element with
+    // wrapping text (`select-option`'s CSS never opted out of the default `white-space: normal`)
+    // picks a box only as wide as the auto-sizing algorithm's own preferred-width heuristic — which
+    // can land narrower than the TRIGGER itself once one option's label is long relative to the
+    // others (confirmed via a live repro: a 417px-wide trigger next to a 186px listbox, an option
+    // reading "Solo personas específicas" wrapping/visually clipping inside it). Pinning `min-width`
+    // to the trigger's own measured width guarantees the listbox is never narrower than the control
+    // it belongs to — matching a native `<select>`'s own dropdown sizing — while still letting it
+    // grow wider for a genuinely longer label, same as before.
     hooks.useLayoutEffect(() => {
       const rule = dynamicRuleRef.current
       if (!rule) return
@@ -175,6 +187,10 @@ export function createSelect<E>(
         position ? `translate(${position.x}px, ${position.y}px)` : '',
       )
       rule.style.setProperty('visibility', position ? 'visible' : 'hidden')
+      rule.style.setProperty(
+        'min-width',
+        position ? `${referenceRef.current?.getBoundingClientRect().width ?? 0}px` : '',
+      )
     }, [position])
 
     hooks.useCloseOnOutside(containerRef, open, () => setOpen(false))
