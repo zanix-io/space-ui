@@ -29,6 +29,13 @@ function getCell(container: HTMLElement, iso: string): HTMLElement {
   return must(container.querySelector<HTMLElement>(`[data-date="${iso}"]`))
 }
 
+/** `closeAndRefocus`'s own real `<button>`-refocus is deliberately deferred to a macrotask (see
+ * that function's own doc, `DatePicker/render.ts`) — this real timer must actually fire before a
+ * test can observe `document.activeElement`. */
+function tick(): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, 0))
+}
+
 // --- SSR / structure -----------------------------------------------------------------------
 
 Deno.test('DatePicker: SSR — trigger shows the placeholder, closed, no panel', () => {
@@ -76,7 +83,7 @@ Deno.test('DatePicker: clicking the trigger opens the panel with a day grid', ()
 
 // --- selecting a day -------------------------------------------------------------------------
 
-Deno.test('DatePicker: clicking a day selects it, closes, and refocuses the trigger', () => {
+Deno.test('DatePicker: clicking a day selects it, closes, and refocuses the trigger', async () => {
   const values: (string | null)[] = []
   const { container, unmount } = mount(
     <DatePicker value='2024-05-10' onValueChange={(v) => values.push(v)} />,
@@ -90,6 +97,10 @@ Deno.test('DatePicker: clicking a day selects it, closes, and refocuses the trig
 
   assertEquals(values, ['2024-05-15'])
   assertEquals(container.querySelector('[data-space-ui="date-picker-panel"]'), null)
+
+  // `closeAndRefocus`'s own real `<button>`-refocus (see its own doc) is deliberately deferred to
+  // a macrotask to avoid Chromium's second synthesized click, not this test's own timing.
+  await tick()
   assertEquals(document.activeElement, trigger)
 
   unmount()
@@ -193,7 +204,7 @@ Deno.test('DatePicker: Shift+PageUp/PageDown moves the cursor by one year', () =
   unmount()
 })
 
-Deno.test('DatePicker: Enter commits the focused (cursor) day', () => {
+Deno.test('DatePicker: Enter commits the focused (cursor) day', async () => {
   const values: (string | null)[] = []
   const { container, unmount } = mount(
     <DatePicker value='2024-05-10' onValueChange={(v) => values.push(v)} />,
@@ -209,6 +220,10 @@ Deno.test('DatePicker: Enter commits the focused (cursor) day', () => {
   })
 
   assertEquals(values, ['2024-05-11'])
+
+  // Same deferred-refocus timing `closeAndRefocus`'s own doc explains — `commitDay` routes
+  // through it too (its own `Enter`/`Space` branch).
+  await tick()
   assertEquals(document.activeElement, trigger)
 
   unmount()
@@ -409,7 +424,7 @@ Deno.test('DatePicker: withTime — the hour spinbutton wraps from 23 to 0', () 
   unmount()
 })
 
-Deno.test('DatePicker: withTime — the "Done" button closes and refocuses the trigger', () => {
+Deno.test('DatePicker: withTime — the "Done" button closes and refocuses the trigger', async () => {
   const { container, unmount } = mount(<DatePicker withTime value='2024-05-10T09:30' />)
   const trigger = openPicker(container)
 
@@ -421,6 +436,10 @@ Deno.test('DatePicker: withTime — the "Done" button closes and refocuses the t
   })
 
   assertEquals(container.querySelector('[data-space-ui="date-picker-panel"]'), null)
+
+  // `closeAndRefocus`'s own real `<button>`-refocus (see its own doc) is deliberately deferred to
+  // a macrotask — "Done" calls it directly.
+  await tick()
   assertEquals(document.activeElement, trigger)
 
   unmount()

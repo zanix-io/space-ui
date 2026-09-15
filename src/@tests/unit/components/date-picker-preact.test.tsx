@@ -39,6 +39,12 @@ function getCell(container: HTMLElement, iso: string): HTMLElement {
   return must(container.querySelector<HTMLElement>(`[data-date="${iso}"]`))
 }
 
+/** See `date-picker.test.tsx`'s own `tick` doc for why `closeAndRefocus`'s refocus needs a real
+ * macrotask to fire before `document.activeElement` can be observed. */
+function tick(): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, 0))
+}
+
 // --- SSR / structure -----------------------------------------------------------------------
 
 Deno.test('DatePicker (preact): SSR — trigger shows the placeholder, closed, no panel', () => {
@@ -85,7 +91,7 @@ Deno.test('DatePicker (preact): clicking the trigger opens the panel with a day 
   unmount()
 })
 
-Deno.test('DatePicker (preact): clicking a day selects it, closes, and refocuses the trigger', () => {
+Deno.test('DatePicker (preact): clicking a day selects it, closes, and refocuses the trigger', async () => {
   const values: (string | null)[] = []
   const { container, unmount } = mount({
     value: '2024-05-10',
@@ -100,6 +106,10 @@ Deno.test('DatePicker (preact): clicking a day selects it, closes, and refocuses
 
   assertEquals(values, ['2024-05-15'])
   assertEquals(container.querySelector('[data-space-ui="date-picker-panel"]'), null)
+
+  // `closeAndRefocus`'s own real `<button>`-refocus (see its own doc) is deliberately deferred to
+  // a macrotask to avoid Chromium's second synthesized click, not this test's own timing.
+  await tick()
   assertEquals(document.activeElement, trigger)
 
   unmount()
@@ -250,7 +260,7 @@ Deno.test('DatePicker (preact): withTime — ArrowUp on the minute spinbutton wr
   unmount()
 })
 
-Deno.test('DatePicker (preact): withTime — "Done" closes and refocuses the trigger', () => {
+Deno.test('DatePicker (preact): withTime — "Done" closes and refocuses the trigger', async () => {
   const { container, unmount } = mount({ withTime: true, value: '2024-05-10T09:30' })
   const trigger = openPicker(container)
 
@@ -262,6 +272,10 @@ Deno.test('DatePicker (preact): withTime — "Done" closes and refocuses the tri
   })
 
   assertEquals(container.querySelector('[data-space-ui="date-picker-panel"]'), null)
+
+  // `closeAndRefocus`'s own real `<button>`-refocus (see its own doc) is deliberately deferred to
+  // a macrotask — "Done" calls it directly.
+  await tick()
   assertEquals(document.activeElement, trigger)
 
   unmount()

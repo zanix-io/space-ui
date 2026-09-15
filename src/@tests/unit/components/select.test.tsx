@@ -6,6 +6,13 @@ import { assertEquals, assertStringIncludes } from '@std/assert'
 import { Select } from 'components/Select/index.ts'
 import type { SelectOption } from 'components/Select/types.ts'
 
+/** `closeAndRefocus`'s own real `<button>`-refocus is deliberately deferred to a macrotask (see
+ * that function's own doc, `Select/render.ts`) — this real timer must actually fire before a test
+ * can observe `document.activeElement`. */
+function tick(): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, 0))
+}
+
 function stubRect(el: Element, rect: { x: number; y: number; width: number; height: number }) {
   el.getBoundingClientRect = () => ({
     ...rect,
@@ -142,7 +149,7 @@ Deno.test('Select: options render as role=option items with the given labels', (
   unmount()
 })
 
-Deno.test('Select: clicking an option selects, updates, closes, and refocuses', () => {
+Deno.test('Select: clicking an option selects, updates, closes, and refocuses', async () => {
   const values: (string | null)[] = []
   const { container, unmount } = mount(
     <Select
@@ -171,6 +178,10 @@ Deno.test('Select: clicking an option selects, updates, closes, and refocuses', 
   assertEquals(values, ['large'])
   assertEquals(trigger.textContent, 'Large')
   assertEquals(container.querySelector('[data-space-ui="select-listbox"]'), null)
+
+  // `closeAndRefocus`'s own real `<button>`-refocus (see its own doc) is deliberately deferred to
+  // a macrotask to avoid Chromium's second synthesized click, not this test's own timing.
+  await tick()
   assertEquals(document.activeElement, trigger)
 
   unmount()
@@ -329,7 +340,7 @@ Deno.test('Select: with every option disabled, arrow navigation selects nothing'
   unmount()
 })
 
-Deno.test('Select: Enter while open closes, refocuses the trigger, value unchanged', () => {
+Deno.test('Select: Enter while open closes, refocuses the trigger, value unchanged', async () => {
   const values: (string | null)[] = []
   const { container, unmount } = mount(
     <Select
@@ -352,6 +363,10 @@ Deno.test('Select: Enter while open closes, refocuses the trigger, value unchang
 
   assertEquals(values, [])
   assertEquals(container.querySelector('[data-space-ui="select-listbox"]'), null)
+
+  // Same deferred-refocus timing `closeAndRefocus`'s own doc explains — Enter routes through it
+  // too (`handleKeyDown`'s own `Enter`/`Space` branch).
+  await tick()
   assertEquals(document.activeElement, trigger)
 
   unmount()

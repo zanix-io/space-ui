@@ -168,17 +168,15 @@ export function createSelect<E>(
     // `useLayoutEffect`, not `useEffect`, so this runs synchronously before the browser paints,
     // same reasoning `Popover`'s own identical effect documents.
     //
-    // `min-width` is the real fix for a confirmed bug: this component never gave its own `<ul>` any
-    // width at all (`SELECT_LISTBOX_POSITION_CSS` above only sets `position`/`top`/`left`/margins),
-    // so the browser's own shrink-to-fit sizing for a `position: fixed`, `width: auto` element with
-    // wrapping text (`select-option`'s CSS never opted out of the default `white-space: normal`)
-    // picks a box only as wide as the auto-sizing algorithm's own preferred-width heuristic — which
-    // can land narrower than the TRIGGER itself once one option's label is long relative to the
-    // others (confirmed via a live repro: a 417px-wide trigger next to a 186px listbox, an option
-    // reading "Solo personas específicas" wrapping/visually clipping inside it). Pinning `min-width`
-    // to the trigger's own measured width guarantees the listbox is never narrower than the control
-    // it belongs to — matching a native `<select>`'s own dropdown sizing — while still letting it
-    // grow wider for a genuinely longer label, same as before.
+    // `min-width` keeps the listbox from ever rendering narrower than the trigger: this component
+    // gives its own `<ul>` no width rule of its own (`SELECT_LISTBOX_POSITION_CSS` above only sets
+    // `position`/`top`/`left`/margins), so a `position: fixed`, `width: auto` element with wrapping
+    // text (`select-option`'s CSS never opts out of the default `white-space: normal`) sizes itself
+    // to the browser's own shrink-to-fit preferred-width heuristic — narrower than the TRIGGER
+    // itself whenever one option's label is long relative to the others (a live repro: a 417px-wide
+    // trigger next to a 186px listbox, a long option label wrapping/visually clipping inside it).
+    // Pinning `min-width` to the trigger's own measured width matches a native `<select>`'s own
+    // dropdown sizing, while still letting the listbox grow wider for a genuinely longer label.
     hooks.useLayoutEffect(() => {
       const rule = dynamicRuleRef.current
       if (!rule) return
@@ -201,9 +199,19 @@ export function createSelect<E>(
       if (open) listboxRef.current?.focus()
     }, [open])
 
+    // Calling `.focus()` on the trigger `Button` SYNCHRONOUSLY, from inside the SAME click
+    // dispatch that's still bubbling from the option `<li>` that was just pressed-and-released,
+    // makes Chromium synthesize a SECOND, genuinely `isTrusted: true` `click` event on that
+    // now-focused trigger. That second click hits the
+    // trigger's own `onClick: () => setOpen(!open)`, which — since `setOpen(false)` from THIS
+    // function already ran a moment earlier — reads `open` as `false` and flips it straight back
+    // to `true`, undoing the close it was supposed to finish. Deferring the refocus to its own
+    // macrotask (never a microtask — those can still run before the browser considers the current
+    // click's dispatch fully settled) lets the option's click event finish completely first, which
+    // is enough to stop Chromium from attributing a second click to the newly-focused element.
     const closeAndRefocus = () => {
       setOpen(false)
-      getTriggerElement()?.focus()
+      setTimeout(() => getTriggerElement()?.focus(), 0)
     }
 
     const escapeHandler = createEscapeToCloseHandler(

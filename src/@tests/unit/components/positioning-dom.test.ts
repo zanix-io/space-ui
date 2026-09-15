@@ -59,6 +59,56 @@ Deno.test('measurePosition: an explicit boundary overrides the viewport default'
   floating.remove()
 })
 
+Deno.test(
+  "measurePosition: subtracts a transformed ancestor's own origin — the real `Modal` `position: 'center'` repro",
+  () => {
+    // `Modal`'s own default centering (`top:50%;left:50%;transform:translate(-50%,-50%)`,
+    // `Modal/types.ts`) is exactly this shape: a `transform` on an ancestor becomes the real
+    // containing block for a `position: fixed` descendant like `floating` here. The raw
+    // viewport-relative geometry alone gives `{x: 85, y: 120}` (the values the plain-ancestor test
+    // below asserts) — wrong here, since `floating` actually resolves its `translate()` against
+    // `modal`'s own box, not the viewport.
+    const modal = document.createElement('div')
+    modal.style.transform = 'translate(-50%, -50%)'
+    document.body.append(modal)
+    stubRect(modal, { x: 200, y: 150, width: 400, height: 300 })
+
+    const reference = document.createElement('button')
+    const floating = document.createElement('div')
+    modal.append(reference, floating)
+
+    stubRect(reference, { x: 100, y: 100, width: 50, height: 20 })
+    stubRect(floating, { x: 0, y: 0, width: 80, height: 40 })
+
+    const result = measurePosition(reference, floating)
+
+    // Same raw geometry the first test above asserts (`{x: 85, y: 120}`), minus `modal`'s own
+    // origin (`{x: 200, y: 150}`) — what `floating` must actually carry as its own `translate()`
+    // for the two to cancel out and land at the real, intended viewport position.
+    assertEquals(result, { x: -115, y: -30, placement: 'bottom' })
+
+    modal.remove()
+  },
+)
+
+Deno.test('measurePosition: a plain (non-transformed) ancestor never shifts the result', () => {
+  const wrapper = document.createElement('div')
+  document.body.append(wrapper)
+
+  const reference = document.createElement('button')
+  const floating = document.createElement('div')
+  wrapper.append(reference, floating)
+
+  stubRect(reference, { x: 100, y: 100, width: 50, height: 20 })
+  stubRect(floating, { x: 0, y: 0, width: 80, height: 40 })
+
+  const result = measurePosition(reference, floating)
+
+  assertEquals(result, { x: 85, y: 120, placement: 'bottom' })
+
+  wrapper.remove()
+})
+
 // --- autoUpdate --------------------------------------------------------------------------------
 
 Deno.test('autoUpdate: fires on a ResizeObserver entry for either element', () => {

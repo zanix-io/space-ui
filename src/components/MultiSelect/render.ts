@@ -319,11 +319,9 @@ export function createMultiSelect<E>(
 
     // Applies the CSSOM rule's own `transform`/`visibility`/`min-width` on every position update —
     // `useLayoutEffect`, not `useEffect`, so this runs synchronously before the browser paints,
-    // same reasoning `Select`'s own identical effect documents. `min-width` is the same real,
-    // confirmed fix `Select/render.ts`'s own identical effect documents in full (not repeated here)
-    // — this component's `<ul>` never had a width of its own either, purely relying on the same
-    // shrink-to-fit auto-sizing that can land narrower than the reference `<input>` for a long
-    // option label. Pinned to the `<input>`'s own measured width, same reasoning.
+    // same reasoning `Select`'s own identical effect documents. See `Select/render.ts`'s own
+    // `min-width` comment for why it's pinned — here it guards the `<ul>` against the reference
+    // `<input>` instead of a trigger `<button>`.
     hooks.useLayoutEffect(() => {
       const rule = dynamicRuleRef.current
       if (!rule) return

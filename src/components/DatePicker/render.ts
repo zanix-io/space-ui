@@ -279,9 +279,13 @@ export function createDatePicker<E>(
       focusTargetRef.current?.focus()
     }, [open, view, cursorKey])
 
+    // Same Chromium click-synthesis mechanism `Select/render.ts`'s own `closeAndRefocus` documents
+    // in full — here it's the day cell's still-bubbling click, rather than an option `<li>`'s, that
+    // triggers the synthesized second click on the refocused trigger. Deferred to a macrotask for
+    // the same reason.
     const closeAndRefocus = () => {
       setOpen(false)
-      getTriggerElement()?.focus()
+      setTimeout(() => getTriggerElement()?.focus(), 0)
     }
 
     const escapeHandler = createEscapeToCloseHandler(open, () => setOpen(false), getTriggerElement)

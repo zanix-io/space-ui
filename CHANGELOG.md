@@ -5,6 +5,28 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/) and this project
 adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [2.2.2] - 2026-09-15
+
+### Fixed
+
+- **`Select`/`DatePicker`: closing via an option/day selection could silently reopen** — refocusing
+  the trigger `<button>` synchronously, from inside the still-bubbling click of the option
+  `<li>`/day cell that was just pressed, made Chromium synthesize a second, genuinely
+  `isTrusted: true` click on the newly-focused trigger. That second click hit the trigger's own
+  toggle handler and flipped `open` straight back to `true`, undoing the close it was supposed to
+  finish — confirmed via a live repro (`Input.dispatchMouseEvent` press+release; never reproduced
+  with a synthetic `.click()` call). Both components now defer the refocus to its own macrotask,
+  letting the option's/day's click event finish settling first.
+
+- **`measurePosition`: ignored a transformed ancestor as the floating element's real containing
+  block** — a `position: fixed` element resolves its `top`/`left`/`transform` against the nearest
+  ancestor with a `transform`/`perspective`/`filter`/`backdrop-filter`/matching `will-change`/
+  `contain`, not always the viewport, but `measurePosition` always computed purely viewport-relative
+  coordinates. `Select`'s own listbox rendered clipped/offset from its trigger once nested inside
+  `Modal`'s default `position: 'center'`, whose `transform: translate(-50%, -50%)` centering
+  silently became that containing block. `measurePosition` now walks up from the floating element to
+  find that ancestor, if any, and subtracts its own origin from the result.
+
 ## [2.2.1] - 2026-09-14
 
 ### Fixed

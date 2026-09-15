@@ -16,6 +16,47 @@ export function getViewportRect(): Rect {
   return { x: 0, y: 0, width: globalThis.innerWidth, height: globalThis.innerHeight }
 }
 
+/** CSS properties that, per spec, make an element the containing block for a `position: fixed`
+ * descendant instead of the viewport — any non-`none` `transform` (`Modal`/`Drawer`'s own
+ * `translate(-50%,-50%)` centering trick included), `perspective`, `filter`, `backdrop-filter`, a
+ * `will-change` naming one of those, or a `contain` of `layout`/`paint`/`strict`/`content`. */
+function establishesFixedContainingBlock(style: CSSStyleDeclaration): boolean {
+  if (style.transform !== 'none') return true
+  if (style.perspective !== 'none') return true
+  if (style.filter !== 'none') return true
+  if (style.backdropFilter && style.backdropFilter !== 'none') return true
+  if (/transform|perspective|filter/.test(style.willChange)) return true
+  if (/layout|paint|strict|content/.test(style.contain)) return true
+  return false
+}
+
+/**
+ * `measurePosition`'s own `referenceRect`/`boundary` are viewport-relative
+ * (`getBoundingClientRect()`'s own coordinate space) — the correct space for `computePosition`'s
+ * collision math, which should avoid the real screen edges, never a container's. But the RESULT is
+ * applied as `translate(x, y)` on `floatingEl` itself (`top: 0; left: 0; position: fixed`, this
+ * package's own `SELECT_LISTBOX_POSITION_CSS`-style static rule) — and a `position: fixed`
+ * element's `top`/`left`/`transform` resolve against its own CONTAINING BLOCK, which per spec is
+ * the viewport ONLY when no ancestor {@linkcode establishesFixedContainingBlock}. Walks up from
+ * `floatingEl`'s own parent to find the nearest one that does, and returns its own
+ * `getBoundingClientRect()` origin — `{x: 0, y: 0}` when none exists (the common case, and exactly
+ * today's behavior). `Select`'s own listbox, nested inside `Modal`'s default `position: 'center'`,
+ * renders clipped/offset from its trigger without this correction: `Modal`'s own
+ * `transform: translate(-50%, -50%)` centering silently becomes the floating element's real
+ * containing block, so the viewport-relative `x`/`y` `computePosition` returns lands relative to
+ * the MODAL's own box instead, visibly mispositioning the listbox. */
+function getFixedContainingBlockOrigin(floatingEl: Element): { x: number; y: number } {
+  let current = floatingEl.parentElement
+  while (current) {
+    if (establishesFixedContainingBlock(globalThis.getComputedStyle(current))) {
+      const rect = current.getBoundingClientRect()
+      return { x: rect.left, y: rect.top }
+    }
+    current = current.parentElement
+  }
+  return { x: 0, y: 0 }
+}
+
 /**
  * Measures `referenceEl`/`floatingEl` and computes where `floatingEl` should sit, via
  * `computePosition`. Defaults `boundary` to the real viewport ({@linkcode getViewportRect}) rather
@@ -29,11 +70,17 @@ export function measurePosition(
 ): ComputePositionResult {
   const referenceRect = referenceEl.getBoundingClientRect()
   const floatingRect = floatingEl.getBoundingClientRect()
-  return computePosition(
+  const result = computePosition(
     referenceRect,
     { width: floatingRect.width, height: floatingRect.height },
     { boundary: getViewportRect(), ...options },
   )
+  const containingBlockOrigin = getFixedContainingBlockOrigin(floatingEl)
+  return {
+    ...result,
+    x: result.x - containingBlockOrigin.x,
+    y: result.y - containingBlockOrigin.y,
+  }
 }
 
 /** Elements between `el` and the document root whose own `overflow` can actually clip/scroll their

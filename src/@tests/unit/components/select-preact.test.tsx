@@ -12,6 +12,12 @@ import type { SelectOption } from 'components/Select/types.ts'
 // `h(Select, props)` and rendered through Preact's own pipeline. See `counter-preact.test.tsx`'s
 // own doc for the same reasoning.
 
+/** See `select.test.tsx`'s own `tick` doc for why `closeAndRefocus`'s refocus needs a real
+ * macrotask to fire before `document.activeElement` can be observed. */
+function tick(): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, 0))
+}
+
 function stubRect(el: Element, rect: { x: number; y: number; width: number; height: number }) {
   el.getBoundingClientRect = () => ({
     ...rect,
@@ -105,7 +111,7 @@ Deno.test('Select (preact): options render as role=option items with the given l
   unmount()
 })
 
-Deno.test('Select (preact): clicking an option selects, updates, closes, refocuses', () => {
+Deno.test('Select (preact): clicking an option selects, updates, closes, refocuses', async () => {
   const values: (string | null)[] = []
   const { container, unmount } = mount({
     ...basicProps(),
@@ -130,6 +136,10 @@ Deno.test('Select (preact): clicking an option selects, updates, closes, refocus
   assertEquals(values, ['large'])
   assertEquals(trigger.textContent, 'Large')
   assertEquals(container.querySelector('[data-space-ui="select-listbox"]'), null)
+
+  // `closeAndRefocus`'s own real `<button>`-refocus (see its own doc) is deliberately deferred to
+  // a macrotask to avoid Chromium's second synthesized click, not this test's own timing.
+  await tick()
   assertEquals(document.activeElement, trigger)
 
   unmount()
@@ -251,7 +261,7 @@ Deno.test('Select (preact): with every option disabled, arrow navigation selects
   unmount()
 })
 
-Deno.test('Select (preact): Enter while open closes it and refocuses the trigger', () => {
+Deno.test('Select (preact): Enter while open closes it and refocuses the trigger', async () => {
   const { container, unmount } = mount(basicProps())
   const trigger = must(container.querySelector('button'))
 
@@ -265,6 +275,10 @@ Deno.test('Select (preact): Enter while open closes it and refocuses the trigger
   })
 
   assertEquals(container.querySelector('[data-space-ui="select-listbox"]'), null)
+
+  // Same deferred-refocus timing `closeAndRefocus`'s own doc explains — Enter routes through it
+  // too (`handleKeyDown`'s own `Enter`/`Space` branch).
+  await tick()
   assertEquals(document.activeElement, trigger)
 
   unmount()
