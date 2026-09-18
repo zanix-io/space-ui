@@ -250,6 +250,7 @@ export function Combobox(props: ComboboxProps): VNode {
           'aria-selected': option.value === value,
           'aria-disabled': option.disabled || undefined,
           'data-space-ui': 'combobox-option',
+          'data-value': option.value,
           onMouseEnter: () => setActiveIndex(index),
           onMouseDown: (event: Event) => event.preventDefault(),
           onClick: () => selectOption(option),

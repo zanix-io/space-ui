@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/) and this project
 adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [2.2.4] - 2026-09-17
+
+### Added
+
+- **`Combobox`: each option now renders its own `data-value` attribute**, mirroring the `value`
+  already passed in `ComboboxOption`. A styling hook for a consumer that wants one particular option
+  — an "add a new item" affordance mixed into an otherwise plain suggestion list, say — to look
+  different from the rest, the same `data-*`-attribute-as-styling-seam convention this package's
+  other headless components already expose (`data-position`, `data-variant`).
+
 ## [2.2.3] - 2026-09-17
 
 ### Added

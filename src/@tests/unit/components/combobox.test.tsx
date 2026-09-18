@@ -124,6 +124,11 @@ Deno.test('Combobox: the options render as role=option items with the given labe
 
   const options = Array.from(container.querySelectorAll('[role="option"]'))
   assertEquals(options.map((option) => option.textContent), ['Apple', 'Banana', 'Cherry'])
+  assertEquals(options.map((option) => option.getAttribute('data-value')), [
+    'apple',
+    'banana',
+    'cherry',
+  ])
 
   unmount()
 })

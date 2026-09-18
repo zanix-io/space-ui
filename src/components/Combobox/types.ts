@@ -4,7 +4,11 @@ import type { Placement } from 'shared/positioning.ts'
  * comparison AND, combined with this component's own `useId()`, to derive each option's real DOM
  * id (`${baseId}-option-${value}`), the exact same "one `useId()` call, combined with the caller's
  * own already-unique key" convention `Tabs`' own `TabItem.value` already establishes — trusted to
- * be id-safe per that same data contract, not sanitized. */
+ * be id-safe per that same data contract, not sanitized. Also rendered verbatim as each option
+ * `<li>`'s own `data-value` attribute — a styling hook for a caller that wants ONE particular
+ * option to look different from the rest (an "add a new item" affordance mixed into an otherwise
+ * plain suggestion list, say), the same `data-*`-attribute-as-styling-seam convention this
+ * package's own headless components already use elsewhere (`data-position`, `data-variant`). */
 export type ComboboxOption = {
   value: string
   /** The visible text — also what fills the input once this option is selected. */
