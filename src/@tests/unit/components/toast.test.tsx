@@ -334,6 +334,35 @@ Deno.test('ToastProvider: position controls the stack container anchor', () => {
   unmount()
 })
 
+Deno.test(
+  'ToastProvider: a centered position also injects the same zero-specificity width/height ' +
+    "fallback Modal's own equivalent centering needs — MODAL_POSITION_STYLE's centered variants " +
+    'reuse inset:0 + margin:auto (never transform, see Modal/types.ts), which without this ' +
+    'fallback would stretch the stack to fill the whole viewport instead of centering it',
+  () => {
+    let api!: ReturnType<typeof useToast>
+    const { container, unmount } = mount(
+      <ToastProvider position='center'>
+        <Trigger onReady={(value) => (api = value)} />
+      </ToastProvider>,
+    )
+
+    act(() => {
+      api.showToast({ title: 'Centered' })
+    })
+
+    const styleEl = must(container.querySelector('style'))
+    const css = styleEl.textContent ?? ''
+    assertStringIncludes(
+      css,
+      ":where([data-space-ui='toast-stack'][data-position='center']){width:fit-content;" +
+        'height:fit-content}',
+    )
+
+    unmount()
+  },
+)
+
 Deno.test('ToastProvider: nonce lands on the injected style element', () => {
   const { container, unmount, api } = mountWithApi('bottom-left', 'abc123')
 

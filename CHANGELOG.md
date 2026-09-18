@@ -5,6 +5,46 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/) and this project
 adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [2.2.3] - 2026-09-17
+
+### Added
+
+- **`Combobox`/`MultiSelect`: a new `required` prop.** Both components own a real, focusable
+  `<input>` directly (`role="combobox"` lives on it — this component family's own "single-input
+  shape"), so native HTML constraint validation works on it exactly like any other required field,
+  with no `name` needed (`form.reportValidity()`/blocking submit key off whether an element is a
+  genuine "candidate for constraint validation," never its `name`) — even though a typical consumer
+  mirrors the committed value into a SEPARATE, actually-named hidden input for the real form
+  submission (that hidden input's own `type="hidden"` excludes it from constraint validation
+  entirely, which is exactly the gap this closes). `Combobox.required` checks its own input's text
+  is non-empty, the same as any plain required text input. `MultiSelect.required` means "at least
+  one chip committed" instead — applied to the input only while `values.length === 0`, so the
+  constraint is satisfied the moment a first chip commits, regardless of whatever (typically empty)
+  text remains in the box for the next one.
+
+### Fixed
+
+- **`Modal`/`Toast`: the centered position variants (`'center'`/`'top-center'`/`'bottom-center'`/
+  `'middle-left'`/`'middle-right'`) no longer center via `transform`.** A `transform` on an element
+  makes IT the containing block for any `position: fixed`/`absolute` descendant (CSS spec) —
+  `2.2.2`'s own `measurePosition` fix already corrects the resulting COORDINATE math for a
+  `Select`/`Combobox`/`MultiSelect`/`DatePicker` nested inside one of these, but a floating element
+  is also CLIPPED by that same containing-block ancestor's own `overflow` (commonly
+  `overflow-y: auto`/`hidden` on a scrollable dialog body), regardless of how correctly its position
+  is computed — confirmed via a live repro (a `Combobox` nested inside `Modal`'s default
+  `position: 'center'`, rendering visibly cut off). Every centered variant now uses `inset: 0` +
+  `margin: auto` on the axis being centered instead — the standard transform-free centering
+  technique, which never creates a containing block for anything nested inside it — with a new
+  zero-specificity (`:where(...)`) `width`/`height: fit-content` fallback
+  (`buildPositionSizeFallbackCss`) supplying the definite size that technique needs to actually
+  center rather than stretch to fill the viewport. The four corner variants
+  (`top-left`/`top-right`/`bottom-left`/`bottom-right`) never used `transform` and are unaffected.
+  `Toast`'s own stack container, which reuses these same position constants for its identical
+  anchoring problem, gets the identical fallback treatment so a centered toast doesn't stretch to
+  fill the viewport either. `2.2.2`'s own `measurePosition` fix stays exactly as valuable as before
+  for any OTHER transformed ancestor a consumer's own app introduces — this closes the one specific,
+  very common case this package's own built-in `Modal`/`Toast` could create by itself.
+
 ## [2.2.2] - 2026-09-15
 
 ### Fixed

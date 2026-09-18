@@ -60,6 +60,14 @@ Deno.test('Combobox: SSR — the input carries role=combobox, closed, no listbox
   assertEquals(html.includes('role="listbox"'), false)
 })
 
+Deno.test('Combobox: required lands on the real input — omitted by default', () => {
+  assertEquals(renderToStaticMarkup(basicCombobox()).includes('required=""'), false)
+  assertStringIncludes(
+    renderToStaticMarkup(<Combobox options={FRUITS} aria-label='Fruit' required />),
+    'required=""',
+  )
+})
+
 Deno.test('Combobox: aria-controls on the input cross-references the listbox id', () => {
   const { container, unmount } = mount(basicCombobox())
   const input = must(container.querySelector('input'))

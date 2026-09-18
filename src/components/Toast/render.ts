@@ -3,7 +3,11 @@ import { createAlert } from '../Alert/render.ts'
 import { createButton } from '../Button/render.ts'
 import { createIcon } from '../Icon/render.ts'
 import { createProgressBar } from '../ProgressBar/render.ts'
-import { MODAL_POSITION_STYLE, MODAL_Z_INDEX } from 'components/Modal/types.ts'
+import {
+  buildPositionSizeFallbackCss,
+  MODAL_POSITION_STYLE,
+  MODAL_Z_INDEX,
+} from 'components/Modal/types.ts'
 import { createDefaultCloseIcon } from 'shared/close-button-icon.ts'
 import { buildOverlayCss } from 'shared/overlay-position-css.ts'
 import type { ToastMessage, ToastPosition } from './types.ts'
@@ -18,18 +22,28 @@ import type { ToastMessage, ToastPosition } from './types.ts'
  * property this stack container sets is a fixed, non-dynamic constant (`display`/`flexDirection`/
  * `gap` included, not just `position`/`z-index`/the anchor) — so this is the one component of the
  * five where the whole `style` object moves out, leaving no inline `style` attribute at all.
+ *
+ * `buildPositionSizeFallbackCss('toast-stack')` — since `MODAL_POSITION_STYLE`'s centered variants
+ * (`'center'`/`'top-center'`/`'bottom-center'`/`'middle-left'`/`'middle-right'`) center via
+ * `inset: 0` + `margin: auto` rather than `transform` (see that constant's own doc for why), they
+ * need a `width`/`height: fit-content` default on the axis being centered or the stack stretches to
+ * fill the whole viewport instead — the exact same need `MODAL_POSITION_CSS` documents for `Modal`
+ * itself, just keyed off this component's own `'toast-stack'` hook.
  */
-const TOAST_STACK_CSS: string = buildOverlayCss(
-  'toast-stack',
-  {
-    position: 'fixed',
-    zIndex: MODAL_Z_INDEX.dialog,
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '0.5rem',
-  },
-  { attr: 'data-position', values: MODAL_POSITION_STYLE },
-)
+const TOAST_STACK_CSS: string = [
+  buildOverlayCss(
+    'toast-stack',
+    {
+      position: 'fixed',
+      zIndex: MODAL_Z_INDEX.dialog,
+      display: 'flex',
+      flexDirection: 'column',
+      gap: '0.5rem',
+    },
+    { attr: 'data-position', values: MODAL_POSITION_STYLE },
+  ),
+  buildPositionSizeFallbackCss('toast-stack'),
+].join('\n')
 
 /**
  * The hooks/primitives this component's shared body needs, injected alongside `h` — same shape

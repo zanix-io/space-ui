@@ -149,6 +149,51 @@ Deno.test('Modal: the injected style text has the correct rule for the current p
   assertStringIncludes(rule, 'right:1rem')
 })
 
+Deno.test(
+  "Modal: 'center' (the default position) centers via inset + margin, never transform — a " +
+    'transform on this dialog would make it the containing block for any position:fixed ' +
+    'descendant a consumer nests inside it (a Select/Combobox listbox, say), breaking that ' +
+    "descendant's own viewport-relative positioning",
+  () => {
+    const html = renderToStaticMarkup(
+      <Modal open onClose={() => {}} label='X' position='center'>
+        Body
+      </Modal>,
+    )
+
+    const styleText = must(html.match(/<style[^>]*>([^<]+)<\/style>/))[1]
+    const rule = must(
+      styleText.match(/\[data-space-ui='modal'\]\[data-position='center'\]\{([^}]+)\}/),
+    )[1]
+    assertEquals(rule.includes('transform'), false)
+    assertStringIncludes(rule, 'top:0')
+    assertStringIncludes(rule, 'left:0')
+    assertStringIncludes(rule, 'right:0')
+    assertStringIncludes(rule, 'bottom:0')
+    assertStringIncludes(rule, 'margin:auto')
+  },
+)
+
+Deno.test(
+  "Modal: 'center' also injects a zero-specificity width/height:fit-content fallback — " +
+    'inset:0 + margin:auto only centers a box with a definite size on that axis, and this must ' +
+    "stay overridable by a consumer's own className sizing regardless of source order",
+  () => {
+    const html = renderToStaticMarkup(
+      <Modal open onClose={() => {}} label='X' position='center'>
+        Body
+      </Modal>,
+    )
+
+    const styleText = must(html.match(/<style[^>]*>([^<]+)<\/style>/))[1]
+    assertStringIncludes(
+      styleText,
+      ":where([data-space-ui='modal'][data-position='center']){width:fit-content;" +
+        'height:fit-content}',
+    )
+  },
+)
+
 Deno.test('Modal: nonce lands on the injected style element', () => {
   const html = renderToStaticMarkup(
     <Modal open onClose={() => {}} label='X' nonce='abc123'>

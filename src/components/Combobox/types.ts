@@ -53,6 +53,18 @@ export type ComboboxBaseProps = {
   placeholder?: string
   id?: string
   className?: string
+  /** Native HTML `required` on this component's own real `<input>` — the input a caller's `<form>`
+   * actually sees and validates, since `role="combobox"` lives directly on it (this component's own
+   * top doc, "single-input shape"), not a separate trigger element. A real, focusable form control
+   * needs no `name` to participate in constraint validation (`form.reportValidity()`/blocking
+   * submit both key off whether an element is a genuine "candidate for constraint validation" —
+   * visible, not disabled — never its `name`), so this works even though a typical consumer mirrors
+   * the committed text into a SEPARATE, actually-named hidden input for the real submission (the
+   * same shape this package's own `docs/`-referenced field-wrapper convention establishes). Native
+   * validation simply checks this input's own text is non-empty — exactly right for a free-text
+   * field (a picked-but-not-yet-confirmed value still satisfies it, same as any plain required
+   * `<input>`). @default false */
+  required?: boolean
   'aria-describedby'?: string
   'aria-invalid'?: boolean
   'aria-label'?: string

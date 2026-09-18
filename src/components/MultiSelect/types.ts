@@ -66,6 +66,15 @@ export type MultiSelectBaseProps = {
   placeholder?: string
   id?: string
   className?: string
+  /** Native HTML `required` — means "at least one chip committed," never "the in-progress typed
+   * text is non-empty" (that text is just a buffer for the NEXT chip, legitimately empty most of
+   * the time even with existing chips — unlike `Combobox.required`, whose own text IS the whole
+   * value). Applied to this component's own real `<input>` (see `Combobox.required`'s own doc for
+   * why an unnamed, non-hidden form control still fully participates in native constraint
+   * validation) only while `values.length === 0` — the moment a first chip commits, the constraint
+   * is satisfied and the browser stops blocking submission on this input's own empty text, exactly
+   * matching "at least one" rather than "always something typed." @default false */
+  required?: boolean
   'aria-describedby'?: string
   'aria-invalid'?: boolean
   'aria-label'?: string

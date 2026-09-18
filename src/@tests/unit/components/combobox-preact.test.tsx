@@ -63,6 +63,14 @@ Deno.test('Combobox (preact): SSR — role=combobox, closed, no listbox', () => 
   assertEquals(html.includes('role="listbox"'), false)
 })
 
+Deno.test('Combobox (preact): required lands on the real input — omitted by default', () => {
+  assertEquals(renderToString(element(basicProps())).includes('required'), false)
+  assertStringIncludes(
+    renderToString(element({ ...basicProps(), required: true })),
+    'required',
+  )
+})
+
 Deno.test('Combobox (preact): aria-controls cross-references the listbox id', () => {
   const { container, unmount } = mount(basicProps())
   const input = must(container.querySelector('input'))

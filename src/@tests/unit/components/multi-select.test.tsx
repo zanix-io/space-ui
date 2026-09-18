@@ -598,3 +598,36 @@ Deno.test('MultiSelect: nonce lands on the always-rendered wrapper <style> eleme
 
   assertStringIncludes(html, '<style nonce="abc123">')
 })
+
+// --- required ---------------------------------------------------------------------------------
+
+Deno.test(
+  'MultiSelect: required means "at least one chip" — the input stops being required the ' +
+    'moment a first chip commits, regardless of its own (still empty) typed text',
+  () => {
+    const { container, unmount } = mount(
+      <MultiSelect {...basicProps({ required: true, defaultValues: [] })} />,
+    )
+    const input = must(container.querySelector('input'))
+    assertEquals(input.required, true)
+
+    act(() => {
+      input.dispatchEvent(new FocusEvent('focusin', { bubbles: true }))
+    })
+    const option = must(container.querySelector('[data-space-ui="multi-select-option"]'))
+    act(() => option.dispatchEvent(new MouseEvent('click', { bubbles: true })))
+
+    assertEquals(input.required, false)
+
+    unmount()
+  },
+)
+
+Deno.test('MultiSelect: required is omitted entirely when not requested', () => {
+  const { container, unmount } = mount(<MultiSelect {...basicProps()} />)
+  const input = must(container.querySelector('input'))
+
+  assertEquals(input.required, false)
+
+  unmount()
+})

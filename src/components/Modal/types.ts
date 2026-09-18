@@ -85,19 +85,80 @@ export type ModalAccessibleName =
  * own doc, and `shared/overlay-position-css.ts` for the full CSP reasoning) — the values and their
  * shape are unchanged, only how they reach the DOM is different, so headless correctness (zero CSS
  * ever required from the consumer) holds exactly as before.
+ *
+ * None of these variants uses `transform` — a `transform` on this dialog would make IT the
+ * CONTAINING BLOCK for any `position: fixed`/`absolute` descendant (CSS spec, every evergreen
+ * browser), never just a visual nudge. `Select`/`Combobox`/`MultiSelect`/`DatePicker` each render
+ * their own listbox/panel as `position: fixed`, no portal (`shared/overlay-position-css.ts`'s own
+ * doc) — nested inside a `Modal`, such a listbox needs its own `usePosition` coordinates (computed
+ * via `getBoundingClientRect()`, viewport-relative) to resolve against the real viewport, not
+ * against this dialog's own box; a `position: fixed` descendant is otherwise clipped by its own
+ * containing block's `overflow` exactly like an `absolute` one is, regardless of any
+ * `--space-z-overlay`-style z-index (`docs/styling.md`) — that only wins a STACKING comparison,
+ * never a wrong containing block.
+ *
+ * Every variant that needs centering on an axis uses `inset: 0` (both opposing edges) + `margin:
+ * auto` on that SAME axis instead — the standard transform-free centering technique, which never
+ * creates a new containing block. The axis that stays PINNED to one edge (`top`/`bottom`/`left`/
+ * `right` alone) uses a plain offset. The four corner variants (`top-left`/`top-right`/
+ * `bottom-left`/`bottom-right`) use no centering at all, on either axis. See
+ * {@linkcode buildPositionSizeFallbackCss} below for why the centering technique also needs a
+ * `width`/`height` default on the axis being centered, and how that default stays fully
+ * overridable by a consumer's own sizing.
  */
 const EDGE_MARGIN = '1rem'
 
 export const MODAL_POSITION_STYLE: Record<ModalPosition, Record<string, string>> = {
-  center: { top: '50%', left: '50%', transform: 'translate(-50%, -50%)' },
+  center: { top: '0', left: '0', right: '0', bottom: '0', margin: 'auto' },
   'top-left': { top: EDGE_MARGIN, left: EDGE_MARGIN },
-  'top-center': { top: EDGE_MARGIN, left: '50%', transform: 'translateX(-50%)' },
+  'top-center': { top: EDGE_MARGIN, left: '0', right: '0', margin: '0 auto' },
   'top-right': { top: EDGE_MARGIN, right: EDGE_MARGIN },
-  'middle-left': { top: '50%', left: EDGE_MARGIN, transform: 'translateY(-50%)' },
-  'middle-right': { top: '50%', right: EDGE_MARGIN, transform: 'translateY(-50%)' },
+  'middle-left': { top: '0', bottom: '0', left: EDGE_MARGIN, margin: 'auto 0' },
+  'middle-right': { top: '0', bottom: '0', right: EDGE_MARGIN, margin: 'auto 0' },
   'bottom-left': { bottom: EDGE_MARGIN, left: EDGE_MARGIN },
-  'bottom-center': { bottom: EDGE_MARGIN, left: '50%', transform: 'translateX(-50%)' },
+  'bottom-center': { bottom: EDGE_MARGIN, left: '0', right: '0', margin: '0 auto' },
   'bottom-right': { bottom: EDGE_MARGIN, right: EDGE_MARGIN },
+}
+
+/**
+ * `inset: 0` + `margin: auto` (or `0 auto`/`auto 0` for the two half-centered axes) only actually
+ * CENTERS a box whose size on that same axis is definite — with `width`/`height` left at their
+ * default `auto`, a fixed-position box with BOTH opposing insets set instead STRETCHES to fill the
+ * full inset area (spec behavior), never a small dialog centered around a point the way a
+ * `transform: translate(...)` would. This supplies a `fit-content` default for exactly the axis
+ * each variant above centers — `center` needs both `width`/`height`, `top-center`/`bottom-center`
+ * only `width` (their own vertical axis stays pinned via a plain `top`/`bottom` offset, never
+ * centered, so it never stretches either), `middle-left`/`middle-right` only `height` (same
+ * reasoning, horizontal axis stays pinned).
+ *
+ * Wrapped in `:where(...)`, which contributes ZERO specificity regardless of how many selectors sit
+ * inside it — a consumer's own real sizing (`className`, this component's own headless "width/
+ * color/shadow is your job" contract, `ModalBaseProps.className`'s own doc) always wins over this
+ * fallback, at ANY specificity and regardless of source order, the same guarantee a plain browser
+ * default (e.g. a `<button>`'s own UA-stylesheet padding) already gives every other unstyled
+ * property here. Without `:where(...)`, this would need to be a bare `[data-space-ui='<dataSpaceUi>']
+ * [data-position='...']` rule — the same specificity as a single consumer class selector — and since
+ * `Modal`/`Toast` each re-inject their own `<style>` fresh on every open (always AFTER a consumer's
+ * own page-load stylesheet), a same-specificity tie resolves in THIS rule's favor, silently
+ * overriding a consumer's own explicit `width`/`height` set via its own `className`.
+ *
+ * Parameterized by `dataSpaceUi`, not hardcoded to `'modal'` — `Toast`'s own stack container reuses
+ * `MODAL_POSITION_STYLE` verbatim for the identical anchoring problem (`Toast/render.ts`'s own doc).
+ * Since those centered variants use `inset`/`margin`, never `transform` (see `MODAL_POSITION_STYLE`'s
+ * own doc), a `Toast` positioned at `'center'`/`'top-center'`/`'bottom-center'`/`'middle-left'`/
+ * `'middle-right'` needs this exact same fallback, keyed off `'toast-stack'` instead — without it,
+ * the stack stretches to fill the whole viewport rather than centering.
+ */
+export function buildPositionSizeFallbackCss(dataSpaceUi: string): string {
+  const selector = (position: string) =>
+    `[data-space-ui='${dataSpaceUi}'][data-position='${position}']`
+  return [
+    `:where(${selector('center')}){width:fit-content;height:fit-content}`,
+    `:where(${selector('top-center')}){width:fit-content}`,
+    `:where(${selector('bottom-center')}){width:fit-content}`,
+    `:where(${selector('middle-left')}){height:fit-content}`,
+    `:where(${selector('middle-right')}){height:fit-content}`,
+  ].join('\n')
 }
 
 /** Backdrop stays below the dialog; both comfortably above ordinary page content. With several
@@ -109,19 +170,24 @@ export const MODAL_Z_INDEX = { backdrop: 999, dialog: 1000 } as const
 /**
  * The static CSS text `Modal` injects via its own `<style>` element (see `render.ts`), built ONCE
  * at module scope from {@linkcode MODAL_POSITION_STYLE}/{@linkcode MODAL_Z_INDEX} — never
- * recomputed per render. Two rule groups, keyed off the same `data-space-ui` hooks `docs/styling.md`
- * already documents:
+ * recomputed per render. Three rule groups, keyed off the same `data-space-ui` hooks
+ * `docs/styling.md` already documents:
  * - `[data-space-ui='modal-backdrop']` — `position: fixed`, full-viewport `inset: 0`, and
  *   `z-index: MODAL_Z_INDEX.backdrop`.
  * - `[data-space-ui='modal'][data-position='<ModalPosition>']` — `position: fixed`,
  *   `z-index: MODAL_Z_INDEX.dialog` (the shared base rule), plus one rule per
- *   {@linkcode ModalPosition} variant for the `top`/`left`/`right`/`bottom`/`transform` anchor
+ *   {@linkcode ModalPosition} variant for the `top`/`left`/`right`/`bottom`/`margin` anchor
  *   `MODAL_POSITION_STYLE` already defines — `render.ts` renders the actual `data-position`
  *   attribute from the component's own `position` prop, never a class name.
+ * - {@linkcode buildPositionSizeFallbackCss}`('modal')` — the zero-specificity `width`/`height:
+ *   fit-content` fallback the centered variants above need to actually center (see that function's
+ *   own doc for why it's kept separate from `buildOverlayCss`'s own two-group shape: it needs
+ *   `:where(...)`, which that shared helper doesn't produce).
  *
- * `Toast`'s own stack container reuses these exact same source constants for its identical
- * anchoring problem (see `Toast/render.ts`) rather than re-deriving its own copy — its CSS text is
- * built the same way, just keyed off `[data-space-ui='toast-stack']` instead.
+ * `Toast`'s own stack container reuses `MODAL_POSITION_STYLE`/`MODAL_Z_INDEX`/
+ * `buildPositionSizeFallbackCss` for its identical anchoring problem (see `Toast/render.ts`) rather
+ * than re-deriving its own copy — its CSS text is built the same way, just keyed off
+ * `[data-space-ui='toast-stack']` instead.
  */
 export const MODAL_POSITION_CSS: string = [
   buildOverlayCss('modal-backdrop', {
@@ -133,4 +199,5 @@ export const MODAL_POSITION_CSS: string = [
     attr: 'data-position',
     values: MODAL_POSITION_STYLE,
   }),
+  buildPositionSizeFallbackCss('modal'),
 ].join('\n')

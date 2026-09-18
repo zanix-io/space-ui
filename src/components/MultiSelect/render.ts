@@ -127,6 +127,7 @@ export function createMultiSelect<E>(
       placeholder,
       id,
       className,
+      required,
       'aria-describedby': ariaDescribedBy,
       'aria-invalid': ariaInvalid,
       'aria-label': ariaLabel,
@@ -391,6 +392,10 @@ export function createMultiSelect<E>(
       value: inputValue,
       placeholder,
       className,
+      // Only while `values` is still empty — see `MultiSelectBaseProps.required`'s own doc for why
+      // "at least one chip" (never the in-progress typed text) is this component's own real
+      // `required` semantics.
+      required: required && values.length === 0,
       autoComplete: 'off',
       'aria-expanded': listboxVisible,
       'aria-controls': listboxId,
