@@ -5,6 +5,29 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/) and this project
 adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [2.2.5] - 2026-09-19
+
+### Fixed
+
+- **A component's own `<style nonce>` element was blocked by a nonce-based `style-src` CSP after a
+  client-side navigation.** A browser enforces the nonce of the response that created the document
+  for the document's whole lifetime, while a client-side navigation only swaps part of the page: the
+  fetched fragment carries its own, separately-minted nonce, and a component hydrated from it
+  receives that value as its `nonce` prop. Every component that renders a `<style nonce={nonce}>`
+  client-side (`Popover`'s panel positioning, for one) then produced an element that didn't match
+  what the browser enforced, and the console reported
+  `Applying inline style violates the following
+  Content Security Policy directive 'style-src'` the
+  first time the component re-rendered — for example when opening a `Popover` on a page reached by
+  navigating back to it. A full page load was never affected, since the prop and the document's
+  nonce are the same value there. Each component now resolves the nonce through a new internal
+  `resolveActiveNonce`, which reads the nonce the document actually enforces and falls back to the
+  prop when there is no document (server render) or nothing nonced to read. A component given no
+  `nonce` prop still renders none. Applies to `Avatar`, `Combobox`, `Countdown`, `DatePicker`,
+  `Drawer`, `Modal` (including the body-scroll lock's own `<style>`), `MultiSelect`,
+  `PasswordInput`, `Popover`, `ProgressBar`, `Select`, `Showcase`, `Slider`, `Toast`, `Tooltip`, and
+  `VisuallyHidden`, and through `Drawer` to `NavDrawer`.
+
 ## [2.2.4] - 2026-09-17
 
 ### Added

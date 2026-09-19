@@ -17,6 +17,7 @@ import {
 } from 'shared/overlay-position-css.ts'
 import { usePosition } from 'shared/use-position.ts'
 import type { ComboboxBaseProps, ComboboxOption } from './types.ts'
+import { resolveActiveNonce } from 'shared/active-nonce.ts'
 
 /**
  * The static, non-dynamic part of this component's own listbox positioning — same
@@ -142,8 +143,9 @@ export function Combobox(props: ComboboxProps): ReactElement {
     'aria-invalid': ariaInvalid,
     'aria-label': ariaLabel,
     'aria-labelledby': ariaLabelledBy,
-    nonce,
+    nonce: nonceProp,
   } = props
+  const nonce = resolveActiveNonce(nonceProp)
 
   const baseId = useId()
   const inputId = id ?? baseId

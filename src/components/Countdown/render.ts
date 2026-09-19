@@ -1,6 +1,7 @@
 import type { CreateElement } from 'typings/renderer.ts'
 import { liveRegionProps, VISUALLY_HIDDEN_CSS } from 'shared/live-region.ts'
 import type { CountdownBaseProps } from './types.ts'
+import { resolveActiveNonce } from 'shared/active-nonce.ts'
 
 /** The subset of hooks this component's shared body needs, injected alongside `h` — same
  * `render.ts`-factory technique {@linkcode createCounter}'s own `CounterHooks` established
@@ -173,8 +174,9 @@ export function createCountdown<E>(
       strokeWidth = 6,
       id,
       className,
-      nonce,
+      nonce: nonceProp,
     } = props
+    const nonce = resolveActiveNonce(nonceProp)
 
     const ringId = hooks.useId()
     const targetMs = resolveTargetMs(target)

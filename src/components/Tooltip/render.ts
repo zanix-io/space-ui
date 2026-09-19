@@ -8,6 +8,7 @@ import {
   removeDynamicRule,
 } from 'shared/overlay-position-css.ts'
 import type { TooltipBaseProps, TooltipTriggerRenderProps } from './types.ts'
+import { resolveActiveNonce } from 'shared/active-nonce.ts'
 
 /**
  * The static, non-dynamic part of this component's own positioning (`position: fixed`, `top: 0`,
@@ -107,8 +108,9 @@ export function createTooltip<E, Node>(
       closeDelay = 0,
       id,
       className,
-      nonce,
+      nonce: nonceProp,
     } = props
+    const nonce = resolveActiveNonce(nonceProp)
     const tooltipId = hooks.useId()
     const isControlled = controlledOpen !== undefined
     const [internalOpen, setInternalOpen] = hooks.useState(defaultOpen)

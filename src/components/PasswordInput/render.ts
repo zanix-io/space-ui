@@ -3,6 +3,7 @@ import { createButton } from '../Button/render.ts'
 import { createInput } from '../Input/render.ts'
 import type { InputHooks } from '../Input/render.ts'
 import type { PasswordInputBaseProps } from './types.ts'
+import { resolveActiveNonce } from 'shared/active-nonce.ts'
 
 /** {@linkcode InputHooks} — this component needs no hook of its own beyond the one `Input` (its
  * own composed instance) and this component's own uncontrolled `visible` fallback both need. */
@@ -142,9 +143,10 @@ export function createPasswordInput<E>(
       getToggleLabel = defaultToggleLabel,
       showIcon,
       hideIcon,
-      nonce,
+      nonce: nonceProp,
       ...inputProps
     } = props
+    const nonce = resolveActiveNonce(nonceProp)
 
     const isControlled = controlledVisible !== undefined
     const [internalVisible, setInternalVisible] = hooks.useState(defaultVisible)

@@ -12,6 +12,7 @@ import {
 } from 'shared/overlay-position-css.ts'
 import { usePosition } from 'shared/use-position.preact.ts'
 import type { ComboboxBaseProps, ComboboxOption } from './types.ts'
+import { resolveActiveNonce } from 'shared/active-nonce.ts'
 
 /** Duplicated verbatim from `index.ts` — see that file's own doc for why (no shared `render.ts`
  * for this component). */
@@ -60,8 +61,9 @@ export function Combobox(props: ComboboxProps): VNode {
     'aria-invalid': ariaInvalid,
     'aria-label': ariaLabel,
     'aria-labelledby': ariaLabelledBy,
-    nonce,
+    nonce: nonceProp,
   } = props
+  const nonce = resolveActiveNonce(nonceProp)
 
   const baseId = useId()
   const inputId = id ?? baseId

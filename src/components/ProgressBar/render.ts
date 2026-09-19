@@ -1,5 +1,6 @@
 import type { CreateElement } from 'typings/renderer.ts'
 import type { ProgressBarProps } from './types.ts'
+import { resolveActiveNonce } from 'shared/active-nonce.ts'
 
 /** {@linkcode ProgressBarProps.nonce}'s own contract needs a stable per-instance id to scope this
  * component's own CSS text (see `createProgressBar`'s own doc) — `useId` is the only hook this
@@ -58,7 +59,8 @@ export function createProgressBar<E>(
   hooks: ProgressBarHooks,
 ): (props: ProgressBarProps) => E {
   return function ProgressBar(props: ProgressBarProps): E {
-    const { timeout, height = 7, label, id, className, nonce } = props
+    const { timeout, height = 7, label, id, className, nonce: nonceProp } = props
+    const nonce = resolveActiveNonce(nonceProp)
 
     const progressBarId = hooks.useId()
     const heightValue = typeof height === 'number' ? `${height}px` : height

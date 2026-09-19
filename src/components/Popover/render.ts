@@ -9,6 +9,7 @@ import {
   removeDynamicRule,
 } from 'shared/overlay-position-css.ts'
 import type { PopoverBaseProps, PopoverTriggerRenderProps } from './types.ts'
+import { resolveActiveNonce } from 'shared/active-nonce.ts'
 
 /**
  * The static, non-dynamic part of this component's own positioning — same shape/reasoning
@@ -105,8 +106,9 @@ export function createPopover<E, Node>(
       offset = 8,
       id,
       className,
-      nonce,
+      nonce: nonceProp,
     } = props
+    const nonce = resolveActiveNonce(nonceProp)
     const contentId = hooks.useId()
     const isControlled = controlledOpen !== undefined
     const [internalOpen, setInternalOpen] = hooks.useState(defaultOpen)

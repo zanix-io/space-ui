@@ -195,6 +195,32 @@ Deno.test('Popover: nonce lands on the injected style element', () => {
   unmount()
 })
 
+Deno.test('Popover: the injected style element carries the document nonce over a stale prop', () => {
+  // A client-side navigation swaps only the page outlet, so the document keeps its own nonce while
+  // a Comet hydrated from the fetched fragment receives that fragment's, different, one as a prop.
+  const documentNonceEl = document.createElement('style')
+  documentNonceEl.nonce = 'document-nonce'
+  documentNonceEl.setAttribute('nonce', 'document-nonce')
+  document.head.appendChild(documentNonceEl)
+  const { container, unmount } = mount(
+    <Popover
+      open
+      nonce='fragment-nonce'
+      trigger={(triggerProps) => <button type='button' {...triggerProps}>Open</button>}
+    >
+      <p>Content</p>
+    </Popover>,
+  )
+
+  try {
+    const styleEl = must(findPositionStyleEl(container))
+    assertEquals(styleEl.getAttribute('nonce'), 'document-nonce')
+  } finally {
+    unmount()
+    documentNonceEl.remove()
+  }
+})
+
 Deno.test(
   'Popover: a trigger render-prop with no element child never crashes — just stays unpositioned',
   () => {

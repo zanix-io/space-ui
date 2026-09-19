@@ -34,6 +34,7 @@ import {
   wrapValue,
 } from './date-utils.ts'
 import type { DatePickerBaseProps } from './types.ts'
+import { resolveActiveNonce } from 'shared/active-nonce.ts'
 
 /** Minimal structural shape both `React.KeyboardEvent` and Preact's own native `KeyboardEvent`
  * satisfy — this file never imports React or Preact, same reasoning `shared/escape-to-close.ts`'s
@@ -147,8 +148,9 @@ export function createDatePicker<E>(
       locale = 'en',
       id,
       className,
-      nonce,
+      nonce: nonceProp,
     } = props
+    const nonce = resolveActiveNonce(nonceProp)
 
     // Derived purely from already-identical-both-sides props (never render order/a counter/
     // `Math.random()`) — see `DatePickerHooks`'s own doc for why this can't be `useId()`/

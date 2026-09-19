@@ -5,6 +5,7 @@ import { createDefaultCloseIcon } from 'shared/close-button-icon.ts'
 import { isTopOverlay, registerOverlay } from 'shared/overlay-stack.ts'
 import type { DrawerAccessibleName, DrawerBaseProps } from './types.ts'
 import { DRAWER_POSITION_CSS } from './types.ts'
+import { resolveActiveNonce } from 'shared/active-nonce.ts'
 
 /**
  * The hooks/primitives this component's shared body needs, injected alongside `h` — same shape
@@ -79,9 +80,10 @@ export function createDrawer<E, Node>(
       closeOnEscape = true,
       id,
       className,
-      nonce,
+      nonce: nonceProp,
       children,
     } = props
+    const nonce = resolveActiveNonce(nonceProp)
 
     if (!label && !ariaLabelledBy) {
       logger.warn(

@@ -11,6 +11,7 @@ import {
   removeDynamicRule,
 } from 'shared/overlay-position-css.ts'
 import type { SelectBaseProps, SelectOption } from './types.ts'
+import { resolveActiveNonce } from 'shared/active-nonce.ts'
 
 /**
  * The static, non-dynamic part of this component's own listbox positioning — same
@@ -98,8 +99,9 @@ export function createSelect<E>(
       offset = 8,
       id,
       className,
-      nonce,
+      nonce: nonceProp,
     } = props
+    const nonce = resolveActiveNonce(nonceProp)
 
     const baseId = hooks.useId()
     const listboxId = `${baseId}-listbox`

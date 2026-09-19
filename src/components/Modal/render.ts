@@ -5,6 +5,7 @@ import { createDefaultCloseIcon } from 'shared/close-button-icon.ts'
 import { isTopOverlay, registerOverlay } from 'shared/overlay-stack.ts'
 import type { ModalAccessibleName, ModalBaseProps } from './types.ts'
 import { MODAL_POSITION_CSS } from './types.ts'
+import { resolveActiveNonce } from 'shared/active-nonce.ts'
 
 /**
  * The hooks/primitives this component's shared body needs, injected alongside `h` — same
@@ -122,9 +123,10 @@ export function createModal<E, Node>(
       position = 'center',
       id,
       className,
-      nonce,
+      nonce: nonceProp,
       children,
     } = props
+    const nonce = resolveActiveNonce(nonceProp)
 
     if (!label && !ariaLabelledBy) {
       // `'noSave'` — this warning is ephemeral dev-time output, never meant to be persisted. What

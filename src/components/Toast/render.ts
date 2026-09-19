@@ -11,6 +11,7 @@ import {
 import { createDefaultCloseIcon } from 'shared/close-button-icon.ts'
 import { buildOverlayCss } from 'shared/overlay-position-css.ts'
 import type { ToastMessage, ToastPosition } from './types.ts'
+import { resolveActiveNonce } from 'shared/active-nonce.ts'
 
 /**
  * The static CSS text `ToastProvider` injects via its own `<style>` element for the stack
@@ -186,7 +187,8 @@ export function createToast<E, Node>(
   let nextToastId = 0
 
   function ToastProvider(props: { position?: ToastPosition; nonce?: string; children: Node }): E {
-    const { position = 'bottom-left', nonce, children } = props
+    const { position = 'bottom-left', nonce: nonceProp, children } = props
+    const nonce = resolveActiveNonce(nonceProp)
     const [entries, setEntries] = hooks.useState<Array<ToastMessage & { id: string }>>([])
 
     const closeToast = hooks.useCallback((id: string) => {

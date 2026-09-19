@@ -1,6 +1,7 @@
 import type { CreateElement } from 'typings/renderer.ts'
 import { VISUALLY_HIDDEN_ATTR, VISUALLY_HIDDEN_CSS } from 'shared/live-region.ts'
 import type { VisuallyHiddenProps } from './types.ts'
+import { resolveActiveNonce } from 'shared/active-nonce.ts'
 
 /**
  * The real implementation of `VisuallyHidden`, shared identically between the React and Preact
@@ -23,7 +24,10 @@ import type { VisuallyHiddenProps } from './types.ts'
  * package has that pattern anywhere else and no evidence has asked for one here either.
  */
 export function createVisuallyHidden<E>(h: CreateElement<E>): (props: VisuallyHiddenProps) => E {
-  return function VisuallyHidden({ children, id, className, nonce }: VisuallyHiddenProps): E {
+  return function VisuallyHidden(
+    { children, id, className, nonce: nonceProp }: VisuallyHiddenProps,
+  ): E {
+    const nonce = resolveActiveNonce(nonceProp)
     return h(
       'span',
       { id, className, [VISUALLY_HIDDEN_ATTR]: '', 'data-space-ui': 'visually-hidden' },

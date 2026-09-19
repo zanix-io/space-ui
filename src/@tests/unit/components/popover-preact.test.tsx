@@ -202,6 +202,24 @@ Deno.test('Popover (preact): nonce lands on the injected style element', () => {
   unmount()
 })
 
+Deno.test('Popover (preact): the injected style element carries the document nonce over a stale prop', () => {
+  // A client-side navigation swaps only the page outlet, so the document keeps its own nonce while
+  // a Comet hydrated from the fetched fragment receives that fragment's, different, one as a prop.
+  const documentNonceEl = document.createElement('style')
+  documentNonceEl.nonce = 'document-nonce'
+  documentNonceEl.setAttribute('nonce', 'document-nonce')
+  document.head.appendChild(documentNonceEl)
+  const { container, unmount } = mount({ ...basicProps(true), nonce: 'fragment-nonce' })
+
+  try {
+    const styleEl = must(findPositionStyleEl(container))
+    assertEquals(styleEl.getAttribute('nonce'), 'document-nonce')
+  } finally {
+    unmount()
+    documentNonceEl.remove()
+  }
+})
+
 Deno.test('Popover (preact): clicking the trigger again closes the panel', () => {
   const { container, unmount } = mount(basicProps())
   const trigger = must(container.querySelector('button'))

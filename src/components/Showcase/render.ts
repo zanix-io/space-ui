@@ -3,6 +3,7 @@ import { createSlider } from '../Slider/render.ts'
 import type { SliderHooks, SliderRenderProps } from '../Slider/render.ts'
 import type { ShowcaseBaseProps } from './types.ts'
 import { chunkItems, clampItemsPerSlide, resolveItemsPerSlide } from './resolve-items-per-slide.ts'
+import { resolveActiveNonce } from 'shared/active-nonce.ts'
 
 /**
  * The subset of hooks this component's shared body needs, injected alongside `h` — same
@@ -51,7 +52,8 @@ export function createShowcase<E, Node>(
   ) => E
 
   return function Showcase(props: ShowcaseRenderProps<Node>): E {
-    const { itemsPerSlide, slider, id, className, children, nonce } = props
+    const { itemsPerSlide, slider, id, className, children, nonce: nonceProp } = props
+    const nonce = resolveActiveNonce(nonceProp)
 
     const containerRef = hooks.useRef<HTMLDivElement | null>(null)
     const [containerWidth, setContainerWidth] = hooks.useState<number | null>(null)

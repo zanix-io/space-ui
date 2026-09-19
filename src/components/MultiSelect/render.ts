@@ -12,6 +12,7 @@ import {
   removeDynamicRule,
 } from 'shared/overlay-position-css.ts'
 import type { MultiSelectBaseProps, MultiSelectOption } from './types.ts'
+import { resolveActiveNonce } from 'shared/active-nonce.ts'
 
 /**
  * The static, non-dynamic part of this component's own listbox positioning — same
@@ -133,8 +134,9 @@ export function createMultiSelect<E>(
       'aria-label': ariaLabel,
       'aria-labelledby': ariaLabelledBy,
       getSelectionDescription = (count) => `${count} item${count === 1 ? '' : 's'} selected`,
-      nonce,
+      nonce: nonceProp,
     } = props
+    const nonce = resolveActiveNonce(nonceProp)
 
     const baseId = hooks.useId()
     const inputId = id ?? baseId

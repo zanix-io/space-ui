@@ -5,6 +5,7 @@ import { createImage } from '../Image/render.ts'
 import { getInitials } from './get-initials.ts'
 import type { AvatarBaseProps } from './types.ts'
 import { AVATAR_SIZE_PX } from './types.ts'
+import { resolveActiveNonce } from 'shared/active-nonce.ts'
 
 /** The subset of hooks this component's shared body needs, injected alongside `h` — same
  * `render.ts`-factory technique `Input/render.ts`'s own `InputHooks` established.
@@ -129,7 +130,17 @@ export function createAvatar<E>(
   const Image = createImage<E>(h)
 
   return function Avatar(props: AvatarBaseProps): E {
-    const { name, src, shape = 'circle', size = 'md', id, className, nonce, crossOrigin } = props
+    const {
+      name,
+      src,
+      shape = 'circle',
+      size = 'md',
+      id,
+      className,
+      nonce: nonceProp,
+      crossOrigin,
+    } = props
+    const nonce = resolveActiveNonce(nonceProp)
 
     const pixels = typeof size === 'number' ? size : AVATAR_SIZE_PX[size]
     const avatarId = deriveStableCometId(JSON.stringify({ name, pixels }), 'avatar')

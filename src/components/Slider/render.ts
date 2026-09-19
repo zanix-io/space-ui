@@ -3,6 +3,7 @@ import { createButton } from '../Button/render.ts'
 import { liveRegionProps, VISUALLY_HIDDEN_CSS } from 'shared/live-region.ts'
 import type { SliderBaseProps } from './types.ts'
 import { MAX_MOUNTED_SLIDES } from './types.ts'
+import { resolveActiveNonce } from 'shared/active-nonce.ts'
 
 /**
  * The subset of hooks this component's shared body needs, injected alongside `h` — same
@@ -51,8 +52,9 @@ export function createSlider<E, Node>(
       label = 'Carousel',
       id,
       className,
-      nonce,
+      nonce: nonceProp,
     } = props
+    const nonce = resolveActiveNonce(nonceProp)
 
     const slides = Array.isArray(children)
       ? children
