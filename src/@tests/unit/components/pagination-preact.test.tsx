@@ -54,6 +54,24 @@ Deno.test('Pagination (preact): a custom label overrides the default', () => {
   assertStringIncludes(html, 'aria-label="Search results"')
 })
 
+Deno.test('Pagination (preact): previousLabel/nextLabel replace the English Previous/Next text', () => {
+  const html = renderToString(
+    element({ totalPages: 5, page: 3, previousLabel: 'Anterior', nextLabel: 'Siguiente' }),
+  )
+
+  assertStringIncludes(html, '>Anterior<')
+  assertStringIncludes(html, '>Siguiente<')
+  assertEquals(html.includes('Previous'), false)
+  assertEquals(html.includes('Next'), false)
+})
+
+Deno.test('Pagination (preact): without previousLabel/nextLabel the controls read Previous and Next', () => {
+  const html = renderToString(element({ totalPages: 5, page: 3 }))
+
+  assertStringIncludes(html, '>Previous<')
+  assertStringIncludes(html, '>Next<')
+})
+
 Deno.test('Pagination (preact): id/className land on the <nav>', () => {
   const html = renderToString(element({ totalPages: 5, id: 'results-nav', className: 'pager' }))
 

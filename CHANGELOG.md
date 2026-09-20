@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/) and this project
 adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [2.2.6] - 2026-09-20
+
+### Added
+
+- **`Pagination` takes `previousLabel` and `nextLabel`** — the text of the Previous and Next
+  controls, for an app whose UI is not English. Both default to `'Previous'` and `'Next'`, so
+  existing usage renders unchanged. Until now those two words were fixed English, and an app in
+  another language had to write its own previous/next links instead of using the component.
+
 ## [2.2.5] - 2026-09-19
 
 ### Fixed

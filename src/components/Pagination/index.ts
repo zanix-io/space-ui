@@ -23,6 +23,7 @@ export type PaginationProps = PaginationBaseProps
  * and one that sidesteps the "disabled link" problem entirely rather than working around it.
  * Previous/Next also carry `rel="prev"`/`rel="next"` when rendered as `Link` — a real, standards-
  * based case `Link.rel`'s own doc already names by name.
+ * `previousLabel`/`nextLabel` set their text for a non-English UI; both default to English.
  *
  * ## Never touches the URL itself
  *

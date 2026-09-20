@@ -43,6 +43,8 @@ export function createPagination<E>(
       getPageHref,
       siblingCount = 1,
       label = 'Pagination',
+      previousLabel = 'Previous',
+      nextLabel = 'Next',
       id,
       className,
     } = props
@@ -89,13 +91,13 @@ export function createPagination<E>(
         'ul',
         { 'data-space-ui': 'pagination-list' },
         [
-          page > 1 ? control(page - 1, 'Previous', { rel: 'prev', key: 'prev' }) : null,
+          page > 1 ? control(page - 1, previousLabel, { rel: 'prev', key: 'prev' }) : null,
           ...items.map((item, index) =>
             item === 'ellipsis'
               ? h('li', { key: `ellipsis-${index}` }, h('span', { 'aria-hidden': 'true' }, '…'))
               : control(item, String(item), { key: String(item) })
           ),
-          page < totalPages ? control(page + 1, 'Next', { rel: 'next', key: 'next' }) : null,
+          page < totalPages ? control(page + 1, nextLabel, { rel: 'next', key: 'next' }) : null,
         ],
       ),
     )

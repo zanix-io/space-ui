@@ -299,7 +299,8 @@ ahead of time:
   function; page items render as real `Link`s when given, plain `Button`s otherwise. A boundary
   (page 1 or the last page) omits Previous/Next from the DOM entirely rather than rendering a
   "disabled link" — a real anchor has no coherent disabled state. Controlled (`page`/`onPageChange`)
-  with an uncontrolled `defaultPage` fallback.
+  with an uncontrolled `defaultPage` fallback. `previousLabel`/`nextLabel` set the Previous/Next
+  text for a non-English UI (English by default).
 
 - ✅ **`Skeleton`** — a pending/loading placeholder: childless, no width/height/shape/animation of
   its own (purely visual, fully achievable via `className`). Decorative (`aria-hidden`) by default;

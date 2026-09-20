@@ -35,6 +35,12 @@ export type PaginationBaseProps = {
   /** Accessible name for the root `<nav>`.
    * @default 'Pagination' */
   label?: string
+  /** Text of the Previous control, for an app whose UI is not English. Omitted on page 1.
+   * @default 'Previous' */
+  previousLabel?: string
+  /** Text of the Next control, for an app whose UI is not English. Omitted on the last page.
+   * @default 'Next' */
+  nextLabel?: string
   id?: string
   className?: string
 }
