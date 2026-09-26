@@ -5,6 +5,63 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/) and this project
 adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [2.4.0] - 2026-09-26
+
+### Added
+
+- **`RangeSlider`** — a real numeric slider input: a single draggable handle (`value: number`, a
+  distance/radius picker) or a two-handle range (`value: [number, number]`, an age range), picked at
+  the type level by which of `label`/`minLabel`+`maxLabel` is given. Genuinely unrelated to the
+  existing `Slider` (a carousel — that component's own doc already warns against ever giving it
+  `role="slider"`, a past regression already did and was corrected); this is the real WAI-ARIA
+  slider widget that role describes. Each handle is its own `role="slider"` with `aria-valuemin`/
+  `aria-valuemax`/`aria-valuenow` — for the range shape, the lower handle's own `aria-valuemax` and
+  the upper handle's own `aria-valuemin` are each other's current value, so the two handles can
+  never cross — plus an optional `formatValue` driving `aria-valuetext`. Full keyboard support per
+  the WAI-ARIA APG's own slider convention (`ArrowLeft`/`Right`/`Up`/`Down` by `step`,
+  `PageUp`/`PageDown` by `pageStep`, `Home`/`End` to this handle's own current effective bound) plus
+  real pointer/touch drag, including clicking the track (not a handle) to jump the nearest handle
+  there — the same behavior a native `<input type="range">` gives for free — via `document`-level
+  listeners while dragging, never `setPointerCapture`. Controlled (`value`/`onValueChange`) with an
+  uncontrolled `defaultValue` fallback (clamped/rounded to `min`/`max`/`step` at seed time), same
+  shape as every other stateful component here. Per-instance handle/fill positioning (a continuous
+  value, changing on every drag/keyboard update) applies via a CSSOM rule inside a self-rendered
+  `<style nonce={nonce}>` element — the same `getOrInsertDynamicRule` mechanism `Tooltip`/`Popover`
+  already use for their own high-frequency position updates, never an inline `style` attribute, and
+  never a `<style>` text rebuild every render (`Avatar`/`ProgressBar`'s own approach, correct only
+  for their own rarely-changing values). `data-range-slider-id` (scoping those per-instance CSSOM
+  rules) is `deriveStableCometId`'s output, never the renderer's bare `useId()` — this component has
+  zero `@zanix/space` dependency (root barrel), so it can end up composed inside some Comet's own
+  isolated hydration root just as easily as `Avatar`/`Menu`/`DatePicker` already can.
+- **`ConsentModal`** — a generic accept/decline confirmation dialog, extracted from real,
+  near-identical duplication: two separate consumer apps each built their own cookie-consent dialog
+  composed entirely from `Modal`/`Button`, diverging only in the network/form logic around it. This
+  component owns none of that logic (no `fetch`, no `<form>` interception, no state beyond what the
+  composed `Modal` already manages internally) — every real decision (`open`, `error`, whether
+  `declinedAcknowledgement` applies) is a plain controlled prop. `heading` renders as a real `<h2>`
+  and doubles as the dialog's own accessible name via `ariaLabelledBy`, never a separate `label`
+  string. `declinedAcknowledgement` swaps `body` and the Accept/Decline pair for an acknowledgement
+  body plus a single `continueLabel` button whenever it's given on the current render — this
+  component tracks no `declined` state of its own; the caller's own state decides when to pass it.
+  `error` composes the real `Alert` (`role="alert"`), the same composition `Field`'s own error
+  message already uses. The `<h2>`'s own `id` is `deriveStableCometId`'s output, never the
+  renderer's bare `useId()` — zero `@zanix/space` dependency (root barrel), so it can end up
+  composed inside some Comet's own isolated hydration root just as easily as
+  `Avatar`/`Menu`/`DatePicker`/`RangeSlider` already can.
+
+### Fixed
+
+- **`registerOverlay`'s own cleanup could spin forever under a `happy-dom`-based test harness.** The
+  body-scroll-lock cleanup (`shared/overlay-stack.ts`) cleared its one CSSOM rule with
+  `while (sheet.cssRules.length > 0) sheet.deleteRule(0)`, assuming every `CSSStyleSheet`
+  implementation shrinks `cssRules` synchronously on `deleteRule` — true in every real browser, but
+  confirmed FALSE for `happy-dom@15`'s own implementation (`cssRules.length` never decreases),
+  spinning that loop at 100% CPU the instant any `Modal`/`Drawer` closes under a test built on it.
+  Never a production issue (real browsers shrink `cssRules` correctly), only a real, reproducible
+  test-environment hang. Replaced with a plain conditional single delete — structurally correct too,
+  independent of the `happy-dom` gap: this sheet only ever holds the one rule `registerOverlay`
+  itself inserts, never more than one at a time by construction.
+
 ## [2.3.1] - 2026-09-25
 
 ### Fixed

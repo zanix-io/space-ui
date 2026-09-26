@@ -342,6 +342,28 @@ export type {
   EmptyStateRootType,
 } from 'components/EmptyState/types.ts'
 
+// `RangeSlider` — a real numeric slider input (single value or a two-handle range); genuinely
+// unrelated to `Slider` above (a carousel — see that component's own doc for why it's never given
+// `role="slider"`). Zero `@zanix/space` dependency, ships from the root barrel.
+export { RangeSlider } from 'components/RangeSlider/index.ts'
+export type { RangeSliderProps } from 'components/RangeSlider/index.ts'
+export type {
+  RangeSliderBaseProps,
+  RangeSliderCommonProps,
+  RangeSliderRangeProps,
+  RangeSliderSingleProps,
+} from 'components/RangeSlider/types.ts'
+
+// `ConsentModal` — a generic accept/decline confirmation dialog, composed entirely from `Modal`/
+// `Button`/`Alert` (all already zero-`@zanix/space`-dependency root-barrel components), extracted
+// from real, near-identical duplication across two separate consumer apps. Zero `@zanix/space`
+// dependency of its own, ships from the root barrel.
+export { ConsentModal } from 'components/ConsentModal/index.ts'
+export type {
+  ConsentModalDeclinedAcknowledgement,
+  ConsentModalProps,
+} from 'components/ConsentModal/index.ts'
+
 // --- Shared primitives ---------------------------------------------------------------------
 // The same headless building blocks this package's own interactive components (`Modal`, `Menu`,
 // `Slider`, `Popover`, `Tooltip`, `Combobox`, `RadioGroup`, `Tabs`) are built from, exported here

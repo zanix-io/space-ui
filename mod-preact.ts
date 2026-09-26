@@ -500,6 +500,24 @@ export type {
   EmptyStateRootType,
 } from 'components/EmptyState/types.ts'
 
+// See `mod.ts`'s own comment on `RangeSlider` — same reasoning, Preact binding.
+export { RangeSlider } from 'components/RangeSlider/index.preact.ts'
+export type { RangeSliderProps } from 'components/RangeSlider/index.preact.ts'
+export type {
+  RangeSliderBaseProps,
+  RangeSliderCommonProps,
+  RangeSliderRangeProps,
+  RangeSliderSingleProps,
+} from 'components/RangeSlider/types.ts'
+
+// `ConsentModal` — see `mod.ts`'s own comment at this same spot for the full reasoning. Preact
+// binding.
+export { ConsentModal } from 'components/ConsentModal/index.preact.ts'
+export type {
+  ConsentModalDeclinedAcknowledgement,
+  ConsentModalProps,
+} from 'components/ConsentModal/index.preact.ts'
+
 // --- Shared primitives ---------------------------------------------------------------------
 // See the default entrypoint's own comment on this section — same reasoning, Preact bindings for
 // the two that are hooks (`useCloseOnOutside`, `useFocusScope`); the rest are renderer-agnostic and

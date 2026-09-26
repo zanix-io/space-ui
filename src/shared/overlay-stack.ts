@@ -72,10 +72,15 @@ export function registerOverlay(id: symbol, nonce?: string): () => void {
     if (!stack.includes(id)) return
     stack = stack.filter((entry) => entry !== id)
     if (stack.length === 0) {
+      // A plain conditional delete, not a loop — `getOrCreateLockStyleEl`'s own sheet only ever
+      // holds the ONE rule `insertRule` above adds, never more than one at a time by construction
+      // (this branch only runs once the stack is fully empty again). A `while (cssRules.length > 0)
+      // deleteRule(0)` here would assume every CSSOM implementation shrinks `cssRules` synchronously
+      // on `deleteRule` — confirmed FALSE for `happy-dom@15`'s own `CSSStyleSheet` (`cssRules.length`
+      // stays unchanged after `deleteRule(0)`, spinning that loop forever under any test harness
+      // built on it), even though every real browser's own CSSOM does shrink it correctly.
       const sheet = lockStyleEl?.sheet
-      if (sheet) {
-        while (sheet.cssRules.length > 0) sheet.deleteRule(0)
-      }
+      if (sheet?.cssRules.length) sheet.deleteRule(0)
     }
   }
 }

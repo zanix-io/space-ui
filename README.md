@@ -643,8 +643,37 @@ ahead of time:
   description, and an optional `action` render-prop. `icon`/`action` are deliberately plain
   render-props rather than a bundled `Button`/`Link` dependency — this leaf component stays
   decoupled from either, the caller composes whichever fits.
+- ✅ **`RangeSlider`** — a real numeric slider input: a single draggable handle (`value: number`, a
+  distance/radius picker) or a two-handle range (`value: [number, number]`, an age range), picked at
+  the type level by which of `label`/`minLabel`+`maxLabel` is given. Genuinely unrelated to `Slider`
+  above (a carousel — see that component's own doc for why it's never given `role="slider"`); this
+  is the real WAI-ARIA slider widget that role describes. Each handle is its own `role="slider"`
+  with `aria-valuemin`/`aria-valuemax`/`aria-valuenow` (`aria-valuemax`/`aria-valuemin` for the
+  range shape's lower/upper handle are each other's own current value, so the two handles can never
+  cross) and an optional `formatValue` drives `aria-valuetext`. Full keyboard support —
+  `ArrowLeft`/`Right`/ `Up`/`Down` (by `step`), `PageUp`/`PageDown` (by `pageStep`, default
+  `step * 10`), `Home`/`End` (to this handle's own current effective bound) — plus pointer/touch
+  drag, including clicking the track to jump the nearest handle there, the same behavior a native
+  `<input type="range">` gives for free. Controlled (`value`/`onValueChange`) with an uncontrolled
+  `defaultValue` fallback (clamped/rounded to `min`/`max`/`step` at seed time), same shape as every
+  other stateful component here. Per-instance handle/fill positioning (a continuous value, changing
+  on every drag frame) applies via a CSSOM rule inside a self-rendered `<style nonce={nonce}>`
+  element — the same `getOrInsertDynamicRule` mechanism `Tooltip`/`Popover` already use for their
+  own high-frequency position updates — never an inline `style` attribute. Zero `@zanix/space`
+  dependency, ships from the root barrel.
+- ✅ **`ConsentModal`** — a generic accept/decline confirmation dialog, composed entirely from
+  `Modal`/`Button` (plus `Alert` for the optional `error` row) — extracted from real, near-identical
+  duplication across two separate consumer apps, each of which had built their own cookie-consent
+  dialog over the same `Modal`+`Button` markup, diverging only in the network/form logic around it.
+  Owns no state beyond what the composed `Modal` already manages internally: every real decision
+  (`open`, `error`, whether `declinedAcknowledgement` applies) is a plain controlled prop. `heading`
+  renders as a real `<h2>` and doubles as this dialog's own accessible name via `ariaLabelledBy` —
+  never a separate `label` string. `declinedAcknowledgement`, when given on the current render,
+  swaps `body` and the Accept/Decline pair for an acknowledgement body plus a single `continueLabel`
+  button; this component tracks no `declined` state of its own, so the caller's own state decides
+  when to pass it. Zero `@zanix/space` dependency, ships from the root barrel.
 
-All forty-seven ship for **both React and Preact** (see [Installation](#installation)).
+All forty-nine ship for **both React and Preact** (see [Installation](#installation)).
 
 Also included, though not a rendering component: **`IntlProvider`/`useIntl`/`createFormatter`** —
 this package's own ICU message-formatting runtime (`formatMessage(id, values)` for plain messages,

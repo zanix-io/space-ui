@@ -1,5 +1,5 @@
 'use comet'
-import { createElement, Fragment, useEffect, useRef, useState } from 'react'
+import { Fragment, useEffect, useRef, useState } from 'react'
 import type { ReactElement } from 'react'
 import { defineComet } from '@zanix/space/comet'
 import type { CometBoundaryComponent, CometProps } from '@zanix/space/comet'
@@ -7,6 +7,7 @@ import { useCometStableId } from '@zanix/space/comet/react'
 import type { CreateElement } from 'typings/renderer.ts'
 import { useCloseOnOutside } from 'shared/close-on-outside.ts'
 import { useFocusScope } from 'shared/focus-scope.ts'
+import { createElementWithNonceHydrationFix } from 'shared/create-element-nonce-hydration-fix.ts'
 import { createNavDrawer } from './render.ts'
 import type { NavDrawerItem, NavDrawerProps } from './types.ts'
 
@@ -64,7 +65,7 @@ export type { NavDrawerItem, NavDrawerProps }
  * ```
  */
 export const NavDrawer: (props: NavDrawerProps) => ReactElement = createNavDrawer<ReactElement>(
-  createElement as unknown as CreateElement<ReactElement>,
+  createElementWithNonceHydrationFix as unknown as CreateElement<ReactElement>,
   { useCometStableId, useRef, useState, useEffect, useCloseOnOutside, useFocusScope },
   Fragment,
 )

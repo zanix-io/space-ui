@@ -201,7 +201,16 @@ audio didn't. `Video`'s own file case (the closest sibling — a native media el
 imperative ref, `crossOrigin`) is copied verbatim wherever this component had no genuinely new
 problem to solve; a "themed/pretty controls" wrapper is deliberately NOT built, since it would
 contradict `Video/render.ts`'s own documented "a headless primitive owns no visual chrome"
-principle.
+principle. `RangeSlider` (row 32) is a thirteenth such addition — a real, confirmed catalog gap: the
+existing `Slider` is a carousel (the WAI-ARIA Carousel pattern), never the real WAI-ARIA slider
+widget `role="slider"` actually describes. `ConsentModal` (row 33) is a fourteenth such addition — a
+real, confirmed duplication gap found across two separate consumer apps, each of which had
+independently built its own cookie-consent dialog composed entirely from the already-shipped
+`Modal`+`Button`, diverging only in the network/form logic around it (out of scope for this package
+— seam 7). The shared presentational shell (heading, body, Accept/Decline, an optional
+declined-acknowledgement step, an optional inline error row) is what's extracted here — this package
+gains no notion of "cookies" or "consent" as a domain concept, only a generic accept/decline
+confirmation shape.
 
 | #  | Component                          | Status     | Depends on                                                                                                                                    | Notes                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
 | -- | ---------------------------------- | ---------- | --------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -562,6 +571,81 @@ catalog reimplements native browser chrome with JS. Deliberately omits `poster`/
 `width`/`height`/`tracks` (none apply to `<audio>`) and `title` (no embed branch needing a forced
 accessible name the way `Video`'s `IFrame` case does; a caller sets a real `aria-label` directly if
 one's needed). |
+
+| 32 | `RangeSlider` | ✅ Shipped | `shared/overlay-position-css.ts` (`getOrInsertDynamicRule`/
+`removeDynamicRule`, third real consumer after `Tooltip`/`Popover`), `shared/stable-comet-id.ts`
+(`deriveStableCometId`, third real consumer after `Menu`/`Avatar`/`DatePicker`) | Beyond the
+original plan — a real numeric slider input, confirmed genuinely NOT covered by the existing
+`Slider` (a carousel, the WAI-ARIA Carousel pattern — its own doc explicitly warns against ever
+giving it `role="slider"`, a past regression already did and was corrected). Renders ONE
+`role="slider"` handle for a single value or TWO for a range, picked by which of
+`label`/`minLabel`+`maxLabel` the caller gives — a discriminated union, the same "which shape, by a
+required field" convention `ButtonProps`' own `role`-keyed union already establishes. Deliberately
+NOT built on `shared/roving-focus.ts`'s roving-tabindex pattern (`RadioGroup`/`Tabs`'s own shape,
+for a set of mutually-exclusive triggers where exactly one is ever the current tab stop) — a range
+slider's two handles are independent controls a user tabs between normally, each adjusted by arrow
+keys while it holds focus, the WAI-ARIA APG's own "Slider (Multi-Thumb)" pattern instead. Keyboard:
+`ArrowLeft`/`Right`/`Up`/`Down` (by `step`), `PageUp`/`PageDown` (by `pageStep`, default
+`step * 10`), `Home`/`End` (to this handle's own current effective bound — for the range shape, the
+OTHER handle's current value, never past it, so the two can never cross). Pointer/touch drag via
+`document`-level `pointermove`/`pointerup`/ `pointercancel` listeners while `dragging` is set, never
+`setPointerCapture` (not universally available across every DOM implementation this package's own
+tests run against) — a `pointerdown` on the track itself (not a handle) jumps the nearest handle
+there and starts dragging it, the same "click the track to jump" behavior a native
+`<input type="range">` gives for free. Per-instance handle/fill positioning (a continuous 0–100%
+value, changing on every drag/keyboard update — far more frequently than `Avatar`'s `width`/`height`
+or `ProgressBar`'s own rarely-changing values) follows `Tooltip`/`Popover`'s own
+`getOrInsertDynamicRule` precedent instead of `Avatar`/`ProgressBar`'s "rebuild static CSS text
+every render" one: a `<style nonce={nonce}>` element carries a static, module-level base
+(`position: relative`/`absolute`) plus one empty per-instance CSSOM rule per moving part, mutated
+directly (`CSSStyleRule.style.setProperty('left', ...)`) on every value change — never an inline
+`style` attribute, and never a `<style>` text rebuild every render either. `data-range-
+slider-id`
+(scoping those CSSOM rules to one instance) is `deriveStableCometId`'s output, never the renderer's
+bare `useId()` — this component has zero `@zanix/space` dependency (root barrel), so it can end up
+composed inside some Comet's own isolated hydration root just as easily as `Avatar`/`Menu`/
+`DatePicker` already can. No separate live-region announcement: unlike `Slider`/`Countdown`, this
+component's value changes always land on `aria-valuenow`/`aria-valuetext` of whichever handle
+currently holds real DOM focus — the WAI-ARIA slider pattern's own built-in announcement mechanism.
+Controlled (`value`/`onValueChange`) with an uncontrolled `defaultValue` fallback (clamped/rounded
+to `min`/`max`/`step` at seed time — a real, confirmed gap caught while building this: an
+out-of-bounds/ off-step `defaultValue` rendered unclamped until this was added), same shape as every
+other stateful component here.
+
+| 33 | `ConsentModal` | ✅ Shipped | `Modal`, `Button` (composed via their own `render.ts`
+factories), `Alert` (composed for the optional `error` row, same composition `Field`'s own error
+message already uses), `shared/stable-comet-id.ts` (`deriveStableCometId`, fourth real consumer
+after `Avatar`/`DatePicker`/`RangeSlider`) | Beyond the original plan — a real, confirmed
+duplication gap: two separate consumer apps (each with their own cookie-consent dialog) had
+independently built the exact same `Modal`+`Button` markup shape, diverging only in the network/form
+logic around it (a `fetch`-based round trip in one, a `<form>` submit interception in the other) —
+genuinely out of scope for this package either way (seam 7: no fetch, no DOM `<form>` interception,
+ever). This extracts exactly the shared presentational shell, generic over any binary accept/decline
+confirmation, never a "cookie consent" domain concept: this package gains no notion of "cookies" or
+"consent" of its own. Owns zero state beyond what the composed `Modal` already manages internally
+(focus trap, `Escape`, stacking, scroll lock) — every real decision (`open`, `error`, whether
+`declinedAcknowledgement` applies) is a plain controlled prop, same seam every other stateful
+component here keeps. `heading` renders as a real `<h2>` and doubles as this dialog's own accessible
+name via `ariaLabelledBy`, never a separate `label` string — unlike `Modal`'s own two-way
+`label`/`ariaLabelledBy` contract, `heading` always renders real visible content, so deriving the
+accessible name from it is strictly more correct than asking for a redundant second string.
+`declinedAcknowledgement` swaps `body` and the Accept/Decline pair for an acknowledgement body plus
+a single `continueLabel` button whenever it's given ON THE CURRENT RENDER — this component tracks no
+`declined` state of its own to derive that from; the caller's own `onDecline` handler is what sets
+that state, and only passes this prop once it's true, so the swap happens on the very next render
+without `ConsentModal` itself ever knowing "was Decline clicked." Omitting the prop entirely
+(always, never conditionally) makes Decline behave exactly like Accept — both real consumers this
+component was extracted from use one shape each, confirming both are genuinely needed rather than
+one being speculative. The `<h2>`'s own `id` is `deriveStableCometId`'s output, never the renderer's
+bare `useId()` — zero `@zanix/space` dependency of its own (root barrel), so it can end up composed
+inside some Comet's own isolated hydration root just as easily as
+`Avatar`/`Menu`/`DatePicker`/`RangeSlider` already can; the seed is built only from the plain
+string/boolean props (`acceptLabel`/`declineLabel`/whether `declinedAcknowledgement`/`continueLabel`
+are given), never `heading`/`body`/`error` themselves (opaque `unknown` content, not guaranteed
+serializable) — the same accepted, narrow residual (two instances sharing an identical seed collide
+on id) those three components' own docs already accept for the overwhelmingly common case of
+distinct instances. Inherits `data-space-ui="modal"`/ `"button"`/`"alert"` from the real components
+it composes, adds no redundant `"consent-modal"` hook of its own. |
 
 ## RichText — a real legacy rescue, built on `formatRichText`
 
