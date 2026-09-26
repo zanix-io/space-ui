@@ -4,6 +4,7 @@ import { resolveAssetHref } from '@zanix/space/assets-manifest'
 import { createLink } from '../Link/render.ts'
 import { createImage } from '../Image/render.ts'
 import { createVideo } from '../Video/render.ts'
+import { createAudio } from '../Audio/render.ts'
 import { isPlainObject } from '@zanix/helpers'
 import { parsePropsQuery } from './parse-props-query.ts'
 import type { CreateElement } from 'typings/renderer.ts'
@@ -19,27 +20,28 @@ export type MarkdownTagProps = Record<string, unknown> & { key: number; src: str
 
 /**
  * The markdown-mode analog of `RichText`'s own ICU-mode `tags` prop — an additive, opt-in override
- * for the two node kinds `renderMarkdown` composes `Image`/`Video` for internally, keyed by the
- * SAME `img`/`video` names `RichText/tags.ts`'s own ICU table uses. Typical uses: composing a
- * caller-owned `Image`/`Video`-shaped element, enforcing a stricter policy than the built-in
- * auto-resolve default (e.g. rejecting any relative URL outright for untrusted CMS content), or
- * swapping in an entirely different visual — the same real motivation `Menu`'s/`ImgButton`'s/
- * `Card`'s own `visual` render-props already have, applied here to markdown's own fixed image/video
- * AST node instead of a plain component prop.
+ * for the three node kinds `renderMarkdown` composes `Image`/`Video`/`Audio` for internally, keyed
+ * by the SAME `img`/`video`/`audio` names `RichText/tags.ts`'s own ICU table uses. Typical uses:
+ * composing a caller-owned `Image`/`Video`/`Audio`-shaped element, enforcing a stricter policy than
+ * the built-in auto-resolve default (e.g. rejecting any relative URL outright for untrusted CMS
+ * content), or swapping in an entirely different visual — the same real motivation `Menu`'s/
+ * `ImgButton`'s/`Card`'s own `visual` render-props already have, applied here to markdown's own
+ * fixed image/video/audio AST node instead of a plain component prop.
  *
  * **Not a comet-safety mechanism of any kind** — this is a pure SSR rendering customization, full
  * stop. When NO override is given, `renderMarkdown`'s own default path calls `createImage`/
- * `createVideo` (`Image/render.ts`'s/`Video/render.ts`'s own shared factories) WITH this module's
- * own top-level `resolveAssetHref` injected — the SSR-only, auto-resolving binding, never the
- * separate comet-safe root-barrel `Image`/`Video` (`components/Image/index.ts`, no resolver
- * injected) — so a relative path keeps auto-resolving exactly as before this override existed. That
- * `resolveAssetHref` import stays real and UNCONDITIONAL regardless of whether any given instance's
- * own props actually use `img`/`video` here — a static ES import is hoisted no matter what a caller
- * passes — so `RichText/markdown.ts`'s own module (and therefore `RichText` itself) keeps reaching
+ * `createVideo`/`createAudio` (`Image/render.ts`'s/`Video/render.ts`'s/`Audio/render.ts`'s own
+ * shared factories) WITH this module's own top-level `resolveAssetHref` injected — the SSR-only,
+ * auto-resolving binding, never the separate comet-safe root-barrel `Image`/`Video`/`Audio`
+ * (`components/Image/index.ts`, no resolver injected) — so a relative path keeps auto-resolving
+ * exactly as before this override existed. That `resolveAssetHref` import stays real and
+ * UNCONDITIONAL regardless of whether any given instance's own props actually use
+ * `img`/`video`/`audio` here — a static ES import is hoisted no matter what a caller passes — so
+ * `RichText/markdown.ts`'s own module (and therefore `RichText` itself) keeps reaching
  * `@zanix/space/assets-manifest` either way. A caller's own override function MAY happen to compose
- * the comet-safe root-barrel `Image`/`Video` for what it renders, but that only affects the output
- * of one SSR call — it does not, and cannot, remove `RichText`'s own unconditional dependency on
- * this file's own fallback import. See `src/runtime/rich-text.ts`'s own module doc for the full
+ * the comet-safe root-barrel `Image`/`Video`/`Audio` for what it renders, but that only affects the
+ * output of one SSR call — it does not, and cannot, remove `RichText`'s own unconditional dependency
+ * on this file's own fallback import. See `src/runtime/rich-text.ts`'s own module doc for the full
  * reasoning and a `deno info --json` confirmation that `RichText`'s own module graph is identical
  * with or without this feature.
  *
@@ -73,6 +75,9 @@ export type MarkdownTags<E> = {
    * `_props` has a truthy `video`/`media` (see this module's own "`_props`-on-URL convention" doc)
    * — `Video({ key, title: node.alt, ...props, src })` by default. */
   video?: (props: MarkdownTagProps & { title?: string }) => E
+  /** Overrides markdown's built-in audio-node handling — an image node whose own extracted
+   * `_props` has a truthy `audio` — `Audio({ key, ...props, src })` by default. */
+  audio?: (props: MarkdownTagProps) => E
 }
 
 /**
@@ -97,8 +102,12 @@ export type MarkdownTags<E> = {
  * (`![caption](clip.mp4?_props[video]=true)`) that never reaches the real `src`/`href` — stripped
  * and parsed via the SAME {@linkcode parsePropsQuery} the ICU-side `<props>` tag already uses (one
  * shared parser, not legacy's own two parallel implementations), then spread onto the target
- * component. A link with `video`/`media` truthy in its extracted props renders `Video`; otherwise
- * an image renders `Image`, a link renders `Link`.
+ * component. A link with `video`/`media` truthy in its extracted props renders `Video`; one with
+ * `audio` truthy renders `Audio` (checked after `video`/`media` — no real caller sets both, since
+ * unlike `video`/`media`, which are aliases of each other, `video`/`audio` are mutually exclusive
+ * classifications of the same URL; `video`/`media` wins in the hypothetical both-set case purely
+ * because it's the pre-existing check, not because of any real precedence argument); otherwise an
+ * image renders `Image`, a link renders `Link`.
  *
  * Every plain host element this renders (`p`, `h1`–`h6`, emphasis/strong/strikethrough, `code`/
  * `pre`, `ul`/`ol`/`li`, `blockquote`, `br`/`hr`) carries `data-space-ui="richtext"` — the same
@@ -174,22 +183,32 @@ function renderMarkdownNode<E>(
       if (node.target === null) return null
       const { src, props } = extractUrlProps(node.target)
       const isVideo = Boolean(props.video || props.media)
-      // `resolveAssetHref` injected explicitly — `Image`/`Video`'s own `createImage`/`createVideo`
-      // factories no longer hardcode this import (see `Image/render.ts`'s own module doc), so a
-      // markdown image/video needs it injected here too, to keep auto-resolving a relative asset
-      // path embedded in caller-uncontrolled content exactly as it always has. This file's own
-      // top-level `resolveAssetHref` import (above) stays real and UNCONDITIONAL regardless of
-      // whether `tags?.img`/`tags?.video` is given for any particular node below — a static ES
-      // import is hoisted no matter what a caller passes, so this module (and `RichText` itself)
-      // never becomes comet-safe either way, same reasoning `tags.ts`'s own doc gives; see
-      // `MarkdownTags`'s own doc for the full "not a comet-safety mechanism" reasoning. When an
-      // override IS given, it only changes what THIS specific node renders (skipping the
-      // `createImage`/`createVideo` call for it) — it changes nothing about this file's own module
-      // graph.
+      // Checked after `isVideo` — see this module's own "`_props`-on-URL convention" doc above for
+      // why (the `video`/`audio` precedence reasoning), not repeated here.
+      const isAudio = !isVideo && Boolean(props.audio)
+      // `resolveAssetHref` injected explicitly — `Image`/`Video`/`Audio`'s own `createImage`/
+      // `createVideo`/`createAudio` factories no longer hardcode this import (see
+      // `Image/render.ts`'s own module doc), so a markdown image/video/audio needs it injected
+      // here too, to keep auto-resolving a relative asset path embedded in caller-uncontrolled
+      // content exactly as it always has. This file's own top-level `resolveAssetHref` import
+      // (above) stays real and UNCONDITIONAL regardless of whether `tags?.img`/`tags?.video`/
+      // `tags?.audio` is given for any particular node below — a static ES import is hoisted no
+      // matter what a caller passes, so this module (and `RichText` itself) never becomes
+      // comet-safe either way, same reasoning `tags.ts`'s own doc gives; see `MarkdownTags`'s own
+      // doc for the full "not a comet-safety mechanism" reasoning. When an override IS given, it
+      // only changes what THIS specific node renders (skipping the `createImage`/`createVideo`/
+      // `createAudio` call for it) — it changes nothing about this file's own module graph.
       if (isVideo) {
         if (tags?.video) return tags.video({ key, title: node.alt, ...props, src })
         const Video = createVideo(h, resolveAssetHref)
         return Video({ key, title: node.alt, ...props, src } as never)
+      }
+      if (isAudio) {
+        // Unlike `video`, `Audio` has no `title`/`alt` equivalent (a deliberate omission — see
+        // `Audio/render.ts`'s own module doc) — so `node.alt` is never passed here.
+        if (tags?.audio) return tags.audio({ key, ...props, src })
+        const Audio = createAudio(h, resolveAssetHref)
+        return Audio({ key, ...props, src } as never)
       }
       if (tags?.img) return tags.img({ key, alt: node.alt ?? '', ...props, src })
       const Image = createImage(h, resolveAssetHref)

@@ -89,6 +89,14 @@ export type { ImageProps, ImageSourceProps } from 'components/Image/types.ts'
 export { Video } from 'components/Video/index.ts'
 export type { VideoProps, VideoSourceProps, VideoTrackProps } from 'components/Video/types.ts'
 
+// `Audio` lives here too, alongside `./runtime/audio` — comet-safe, absolute-URL-only, no resolver
+// injected, the identical split `Video`/`Image` already establish (see this file's own `@module` doc
+// above). Unlike `Video`, `Audio` has no provider/embed branching and no `@zanix/space/video-source`
+// -equivalent classification dependency, so it carries ZERO `@zanix/space` reachability in either
+// binding until `resolveAssetHref` is injected by `./runtime/audio`.
+export { Audio } from 'components/Audio/index.ts'
+export type { AudioProps, AudioSourceProps } from 'components/Audio/types.ts'
+
 // `ImgButton`/`Card` live here, not any `./runtime/*` subpath — zero `@zanix/space` dependency,
 // see this file's own `@module` doc for the full reasoning.
 export { ImgButton } from 'components/ImgButton/index.ts'

@@ -31,7 +31,9 @@ import { dirname, fromFileUrl } from '@std/path'
  * structural addition, not a drift: each now ships a comet-safe root-barrel binding (Table 1,
  * `ROOT_BARREL_COMPONENTS`, or a dedicated narrower test for `Video` specifically — see its own
  * doc below) alongside its existing `@zanix/space`-dependent `./runtime/*` binding (Table 2,
- * unchanged). Being in one table never implies absence from the other going forward.
+ * unchanged). Being in one table never implies absence from the other going forward. `Audio`
+ * follows `Image`'s own shape exactly (zero unconditional `@zanix/space` dependency, so it sits in
+ * `ROOT_BARREL_COMPONENTS` plain, unlike `Video`'s own dedicated narrower test).
  *
  * @module
  */
@@ -308,6 +310,7 @@ Deno.test(
 const ROOT_BARREL_COMPONENTS = [
   'Accordion',
   'Alert',
+  'Audio',
   'Avatar',
   'Button',
   'Card',
@@ -435,9 +438,9 @@ Deno.test(
 // ---------------------------------------------------------------------------------------------
 // Table 2: every `./runtime/*` subpath — each row is the human-reviewed EXACT expected footprint,
 // not just "reaches @zanix/space somehow." `composes` lists sibling runtime components genuinely,
-// intentionally reachable through real composition (e.g. `RichText` composing `Image`'s/`Video`'s
-// own `render.ts`) — every OTHER sibling runtime component is asserted UNREACHABLE, automatically,
-// without needing to hand-list every forbidden name per row.
+// intentionally reachable through real composition (e.g. `RichText` composing `Image`'s/`Video`'s/
+// `Audio`'s own `render.ts`) — every OTHER sibling runtime component is asserted UNREACHABLE,
+// automatically, without needing to hand-list every forbidden name per row.
 //
 // `ImgButton`/`Card` are NOT in this table (or `ALL_RUNTIME_COMPONENTS` below) even though
 // `RichText/tags.ts` still directly imports `ImgButton/render.ts` for its own `ibtn` tag — both
@@ -483,7 +486,7 @@ function expectedSubpathsFor(
   return renderer === 'React' ? perRenderer.react : perRenderer.preact
 }
 
-const ALL_RUNTIME_COMPONENTS = ['Video', 'Image', 'CatalogIcon', 'RichText', 'NavDrawer']
+const ALL_RUNTIME_COMPONENTS = ['Video', 'Image', 'Audio', 'CatalogIcon', 'RichText', 'NavDrawer']
 
 const RUNTIME_COMPONENTS: readonly RuntimeComponentExpectation[] = [
   {
@@ -503,6 +506,16 @@ const RUNTIME_COMPONENTS: readonly RuntimeComponentExpectation[] = [
     composes: [],
   },
   {
+    name: 'Audio',
+    reactEntry: 'src/runtime/audio.ts',
+    preactEntry: 'src/runtime/audio.preact.ts',
+    // `Audio/render.ts` resolves `resolveAssetHref` directly for the local/CDN file case, same shape
+    // as `Image`'s own row — `Audio` has no provider/embed branching and no
+    // `video-source`-equivalent classification dependency.
+    zanixSpaceSubpaths: ['assets-manifest'],
+    composes: [],
+  },
+  {
     name: 'CatalogIcon',
     reactEntry: 'src/runtime/catalog-icon.ts',
     preactEntry: 'src/runtime/catalog-icon.preact.ts',
@@ -516,15 +529,17 @@ const RUNTIME_COMPONENTS: readonly RuntimeComponentExpectation[] = [
     reactEntry: 'src/runtime/rich-text.ts',
     preactEntry: 'src/runtime/rich-text.preact.ts',
     // Resolves `assets-manifest` directly itself too (`RichText/resolve.ts`), on top of composing
-    // `Image`'s/`Video`'s own `render.ts` factories for its `img`/`video` tags (and `ImgButton`'s
-    // own `render.ts` for `ibtn` — not a `./runtime/*` sibling anymore, see this table's own header
-    // comment) — `video-source` is reached transitively THROUGH composing `Video`, never directly.
+    // `Image`'s/`Video`'s/`Audio`'s own `render.ts` factories for its `img`/`video`/`audio` tags
+    // (and `ImgButton`'s own `render.ts` for `ibtn` — not a `./runtime/*` sibling anymore, see this
+    // table's own header comment) — `video-source` is reached transitively THROUGH composing
+    // `Video`, never directly. `Audio` itself adds no new subpath here: it only ever reaches
+    // `assets-manifest`, already in this row's set via `Image`/`Video`/`RichText`'s own direct use.
     // `CatalogIcon` is real composition too (`RichText/tags.ts`'s own `icon` tag, `createCatalogIcon
     // (h, CATALOG_VIEWBOX)` with no resolver — comet-safe, matching `CatalogIcon`'s own root-barrel
     // binding, never `./runtime/catalog-icon`'s auto-resolving one) — pre-existing, only surfaced
     // once `CatalogIcon` joined `ALL_RUNTIME_COMPONENTS` below.
     zanixSpaceSubpaths: ['assets-manifest', 'video-source'],
-    composes: ['Image', 'Video', 'CatalogIcon'],
+    composes: ['Image', 'Video', 'Audio', 'CatalogIcon'],
   },
   {
     name: 'NavDrawer',

@@ -77,16 +77,20 @@ shared combined `./runtime` barrel — see `src/runtime/video.ts`'s own `@module
 directly by any consumer app, not just this package's own components; everything below is public
 except `shared/overlay-stack.ts` (now genuinely shared — see its own row below).
 
-`Video`/`Image` are a narrower case, and now ship BOTH ways at once: `resolveAssetHref` is an
-OPTIONAL, injected parameter on their shared `render.ts` factories (not a hardcoded import), so
+`Video`/`Image`/`Audio` are a narrower case, and now ship BOTH ways at once: `resolveAssetHref` is
+an OPTIONAL, injected parameter on their shared `render.ts` factories (not a hardcoded import), so
 `mod.ts`/`mod-preact.ts` export a comet-safe binding (no resolver injected — an already-absolute
-path works as-is, a relative one is left unresolved) AND `./runtime/video`/`./runtime/image` (a
-`/preact` variant alongside each) export the byte-for-byte identical, `resolveAssetHref`-injecting,
-auto-resolving sibling — two bindings, same component name, at two different subpaths, by design
-(see `src/runtime/video.ts`'s own "Two bindings, same name, additive" doc). `Video`'s own
-`@zanix/space/video-source` classification dependency stays real and unconditional in BOTH forms —
-core logic every branch needs, not an asset-resolution nicety, and genuinely safe for a Comet (no
-`'server-only'` directive, confirmed by reading the module directly).
+path works as-is, a relative one is left unresolved) AND `./runtime/video`/`./runtime/image`/
+`./runtime/audio` (a `/preact` variant alongside each) export the byte-for-byte identical,
+`resolveAssetHref`-injecting, auto-resolving sibling — two bindings, same component name, at two
+different subpaths, by design (see `src/runtime/video.ts`'s own "Two bindings, same name, additive"
+doc). `Video`'s own `@zanix/space/video-source` classification dependency stays real and
+unconditional in BOTH of its own forms — core logic every branch needs, not an asset-resolution
+nicety, and genuinely safe for a Comet (no `'server-only'` directive, confirmed by reading the
+module directly). `Audio` has no equivalent classification dependency at all (no provider/embed case
+to detect), so both of its own forms carry zero `@zanix/space` dependency until `resolveAssetHref`
+is injected — it sits in `dependency-boundary.test.ts`'s plain `ROOT_BARREL_COMPONENTS` table, same
+as `Image`, not `Video`'s own dedicated narrower test.
 
 `Menu`, `ImgButton`, and `Card` each have zero `@zanix/space` dependency of their own (`ImgButton`/
 `Card` moved out of `./runtime` once each got its own `visual` render-prop, the same fix `Menu`
@@ -189,7 +193,15 @@ reimplemented `Avatar`'s own `onError`/`decode()` mechanism almost verbatim in i
 since `Image` is deliberately unopinionated (no internal load state) and nothing in this catalog
 covered "an image with a caller-supplied fallback" for non-person content. `Avatar`'s own
 previously-inline mechanism is now `shared/use-image-load-state.ts`/`.preact.ts` (a real, confirmed
-second consumer), and `Thumbnail` is `Avatar`'s own closest sibling built on it.
+second consumer), and `Thumbnail` is `Avatar`'s own closest sibling built on it. `Audio` (row 31) is
+a twelfth such addition — a real, confirmed catalog gap reported from a consumer (a chat app with
+voice messages, hand-rolling a local wrapper around native `<audio>` for lack of one here): every
+other common media type already had a component (`Image`/`Video`/`Thumbnail`/`Avatar`/`FileInput`),
+audio didn't. `Video`'s own file case (the closest sibling — a native media element, `sources`, no
+imperative ref, `crossOrigin`) is copied verbatim wherever this component had no genuinely new
+problem to solve; a "themed/pretty controls" wrapper is deliberately NOT built, since it would
+contradict `Video/render.ts`'s own documented "a headless primitive owns no visual chrome"
+principle.
 
 | #  | Component                          | Status     | Depends on                                                                                                                                    | Notes                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
 | -- | ---------------------------------- | ---------- | --------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -523,7 +535,33 @@ hook file directly, since `deno info`'s own dependency listing is per-module, no
 module reached only through a `type`-only edge still reports every one of its own real code
 dependencies, and `use-image-load-state.ts` has a real `react` one. Confirmed via this package's own
 `dependency-boundary.test.ts` (a `Thumbnail` row added to `ROOT_BARREL_COMPONENTS`), zero
-`@zanix/space` dependency, ships from the root barrel. |
+`@zanix/space` dependency, ships from the root barrel. | | 31 | `Audio` | ✅ Shipped | `Video`
+(closest sibling — file-case shape copied, no shared code) | Beyond the original plan — a real,
+confirmed catalog gap reported from a consumer (a chat app with voice messages, hand-rolling a local
+`<audio>` wrapper for lack of one here): `Image`/`Video`/`Thumbnail`/ `Avatar`/`FileInput` all had a
+media/asset counterpart; audio didn't. A native, headless `<audio>` — unlike `Video`, no
+provider/embed branching (audio has no YouTube/Vimeo-equivalent embeddable-provider case) and no
+`detectVideoSource`-equivalent source-classification dependency, so `Audio/render.ts` carries zero
+unconditional `@zanix/space` dependency in either binding (unlike `Video`'s own `video-source`
+classification, which stays real and unconditional in both of its forms) — `Audio` sits in
+`dependency-boundary.test.ts`'s plain `ROOT_BARREL_COMPONENTS` list, not a dedicated narrower test
+the way `Video` needs. `resolveHref` is an OPTIONAL, injected parameter on `Audio/render.ts`'s own
+shared factory, the identical shape `Video`/`Image` already establish, so this component ships BOTH
+ways from its very first version: the default `.`/`./preact` barrel (comet-safe, no resolver
+injected) and `./runtime/audio` (a `/preact` variant alongside — `resolveAssetHref` injected,
+auto-resolving, SSR-only). `sources?: AudioSourceProps[]` renders real `<source media type src>`
+children, the same WHATWG resource-selection contract `Video.sources` already documents (a
+`<source>` with `media` is spec-valid for `<audio>` too). A `blob:` Object URL needs no
+special-casing: `new
+URL('blob:...')` parses successfully, so the same `resolveFileSrc` passthrough
+that already treats an absolute CDN URL as already-resolved treats a `blob:` URL identically — the
+concrete case a caller playing back an authenticated-fetch voice message depends on. A
+themed/pretty-controls wrapper is deliberately NOT built: it would contradict `Video/render.ts`'s
+own documented "a headless primitive owns no visual chrome" principle — no other component in this
+catalog reimplements native browser chrome with JS. Deliberately omits `poster`/`playsInline`/
+`width`/`height`/`tracks` (none apply to `<audio>`) and `title` (no embed branch needing a forced
+accessible name the way `Video`'s `IFrame` case does; a caller sets a real `aria-label` directly if
+one's needed). |
 
 ## RichText — a real legacy rescue, built on `formatRichText`
 
@@ -563,17 +601,20 @@ own existing, single formatting dependency at the time) already had.
   `CatalogIcon` (named icons, no `href`/`viewBox` to manage). `video` — a confirmed, unconditional
   self-recursion crash bug in legacy, never once actually usable (zero real content anywhere used
   it) — now maps to the REAL `Video` component; this is the first version where it renders anything
-  at all. `sus` (SuspenseFallback, never migrated, React-only) repurposed to `Skeleton` — same
-  loading-placeholder intent, backed by a real both-renderer component. `page` and `lc`
-  (LayoutContainer) dropped — `page` shared `video`'s own crash bug and has no real target concept
-  in this package regardless (page-level composition is `@zanix/space`'s job, per the Ownership
-  map); `lc` has no migrated target yet. `menu` dropped too — not because `Menu` lacks a
-  renderer-agnostic `render.ts` factory (it has one, `createMenu(h, hooks, Fragment)`, the same
-  shape `Table`'s own `createTable` uses), but because ICU's own tag mechanism wraps a chunk of
-  inline content/text, not a whole `items: MenuItem[]` data structure — there's no attribute syntax
-  a `<menu>...</menu>` tag could use to carry that array through translated message content in the
-  first place, a structural mismatch rather than a missing implementation detail. No consumer
-  evidence has asked for it inside rich text either way.
+  at all. `audio` — no legacy equivalent existed at all (the 34-tag table predates the component) —
+  added new once `Audio` itself shipped (row 31 above), the same real `render.ts` factory shape
+  `video` uses, `resolveAssetHref` injected the same way for auto-resolving a relative `src`
+  embedded in caller-uncontrolled content. `sus` (SuspenseFallback, never migrated, React-only)
+  repurposed to `Skeleton` — same loading-placeholder intent, backed by a real both-renderer
+  component. `page` and `lc` (LayoutContainer) dropped — `page` shared `video`'s own crash bug and
+  has no real target concept in this package regardless (page-level composition is `@zanix/space`'s
+  job, per the Ownership map); `lc` has no migrated target yet. `menu` dropped too — not because
+  `Menu` lacks a renderer-agnostic `render.ts` factory (it has one,
+  `createMenu(h, hooks, Fragment)`, the same shape `Table`'s own `createTable` uses), but because
+  ICU's own tag mechanism wraps a chunk of inline content/text, not a whole `items: MenuItem[]` data
+  structure — there's no attribute syntax a `<menu>...</menu>` tag could use to carry that array
+  through translated message content in the first place, a structural mismatch rather than a missing
+  implementation detail. No consumer evidence has asked for it inside rich text either way.
 - **Markdown, explicit and expanded.** `markdown-to-jsx`'s own `/markdown` subpath — a pure
   markdown→AST parser confirmed to have ZERO React import at runtime (checked directly against its
   built JS, not its React-flavored `.d.ts` or root/`/react` entrypoint) — is walked by hand via `h`,
@@ -589,10 +630,13 @@ own existing, single formatting dependency at the time) already had.
   parsing would otherwise misinterpret before Markdown ever saw them. The legacy `_props`-on-URL
   convention (`MDLink`/`MDMedia`, routing a markdown link/image URL to `Link`/`Image`/`Video`) is
   kept, unified onto the SAME `parsePropsQuery` the ICU side's `<props>` uses instead of legacy's
-  own second, parallel implementation. Covers the common node kinds a real CMS/docs document needs
-  (paragraphs, headings, emphasis, links, images, code, lists, blockquotes, breaks) — tables,
-  footnotes, GFM tasks, frontmatter, and raw HTML/JSX blocks are a real, disclosed v1 scope limit
-  (render as nothing, never a crash), not a hidden gap.
+  own second, parallel implementation, and extended with a real `_props[audio]=true` case (no legacy
+  precedent, added alongside `Audio` itself) routing to the real `Audio` component the same way
+  `_props[video]=true`/`_props[media]=true` route to `Video` — checked after the video/media case,
+  since no real caller sets both and `video`/`media` was the pre-existing check. Covers the common
+  node kinds a real CMS/docs document needs (paragraphs, headings, emphasis, links, images, code,
+  lists, blockquotes, breaks) — tables, footnotes, GFM tasks, frontmatter, and raw HTML/JSX blocks
+  are a real, disclosed v1 scope limit (render as nothing, never a crash), not a hidden gap.
 - **`doc` is gone as a prop — moved out, not dropped.** Legacy's own `doc` mixed `fs.readFileSync`
   (Node-only, would throw in a browser/edge bundle), an unconditional client-side `fetch` with no
   caching or error handling, and a real, acknowledged-but-never-fixed hydration-mismatch bug

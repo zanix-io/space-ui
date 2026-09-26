@@ -1,6 +1,6 @@
 {
   "name": "@zanix/space-ui",
-  "version": "2.2.6",
+  "version": "2.3.0",
   "zanix": {
     "project": "library"
   },
@@ -187,6 +187,8 @@
     // bindings, same name, additive" doc.
     "./runtime/video": "./src/runtime/video.ts",
     "./runtime/video/preact": "./src/runtime/video.preact.ts",
+    "./runtime/audio": "./src/runtime/audio.ts",
+    "./runtime/audio/preact": "./src/runtime/audio.preact.ts",
     "./runtime/image": "./src/runtime/image.ts",
     "./runtime/image/preact": "./src/runtime/image.preact.ts",
     "./runtime/rich-text": "./src/runtime/rich-text.ts",

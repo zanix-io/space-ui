@@ -71,7 +71,25 @@ Deno.test('renderMarkdown (preact): a relative image src resolves via resolveAss
   assertStringIncludes(html('![x](pic.jpg)'), 'src="/assets/pic.jpg"')
 })
 
-// --- tags: the markdownTags override hatch (img/video) --------------------------------------
+// --- audio: real Audio component, via _props[audio]=true ------------------------------------
+
+Deno.test('renderMarkdown (preact): _props[audio]=true on an image URL renders a real Audio', () => {
+  const result = html('![caption](note.mp3?_props[audio]=true)')
+  assertStringIncludes(result, 'data-space-ui="audio"')
+  assertEquals(result.includes('data-space-ui="image"'), false)
+  assertEquals(result.includes('data-space-ui="video"'), false)
+})
+
+Deno.test(
+  'renderMarkdown (preact): when both video and audio _props are set, video wins',
+  () => {
+    const result = html('![x](clip.mp4?_props[video]=true&_props[audio]=true)')
+    assertStringIncludes(result, 'data-space-ui="video"')
+    assertEquals(result.includes('data-space-ui="audio"'), false)
+  },
+)
+
+// --- tags: the markdownTags override hatch (img/video/audio) --------------------------------
 
 Deno.test('renderMarkdown (preact): tags.img overrides the built-in Image composition', () => {
   const result = html('![alt text](pic.jpg)', {
@@ -91,6 +109,16 @@ Deno.test('renderMarkdown (preact): tags.video overrides the built-in Video comp
   assertStringIncludes(result, 'data-testid="custom-video"')
   assertStringIncludes(result, '>clip.mp4<')
   assertEquals(result.includes('data-space-ui="video"'), false)
+})
+
+Deno.test('renderMarkdown (preact): tags.audio overrides the built-in Audio composition', () => {
+  const result = html('![caption](note.mp3?_props[audio]=true)', {
+    audio: ({ key, src }) => h('span', { key, 'data-testid': 'custom-audio' }, src) as VNode,
+  })
+
+  assertStringIncludes(result, 'data-testid="custom-audio"')
+  assertStringIncludes(result, '>note.mp3<')
+  assertEquals(result.includes('data-space-ui="audio"'), false)
 })
 
 Deno.test('renderMarkdown (preact): without tags, behavior is unchanged (purely additive)', () => {

@@ -155,6 +155,20 @@ Deno.test(
   },
 )
 
+Deno.test('RichText: <audio> renders through the real Audio component', () => {
+  const result = html('<audio><props>src=clip.mp3</props></audio>')
+  assertStringIncludes(result, 'data-space-ui="audio"')
+  assertStringIncludes(result, 'src="/assets/clip.mp3"')
+})
+
+Deno.test(
+  'RichText: <audio> with no <props> at all defaults src to an empty string, no crash',
+  () => {
+    const result = html('<audio></audio>')
+    assertEquals(result.includes('src="undefined"'), false)
+  },
+)
+
 Deno.test('RichText: <sus> renders through Skeleton — repurposed from SuspenseFallback', () => {
   const result = html('<sus></sus>')
   assertStringIncludes(result, 'data-space-ui="skeleton"')
@@ -238,6 +252,11 @@ Deno.test('RichText: <ibtn> neutralizes a javascript: href, keeps the Link/Butto
 
 Deno.test('RichText: <video> neutralizes a javascript: src', () => {
   const result = html('<video><props>src=javascript:alert(1)</props></video>')
+  assertEquals(result.includes('javascript:'), false)
+})
+
+Deno.test('RichText: <audio> neutralizes a javascript: src', () => {
+  const result = html('<audio><props>src=javascript:alert(1)</props></audio>')
   assertEquals(result.includes('javascript:'), false)
 })
 

@@ -9,6 +9,7 @@ import { createImage } from '../Image/render.ts'
 import { createImgButton } from '../ImgButton/render.ts'
 import { createIFrame } from '../IFrame/render.ts'
 import { createVideo } from '../Video/render.ts'
+import { createAudio } from '../Audio/render.ts'
 import { createSkeleton } from '../Skeleton/render.ts'
 import { createRichTextPropsSentinel, extractRichTextProps } from './props-sentinel.ts'
 import { isPlainObject, sanitizeUrl } from '@zanix/helpers'
@@ -17,7 +18,7 @@ import type { CreateElement } from 'typings/renderer.ts'
 /** Every plain structural/text HTML tag legacy content already authors — same short names, kept
  * verbatim (real existing `.doc`/catalog content already uses these; renaming would be a pure
  * compatibility break for zero benefit). Unlike the "zanix component" tags below (`a`, `img`,
- * `video`, …), none of these delegate to a real space-ui component that already carries its own
+ * `video`, `audio`, …), none of these delegate to a real space-ui component that already carries its own
  * `data-space-ui` — there's no `Link`/`Image` in between to inherit one from, the same reason
  * `CatalogIcon` doesn't add a SECOND identity on top of `Icon`'s own. So these get
  * `data-space-ui="richtext"` directly, as a genuine default (overridable via `<props>`, same
@@ -56,7 +57,10 @@ const BASIC_TAGS: Record<string, string> = {
  * self-recursion crash bug that never actually worked (`video`→the REAL `Video` component, not
  * legacy's own broken self-reference), repurposed where legacy's own target was React-Suspense-
  * specific and never migrated (`sus`→`Skeleton`, same "loading placeholder" intent, backed by a
- * real both-renderer component), and dropped where no real target exists in this package at all
+ * real both-renderer component), added new where no legacy tag existed at all to migrate
+ * (`audio`→the real `Audio` component, the same real `render.ts` factory shape `video` uses,
+ * closing the identical catalog gap in rich text that `Audio` itself closed at the component
+ * level), and dropped where no real target exists in this package at all
  * (`page`, `lc`/`LayoutContainer` — the former also shared `video`'s own crash bug, and this
  * package doesn't own page-level composition regardless — that's application-level layout, outside
  * any single component's responsibility here; `menu` too —
@@ -69,11 +73,11 @@ const BASIC_TAGS: Record<string, string> = {
  * exactly what makes the "plain text silently swallowed and misparsed" bug class structurally
  * impossible now (see `props-sentinel.ts`'s own doc). Only `a`/`btn` render their own remaining
  * `children` — every other target tag's own remaining children are intentionally discarded (none
- * of `CatalogIcon`/`SocialNetworks`/`Image`/`ImgButton`/`IFrame`/`Video`/`Skeleton` render
+ * of `CatalogIcon`/`SocialNetworks`/`Image`/`ImgButton`/`IFrame`/`Video`/`Audio`/`Skeleton` render
  * `children` at all; all of their real content comes from props).
  *
- * Every `href`/`src` a tag reads out of `<props>` — `a`, `img`, `ibtn`, `ifrm`, `video`, and each
- * entry's `url` in `sn`'s `links` array — goes through {@linkcode sanitizeUrl} first: `<props>`
+ * Every `href`/`src` a tag reads out of `<props>` — `a`, `img`, `ibtn`, `ifrm`, `video`, `audio`,
+ * and each entry's `url` in `sn`'s `links` array — goes through {@linkcode sanitizeUrl} first: `<props>`
  * content is author-controlled (CMS, translations, UGC), and none of it is trusted to carry a
  * `javascript:`/`vbscript:`/non-image-`data:` scheme through to the DOM.
  */
@@ -82,10 +86,11 @@ export function createRichTextTags<E>(h: CreateElement<E>): Record<string, RichT
   const Button = createButton(h)
   const Icon = createCatalogIcon(h, CATALOG_VIEWBOX)
   const SocialNetworks = createSocialNetworks(h)
-  // `resolveAssetHref` injected explicitly — `Image`/`Video`'s own `createImage`/`createVideo`
-  // factories no longer hardcode this import (see `Image/render.ts`'s own module doc), so
-  // `RichText`'s own `img`/`video` tags need to inject it themselves to keep auto-resolving a
-  // relative asset path embedded in caller-uncontrolled content exactly as they always have.
+  // `resolveAssetHref` injected explicitly — `Image`/`Video`/`Audio`'s own `createImage`/
+  // `createVideo`/`createAudio` factories no longer hardcode this import (see `Image/render.ts`'s
+  // own module doc), so `RichText`'s own `img`/`video`/`audio` tags need to inject it themselves
+  // to keep auto-resolving a relative asset path embedded in caller-uncontrolled content exactly
+  // as they always have.
   // `RichText` itself is `./runtime`-only/SSR-only regardless (see `resolve.ts`'s own direct
   // `resolveAssetHref` dependency for its own document-level resolution), so this is never
   // comet-safe either way — no root-barrel `RichText` binding exists or is planned.
@@ -93,6 +98,7 @@ export function createRichTextTags<E>(h: CreateElement<E>): Record<string, RichT
   const ImgButton = createImgButton(h)
   const IFrame = createIFrame(h)
   const Video = createVideo(h, resolveAssetHref)
+  const Audio = createAudio(h, resolveAssetHref)
   const Skeleton = createSkeleton(h)
 
   const tags: Record<string, RichTextTagFn<E>> = {
@@ -166,6 +172,11 @@ export function createRichTextTags<E>(h: CreateElement<E>): Record<string, RichT
     video: (chunks) => {
       const { props } = extractRichTextProps(chunks)
       return Video({ ...props, src: sanitizeUrl(props.src ?? '') } as never) as E
+    },
+
+    audio: (chunks) => {
+      const { props } = extractRichTextProps(chunks)
+      return Audio({ ...props, src: sanitizeUrl(props.src ?? '') } as never) as E
     },
 
     sus: (chunks) => {

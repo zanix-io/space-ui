@@ -104,6 +104,16 @@ export type {
   VideoTrackProps,
 } from 'components/Video/types.ts'
 
+// `Audio` lives here too, alongside `./runtime/audio/preact` — see `mod.ts`'s own `@module` doc,
+// "`Audio` lives here too", for the full reasoning.
+export { Audio } from 'components/Audio/index.preact.ts'
+export type {
+  /** See `components/Audio/types.ts`'s own `AudioProps` for the full doc. */
+  AudioProps,
+  /** See `components/Audio/types.ts`'s own `AudioSourceProps` for the full doc. */
+  AudioSourceProps,
+} from 'components/Audio/types.ts'
+
 // `ImgButton`/`Card` live here, not any `./runtime/*` subpath — see `mod.ts`'s own `@module` doc
 // for why.
 export { ImgButton } from 'components/ImgButton/index.preact.ts'

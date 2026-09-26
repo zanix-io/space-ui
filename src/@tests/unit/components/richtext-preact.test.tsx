@@ -100,6 +100,11 @@ Deno.test('RichText (preact): <video> renders through the real Video — legacy 
   assertStringIncludes(result, 'data-space-ui="video"')
 })
 
+Deno.test('RichText (preact): <audio> renders through the real Audio component', () => {
+  const result = html('<audio><props>src=clip.mp3</props></audio>')
+  assertStringIncludes(result, 'data-space-ui="audio"')
+})
+
 Deno.test('RichText (preact): <sus> renders through Skeleton', () => {
   const result = html('<sus></sus>')
   assertStringIncludes(result, 'data-space-ui="skeleton"')

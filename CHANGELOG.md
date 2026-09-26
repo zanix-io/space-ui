@@ -5,6 +5,30 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/) and this project
 adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [2.3.0] - 2026-09-25
+
+### Added
+
+- **`Audio`** — a native, headless `<audio controls>` wrapper, closing the last common-media-type
+  gap in this catalog (`Image`/`Video`/`Thumbnail`/`Avatar`/`FileInput` already had one). Mirrors
+  `Video`'s own file-case shape: `sources?: AudioSourceProps[]` renders real
+  `<source media type
+  src>` children per the same WHATWG resource-selection contract
+  `Video.sources` already documents, plus
+  `crossOrigin`/`preload`/`controls`/`autoPlay`/`loop`/`muted`/`onError` passthrough. No custom
+  "pretty controls" — a headless primitive owns no visual chrome, same principle `Button`/`Link`/
+  `Video` already establish. Unlike `Video`, no provider/embed branching and no
+  `detectVideoSource`-equivalent dependency, so the root-barrel binding carries zero `@zanix/space`
+  dependency. Ships in TWO forms, same as `Video`/`Image`: the default `.`/`./preact` export
+  (comet-safe, no resolver injected) and `./runtime/audio` (`/preact` variant, auto-resolves a
+  relative `src` via `resolveAssetHref`, SSR-only). A `blob:` Object URL needs no special-casing —
+  the same `resolveFileSrc` passthrough that already treats an absolute CDN URL as resolved treats a
+  `blob:` URL identically.
+- **`RichText`: `audio` tag and `_props[audio]=true` markdown support** — composes the new `Audio`
+  component the same way the existing `video`/`img` handling already does, in both ICU tag mode
+  (`<audio src="..."/>`) and markdown mode (`![caption](note.mp3?_props[audio]=true)`), including a
+  `tags.audio` override hook on `MarkdownTags`.
+
 ## [2.2.6] - 2026-09-20
 
 ### Added
@@ -134,12 +158,12 @@ adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
   `aria-current` props — no component-owned toggle logic, forwarded verbatim to the real `<button>`.
   Accepts the full ARIA token set (`true`/`false`/`'mixed'`). Closes a gap this package's own docs
   already anticipated (`RadioGroup`'s and `docs/architecture.md`'s own notes on why a multi-select
-  toggle group was scoped out) — added once a real consumer needed it (`@presenza/web`'s wishlist
+  toggle group was scoped out) — added once a real consumer needed it (a wishlist workspace's
   quick-add rows, a set of independently-pressable "add to this list" toggle buttons).
 
 - **`CatalogIconName`/`catalog.svg`: `bookmark`** — a "save this to a list" action icon, the
   catalog's 27th symbol. Added against a real consumer need (a quick "add to wishlist" control on a
-  product card, `@presenza/web`'s own Discovery/Home grid), same "curated against an actual call
+  product card, that same consumer's own Discovery/Home grid), same "curated against an actual call
   site, not rounded out in the abstract" bar every other real-world addition here already meets —
   see `NOTICE.md`'s own "Real-world additions" section for the full accounting. Deliberately
   distinct from `heart`: that name already means "the fixed Favorites list" specifically in that

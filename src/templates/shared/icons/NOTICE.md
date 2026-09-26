@@ -82,10 +82,10 @@ exactly; `space-ui`'s own test suite checks this (see `catalog-integrity.test.ts
 
 ## Real-world additions: `heart`, `globe`, `users`, `user-check`, `lock`, `trash`, `bookmark`
 
-Added for `@presenza/web`'s own wishlist workspace (a "who can see this list" audience picker —
+Added for a real consumer's own wishlist workspace (a "who can see this list" audience picker —
 `everyone`/`connections`/`custom-include`/`custom-include`-empty, the same `VisibilityScope`
-primitive `@presenza/domain-kit` documents as reusable across any audience-scoped content) — a real
-consumer need, not a speculative "might want this later" addition:
+primitive that consumer documents as reusable across any audience-scoped content) — a real consumer
+need, not a speculative "might want this later" addition:
 
 - **`heart`** — a saved/favorites-list indicator.
 - **`globe`** — "everyone can see this."
@@ -97,7 +97,7 @@ consumer need, not a speculative "might want this later" addition:
   here yet, despite `close`/`minus` covering adjacent but distinct actions) surfaced by the same
   feature.
 - **`bookmark`** — a "save this to a wishlist" action, for a quick-add control on a product card
-  (`@presenza/web`'s own Discovery/Home product grid) — deliberately distinct from `heart` above:
+  (that same consumer's own Discovery/Home product grid) — deliberately distinct from `heart` above:
   `heart` already means "the fixed Favorites list" specifically elsewhere in this same consumer's
   UI, so reusing it here (a generic "add to ANY of my lists" action, not specifically Favorites)
   would overload one glyph with two different meanings in the same app.

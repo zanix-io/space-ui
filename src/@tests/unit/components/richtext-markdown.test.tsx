@@ -151,7 +151,42 @@ Deno.test(
   },
 )
 
-// --- tags: the markdownTags override hatch (img/video) --------------------------------------
+// --- audio: real Audio component, via _props[audio]=true ------------------------------------
+
+Deno.test('renderMarkdown: _props[audio]=true on an image URL renders a real Audio instead', () => {
+  const result = html('![caption](note.mp3?_props[audio]=true)')
+  assertStringIncludes(result, 'data-space-ui="audio"')
+  assertEquals(result.includes('data-space-ui="image"'), false)
+  assertEquals(result.includes('data-space-ui="video"'), false)
+})
+
+Deno.test('renderMarkdown: an audio src has no title/alt passed (Audio has neither)', () => {
+  const result = html('![a caption](note.mp3?_props[audio]=true)')
+  // Unlike the video branch, `node.alt` is deliberately never forwarded — `Audio` has no
+  // `title`/`alt`-equivalent prop.
+  assertEquals(result.includes('a caption'), false)
+})
+
+Deno.test(
+  'renderMarkdown: a `media` alias does NOT route to Audio (no media-for-audio precedent, by design)',
+  () => {
+    const result = html('![x](clip.mp4?_props[media]=true)')
+    // `media` is only a `video` alias (`isVideo = Boolean(props.video || props.media)`) — it has no
+    // audio-equivalent alias, so this still renders through Video, not Audio.
+    assertStringIncludes(result, 'data-space-ui="video"')
+  },
+)
+
+Deno.test(
+  'renderMarkdown: when both video and audio _props are set, video wins deterministically',
+  () => {
+    const result = html('![x](clip.mp4?_props[video]=true&_props[audio]=true)')
+    assertStringIncludes(result, 'data-space-ui="video"')
+    assertEquals(result.includes('data-space-ui="audio"'), false)
+  },
+)
+
+// --- tags: the markdownTags override hatch (img/video/audio) --------------------------------
 
 Deno.test('renderMarkdown: tags.img overrides the built-in Image composition entirely', () => {
   const result = html('![alt text](pic.jpg)', {
@@ -210,6 +245,42 @@ Deno.test('renderMarkdown: tags.video receives title (not alt) exactly as the bu
   })
 
   assertEquals(received, { key: 0, title: 'a caption', video: true, src: 'clip.mp4' })
+})
+
+Deno.test('renderMarkdown: tags.audio is NOT called for a node _props routes to Video instead', () => {
+  let audioCalled = false
+  const result = html('![caption](clip.mp4?_props[video]=true)', {
+    audio: () => {
+      audioCalled = true
+      return createElement('span')
+    },
+  })
+
+  assertEquals(audioCalled, false)
+  assertStringIncludes(result, 'data-space-ui="video"')
+})
+
+Deno.test('renderMarkdown: tags.audio overrides the built-in Audio composition entirely', () => {
+  const result = html('![caption](note.mp3?_props[audio]=true)', {
+    audio: ({ key, src }) => createElement('span', { key, 'data-testid': 'custom-audio' }, src),
+  })
+
+  assertStringIncludes(result, 'data-testid="custom-audio"')
+  assertStringIncludes(result, '>note.mp3<')
+  assertEquals(result.includes('data-space-ui="audio"'), false)
+  assertEquals(result.includes('<audio'), false)
+})
+
+Deno.test('renderMarkdown: tags.audio receives src/key exactly as the built-in call would', () => {
+  let received: unknown
+  html('![caption](note.mp3?_props[audio]=true)', {
+    audio: (props) => {
+      received = props
+      return createElement('span', { key: props.key })
+    },
+  })
+
+  assertEquals(received, { key: 0, audio: true, src: 'note.mp3' })
 })
 
 Deno.test('renderMarkdown: without tags, behavior is byte-for-byte unchanged (purely additive)', () => {

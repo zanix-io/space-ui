@@ -87,6 +87,24 @@ ahead of time:
   'anonymous' | 'use-credentials'` (file case only) forwards onto the native
   `<video>` element, governing CORS mode for every resource it fetches — `poster` included, per the
   WHATWG spec — same session-cookie hazard `Image`/`Avatar` already opt out of.
+- ✅ **`Audio`** — a real, native `<audio>`, the headless/native-controls counterpart to `Video`'s
+  own file case: no provider/embed branching (audio has no YouTube/Vimeo-equivalent
+  embeddable-provider case) and no `detectVideoSource`-equivalent source classification — a caller
+  always supplies a real playable `src`. Native `controls`/`autoPlay`/`loop`/`muted`/`preload` only
+  — no themed/pretty-controls wrapper, same "a headless primitive owns no visual chrome" principle
+  `Video`/`Button`/`Link` already establish; no other component in this catalog reimplements native
+  browser chrome with JS. `sources?:
+  AudioSourceProps[]` renders real `<source media type src>`
+  children, the same WHATWG resource-selection contract `Video.sources` already documents. Ships in
+  TWO forms, same name, same split as `Video`/`Image`: the default `.`/`./preact` export is
+  comet-safe (an already-absolute `src`/`sources[].src` works as-is; a relative one is left
+  unresolved) — the `./runtime/audio` subpath is the byte-for-byte identical, auto-resolving sibling
+  (SSR-only, not comet-safe). A `blob:` Object URL (an authenticated-fetch voice message resolved
+  into memory, the concrete real-world case this component supports) needs no special-casing either
+  way: `new URL('blob:...')` parses successfully, so the same `resolveFileSrc` passthrough that
+  already treats an absolute CDN URL as already-resolved treats a `blob:` URL identically.
+  `crossOrigin?: 'anonymous' | 'use-credentials'` forwards onto the native `<audio>` element — same
+  session-cookie hazard `Image`/`Video`/`Avatar` already let a caller opt out of.
 - ✅ **`Image`** — a real `<img>`, or a `<picture>` with art-direction `<source>`s when `sources` is
   given. Native `loading`/`decoding`/`fetchPriority`/`crossOrigin`/`referrerPolicy` only; no custom
   lazy-loading machinery. `placeholder` shows a fallback image while the real one loads (a real
@@ -473,14 +491,19 @@ ahead of time:
   the same native `@formatjs/intl` mechanism, exposed directly, rather than a hand-rolled tag
   parser. Population (a `<props>key=val</props>` tag nested inside any other tag, handing it extra
   props) works via a typed sentinel value, never a stringified-marker round-trip. `video` renders
-  through the real `Video` component. The `img`/`video` tags' own `<props>` bag reaches `Image`/
-  `Video` untyped but unfiltered — a `crossOrigin=anonymous` entry already works today for a
-  cross-origin `src`, the same session-cookie hazard `Image`/`Video` document on their own props.
-  Markdown parses through `markdown-to-jsx`'s own pure AST-only subpath, walked by hand via `h` —
-  zero `preact/compat` involved, enforced by a dependency-boundary test. Document loading is a
-  standalone `resolveRichTextDocument` resolver a `loader` calls, mirroring `StructuredData`'s own
-  resolver precedent, rather than a prop on the component itself. See [CHANGELOG](./CHANGELOG.md)
-  for the full design record.
+  through the real `Video` component, `audio` through the real `Audio` component, the same shape.
+  The `img`/`video`/`audio` tags' own `<props>` bag reaches `Image`/`Video`/`Audio` untyped but
+  unfiltered — a `crossOrigin=anonymous` entry already works today for a cross-origin `src`, the
+  same session-cookie hazard `Image`/`Video`/`Audio` document on their own props. Markdown parses
+  through `markdown-to-jsx`'s own pure AST-only subpath, walked by hand via `h` — zero
+  `preact/compat` involved, enforced by a dependency-boundary test. In markdown mode, an image URL's
+  own `_props[...]`-namespaced query segment (e.g. `![caption](clip.mp4?_props[video]=true)`) routes
+  it to `Video` instead of `Image`; `_props[audio]=true` (e.g.
+  `![caption](note.mp3?_props[audio]=true)`) routes it to `Audio` the same way — checked after the
+  `video`/`media` case, since no real caller sets both. Document loading is a standalone
+  `resolveRichTextDocument` resolver a `loader` calls, mirroring `StructuredData`'s own resolver
+  precedent, rather than a prop on the component itself. See [CHANGELOG](./CHANGELOG.md) for the
+  full design record.
 
 - ✅ **`Recaptcha`**/**`HCaptcha`**/**`Turnstile`** — the client-side complement to `@zanix/auth`'s
   own `captchaGuard`; this package never imports `@zanix/auth` or mentions
@@ -621,7 +644,7 @@ ahead of time:
   render-props rather than a bundled `Button`/`Link` dependency — this leaf component stays
   decoupled from either, the caller composes whichever fits.
 
-All forty-six ship for **both React and Preact** (see [Installation](#installation)).
+All forty-seven ship for **both React and Preact** (see [Installation](#installation)).
 
 Also included, though not a rendering component: **`IntlProvider`/`useIntl`/`createFormatter`** —
 this package's own ICU message-formatting runtime (`formatMessage(id, values)` for plain messages,
@@ -647,29 +670,33 @@ versioned independently of the rendering engine it's meant to sit on top of — 
 
 The exceptions are `RichText` and `NavDrawer`: `RichText` resolves a relative asset path embedded in
 its own dynamic, caller-uncontrolled content through `@zanix/space`'s own `resolveAssetHref`
-directly (`resolveRichTextDocument`, plus its own `img`/`video` tags injecting the same resolver
-into `Image`/`Video`'s shared `render.ts`) — there's no single prop a caller could pre-resolve the
-way a plain `src` prop allows; `NavDrawer` is a real Comet, importing `@zanix/space/comet`'s own
-`defineComet` directly. Because of that real runtime dependency, each is exported from its OWN
-`./runtime/<name>`/`./runtime/<name>/preact` subpath (`./runtime/rich-text`, `./runtime/nav-drawer`)
-instead of the default `.`/`./preact` barrel — never a shared combined `./runtime` barrel either
-(removed; see the [CHANGELOG](./CHANGELOG.md) for the exact import paths and why one subpath per
-component, rather than a shared one, is what actually closes the underlying bug).
+directly (`resolveRichTextDocument`, plus its own `img`/`video`/`audio` tags injecting the same
+resolver into `Image`/`Video`/`Audio`'s shared `render.ts`) — there's no single prop a caller could
+pre-resolve the way a plain `src` prop allows; `NavDrawer` is a real Comet, importing
+`@zanix/space/comet`'s own `defineComet` directly. Because of that real runtime dependency, each is
+exported from its OWN `./runtime/<name>`/`./runtime/<name>/preact` subpath (`./runtime/rich-text`,
+`./runtime/nav-drawer`) instead of the default `.`/`./preact` barrel — never a shared combined
+`./runtime` barrel either (removed; see the [CHANGELOG](./CHANGELOG.md) for the exact import paths
+and why one subpath per component, rather than a shared one, is what actually closes the underlying
+bug).
 
-`Video`/`Image` are a narrower case: `resolveAssetHref` is an OPTIONAL, injected parameter on their
-shared `render.ts` factories now, not a hardcoded import, so each ships in TWO forms under the SAME
-name — the default `.`/`./preact` barrel (comet-safe, no resolver injected, an already-absolute
-`src`/`poster`/`sources[].src`/track `src` works as-is, a relative one is left unresolved) and
-`./runtime/video`/`./runtime/image` (the `/preact` variant alongside each — `resolveAssetHref`
-injected, auto-resolving, SSR-only, byte-for-byte unchanged from every prior version of either
-component). `Video`'s own `@zanix/space/video-source` classification dependency stays real and
-unconditional in BOTH forms — it's core logic every branch needs, not an asset-resolution nicety,
-and it's genuinely safe for a Comet (no `'server-only'` directive, confirmed by reading the module
-directly). `Menu`, `ImgButton`, and `Card` each compose only zero-`@zanix/space`-dependency
-components internally via their own `visual` render-prop — `ImgButton`'s and `Card`'s own `image`
-convenience prop composes the comet-safe, root-barrel `Image` (never `./runtime/image`'s
-auto-resolving one), which is what keeps them dependency-free despite composing `Image` at all — so
-all three ship from the default barrel, alongside every other dependency-free component.
+`Video`/`Image`/`Audio` are a narrower case: `resolveAssetHref` is an OPTIONAL, injected parameter
+on their shared `render.ts` factories now, not a hardcoded import, so each ships in TWO forms under
+the SAME name — the default `.`/`./preact` barrel (comet-safe, no resolver injected, an
+already-absolute `src`/`poster`/`sources[].src`/track `src` works as-is, a relative one is left
+unresolved) and `./runtime/video`/`./runtime/image`/`./runtime/audio` (the `/preact` variant
+alongside each — `resolveAssetHref` injected, auto-resolving, SSR-only, byte-for-byte unchanged from
+every prior version of each component). `Video`'s own `@zanix/space/video-source` classification
+dependency stays real and unconditional in BOTH of its own forms — it's core logic every branch
+needs, not an asset-resolution nicety, and it's genuinely safe for a Comet (no `'server-only'`
+directive, confirmed by reading the module directly); `Audio` has no equivalent classification step
+at all (no provider/embed case to detect), so both of its own forms carry zero `@zanix/space`
+dependency until `resolveAssetHref` is injected. `Menu`, `ImgButton`, and `Card` each compose only
+zero-`@zanix/space`-dependency components internally via their own `visual` render-prop —
+`ImgButton`'s and `Card`'s own `image` convenience prop composes the comet-safe, root-barrel `Image`
+(never `./runtime/image`'s auto-resolving one), which is what keeps them dependency-free despite
+composing `Image` at all — so all three ship from the default barrel, alongside every other
+dependency-free component.
 
 **React and Preact both work, with no `preact/compat` shim.** A presentational component with no
 per-renderer hook usage has its real logic written once against `React.createElement`/`Preact.h`'s
