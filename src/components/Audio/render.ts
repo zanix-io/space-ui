@@ -116,6 +116,8 @@ export function createAudio<E>(
         muted: props.muted,
         preload: props.preload,
         onError: props.onError,
+        'aria-label': props['aria-label'],
+        'aria-labelledby': props['aria-labelledby'],
       },
       ...sourceElements,
     )

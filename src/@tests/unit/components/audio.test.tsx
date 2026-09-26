@@ -190,3 +190,29 @@ Deno.test('Audio: id/className pass through', () => {
   assertStringIncludes(html, 'id="a1"')
   assertStringIncludes(html, 'class="ui-audio"')
 })
+
+Deno.test(
+  'Audio: aria-label/aria-labelledby pass through — a bare instance needs an accessible name ' +
+    "from somewhere, same contract Input/Textarea's own bare-usage case already establishes",
+  () => {
+    const html = renderToStaticMarkup(
+      <Audio src='voice-message.mp3' aria-label='Voice message' />,
+    )
+
+    assertStringIncludes(html, 'aria-label="Voice message"')
+  },
+)
+
+Deno.test('Audio: aria-labelledby passes through', () => {
+  const html = renderToStaticMarkup(
+    <Audio src='voice-message.mp3' aria-labelledby='caption-1' />,
+  )
+
+  assertStringIncludes(html, 'aria-labelledby="caption-1"')
+})
+
+Deno.test('Audio: neither aria attribute is forced when a caller never asked for one', () => {
+  const html = renderToStaticMarkup(<Audio src='voice-message.mp3' />)
+
+  assertEquals(html.includes('aria-label'), false)
+})

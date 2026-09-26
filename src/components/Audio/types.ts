@@ -68,4 +68,11 @@ export type AudioProps = {
   /** Fires on the native `<audio>` `error` event — same "one unambiguous error event" reasoning as
    * `Video.onError`/`Image.onError`. */
   onError?: (event: Event) => void
+  /** No forced accessible name of any kind is built in — unlike `Video`'s embed case (whose `title`
+   * becomes an `IFrame`'s own required `title`), a native `<audio controls>` needs no such remap.
+   * A bare, unlabeled instance (no visible caption/label element next to it in the caller's own
+   * markup) still needs an accessible name from somewhere — set one directly here, same contract
+   * `Input`/`Textarea` already establish for their own bare-usage case. */
+  'aria-label'?: string
+  'aria-labelledby'?: string
 }

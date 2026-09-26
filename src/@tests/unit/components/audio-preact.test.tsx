@@ -179,3 +179,16 @@ Deno.test('Audio (preact): id/className pass through', () => {
   assertStringIncludes(html, 'id="a1"')
   assertStringIncludes(html, 'class="ui-audio"')
 })
+
+Deno.test('Audio (preact): aria-label/aria-labelledby pass through', () => {
+  const vnode = Audio({ src: 'voice-message.mp3', 'aria-label': 'Voice message' })
+  assertStringIncludes(render(vnode), 'aria-label="Voice message"')
+
+  const labelledVnode = Audio({ src: 'voice-message.mp3', 'aria-labelledby': 'caption-1' })
+  assertStringIncludes(render(labelledVnode), 'aria-labelledby="caption-1"')
+})
+
+Deno.test('Audio (preact): neither aria attribute is forced when a caller never asked for one', () => {
+  const vnode = Audio({ src: 'voice-message.mp3' })
+  assertEquals(render(vnode).includes('aria-label'), false)
+})
