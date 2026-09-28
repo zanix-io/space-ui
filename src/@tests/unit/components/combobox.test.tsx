@@ -100,6 +100,26 @@ Deno.test('Combobox: focusing the input opens the listbox', () => {
   unmount()
 })
 
+Deno.test(
+  'Combobox: focusing a prefilled input selects its whole text — typing over it replaces ' +
+    'rather than concatenating onto the existing value',
+  () => {
+    const { container, unmount } = mount(
+      <Combobox options={FRUITS} aria-label='Fruit' defaultInputValue='Apple' />,
+    )
+    const input = must(container.querySelector<HTMLInputElement>('input'))
+
+    act(() => {
+      input.dispatchEvent(new FocusEvent('focusin', { bubbles: true }))
+    })
+
+    assertEquals(input.selectionStart, 0)
+    assertEquals(input.selectionEnd, 'Apple'.length)
+
+    unmount()
+  },
+)
+
 Deno.test('Combobox: typing updates the input value and opens the listbox', () => {
   const { container, unmount } = mount(basicCombobox())
   const input = must(container.querySelector<HTMLInputElement>('input'))

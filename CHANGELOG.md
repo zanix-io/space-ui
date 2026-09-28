@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/) and this project
 adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [2.4.1] - 2026-09-27
+
+### Fixed
+
+- **`Combobox`** (both the Preact and React bindings) — focusing an input whose text is already
+  prefilled (`defaultInputValue`, or the caller's own controlled `inputValue`) now selects its whole
+  current text, the standard editable-combobox convention. Without this, a caller starting to type
+  inserted at the cursor instead of replacing the existing value, silently concatenating onto it (a
+  real, confirmed bug a consumer with a prefilled city field hit in practice — typing a new city
+  over an existing one produced a single, invalid, run-together string).
+
 ## [2.4.0] - 2026-09-26
 
 ### Added

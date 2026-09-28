@@ -159,7 +159,16 @@ export function Combobox(props: ComboboxProps): VNode {
     if (!open) setOpen(true)
   }
 
-  const handleFocus = () => setOpen(true)
+  // Selects the input's own current text on focus — the standard editable-combobox convention
+  // (a caller starting to type replaces a pre-filled value outright, rather than inserting at
+  // the cursor and silently concatenating onto it): a real, confirmed bug a consumer's own
+  // `defaultInputValue`-prefilled field hit in practice. `select()` is a real, native
+  // `HTMLInputElement` method — no-op on an element that isn't actually focused yet, so this is
+  // safe to call unconditionally right alongside the existing `setOpen`.
+  const handleFocus = () => {
+    setOpen(true)
+    inputRef.current?.select()
+  }
   const handleBlur = () => setOpen(false)
 
   const nextIndexFor = (key: string): number | null => {
