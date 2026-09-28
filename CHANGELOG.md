@@ -5,6 +5,27 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/) and this project
 adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [2.4.2] - 2026-09-28
+
+### Fixed
+
+- **`MultiSelect`** (both bindings) — a chip's own label now survives the caller narrowing `options`
+  past it (`index.ts`'s own documented contract: "options is still already filtered by the caller
+  for the current inputValue"). Real, confirmed bug: the chip label lookup (`options.find(...)`)
+  fell back to the raw `value` the instant a live search no longer matched an already-committed
+  value — a consumer using `MultiSelect` as a searchable people-picker hit this in practice: typing
+  anything that stopped matching an already-added person made their chip render a raw database id
+  instead of their name. Fixed by remembering every label `options` ever carries for a given
+  `value`, independent of the currently-filtered set.
+
+- **`MultiSelect`** (both bindings) — a chip's own remove `Button` now refocuses the input once it
+  removes that value. Real, confirmed bug: clicking (or keyboard-activating) it naturally moved
+  focus TO that button, away from the input, closing the listbox on blur — a caller had to click
+  back into the input a second time before the option they just freed up became pickable again. Also
+  closes a real hang this exact gap could trigger: the button unmounts as part of the very same
+  update that removes its own chip, leaving focus on a now-detached element with nowhere defined to
+  land.
+
 ## [2.4.1] - 2026-09-27
 
 ### Fixed

@@ -327,6 +327,30 @@ Deno.test(
 
 // --- chip removal -----------------------------------------------------------------------------
 
+Deno.test(
+  'MultiSelect: a chip keeps its own label once the caller narrows options past it (a live ' +
+    'search filtering out an already-selected value) — real, confirmed bug: the label used to ' +
+    'fall back to the raw value the instant this happened',
+  () => {
+    const { container, rerender, unmount } = mount(
+      <MultiSelect {...basicProps({ values: ['en'] })} />,
+    )
+    assertStringIncludes(must(container.textContent), 'English')
+
+    // The documented caller contract (`index.ts`'s own doc): "options is still already filtered
+    // by the caller for the current inputValue" — a live search for something that no longer
+    // matches the already-selected 'en' option narrows it out of `options` entirely.
+    rerender(
+      <MultiSelect
+        {...basicProps({ values: ['en'], options: [{ value: 'fr', label: 'French' }] })}
+      />,
+    )
+
+    assertStringIncludes(must(container.textContent), 'English')
+    unmount()
+  },
+)
+
 Deno.test('MultiSelect: each chip has its own remove button, aria-label="Remove {label}"', () => {
   const { container, unmount } = mount(<MultiSelect {...basicProps({ values: ['en'] })} />)
 
@@ -353,6 +377,25 @@ Deno.test('MultiSelect: clicking a chip remove button removes just that value', 
 
   unmount()
 })
+
+Deno.test(
+  'MultiSelect: clicking a chip remove button returns focus to the input — real, confirmed bug ' +
+    "this closes: focus used to stay on the (now-removed) button, so the listbox's own blur-" +
+    'close left a caller with no visible way back in without a second, separate click',
+  () => {
+    const { container, unmount } = mount(<MultiSelect {...basicProps({ values: ['en'] })} />)
+    const removeButton = must(container.querySelector('button[aria-label="Remove English"]'))
+    const input = must(container.querySelector('input'))
+
+    act(() => {
+      removeButton.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    })
+
+    assertEquals(document.activeElement, input)
+
+    unmount()
+  },
+)
 
 Deno.test('MultiSelect: Backspace on an already-empty input removes the last committed chip', () => {
   const valuesSeen: string[][] = []

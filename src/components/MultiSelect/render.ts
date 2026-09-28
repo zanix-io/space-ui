@@ -215,6 +215,20 @@ export function createMultiSelect<E>(
       commitValue(match ? match.value : trimmed)
     }
 
+    // A chip's own label, remembered independently of `options` — the documented caller contract
+    // ("options is still already filtered by the caller for the current inputValue", `index.ts`'s
+    // own doc) means an already-committed value can legitimately drop OUT of `options` the moment
+    // a live search no longer matches it. Real, confirmed bug this closes: `options.find(...)` at
+    // the chip's own label lookup silently fell back to the raw `value` (e.g. a Mongo `_id`) the
+    // instant that happened, even though the value was never actually removed from `values` —
+    // only its OWN OPTION temporarily left the visible set. Mutated directly during render, never
+    // via an effect: every entry `options` ever carries for a given `value` is idempotent (the
+    // same value always maps to the same label), so merging on every render — including a
+    // StrictMode double-invocation — is always safe, and the merged result is read back in the
+    // very same render pass below, never across a scheduling boundary.
+    const labelByValueRef = hooks.useRef<Map<string, string>>(new Map())
+    for (const option of options) labelByValueRef.current.set(option.value, option.label)
+
     const inputRef = hooks.useRef<HTMLInputElement | null>(null)
     const listboxRef = hooks.useRef<HTMLUListElement | null>(null)
     const containerRef = hooks.useRef<HTMLSpanElement | null>(null)
@@ -342,8 +356,7 @@ export function createMultiSelect<E>(
     const describedBy = [ariaDescribedBy, descriptionId].filter(Boolean).join(' ')
 
     const chips = values.map((value, index) => {
-      const option = options.find((candidate) => candidate.value === value)
-      const label = option?.label ?? value
+      const label = labelByValueRef.current.get(value) ?? value
       return h(
         'span',
         {
@@ -359,7 +372,16 @@ export function createMultiSelect<E>(
         // instead only when the array shape actually requires it.
         h('span', null, label),
         Button({
-          onClick: () => removeValue(value),
+          // Refocuses the input after removing — real, confirmed bug this closes: a click (or a
+          // keyboard activation) on this chip's own remove `Button` naturally moves focus TO that
+          // button, away from the input; `handleBlur` then closes the listbox, so a caller had to
+          // click back into the input a SECOND time before the option they just freed up (by
+          // removing this chip) became pickable again. `Backspace`-on-empty (`handleKeyDown`)
+          // never had this gap — that removal happens on the input itself, focus never leaves it.
+          onClick: () => {
+            removeValue(value)
+            inputRef.current?.focus()
+          },
           label: `Remove ${label}`,
           children: DefaultCloseIcon(),
         }),
