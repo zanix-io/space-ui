@@ -159,6 +159,12 @@ export function createMultiSelect<E>(
 
     const availableOptions = options.filter((option) => !values.includes(option.value))
     const atMax = max !== undefined && values.length >= max
+    // See this file's own doc, "Already-committed options are excluded..." — the listbox doesn't
+    // render at all once nothing real is left to offer, rather than mounting an empty `<ul>` the
+    // way `Combobox` does. Computed here (not just below, where it's consumed for rendering) so
+    // `usePosition` below can be driven by it directly — see that call's own comment for the real,
+    // confirmed bug this fixes.
+    const listboxVisible = open && !atMax && availableOptions.length > 0
 
     // Resets the highlighted option whenever the visible list's own content genuinely changes (a
     // new caller-filtered `options` set, or a chip just added/removed) — same `optionsKey` technique
@@ -235,7 +241,19 @@ export function createMultiSelect<E>(
     const styleElRef = hooks.useRef<HTMLStyleElement | null>(null)
     const dynamicRuleRef = hooks.useRef<CSSStyleRule | null>(null)
 
-    const position = hooks.usePosition(inputRef, listboxRef, open, { placement, offset })
+    // `listboxVisible`, never the bare `open` `Combobox`'s own identical call passes — real,
+    // confirmed bug this closes: unlike `Combobox` (whose `<ul>` stays mounted the whole time
+    // `open` is true, even empty), this component's own `<ul>`/`listboxRef` UNMOUNTS whenever
+    // `availableOptions` empties out (typing a query matching nobody) while `open` itself never
+    // flips — `usePosition`'s own internal effect only re-runs when ITS `active` argument (or
+    // `optionsKey`) changes, so passing the ever-true `open` meant it never re-ran, never noticed
+    // `listboxRef.current` had gone from a real element to `null` and back to a BRAND NEW element
+    // once a later keystroke matched something again — leaving that new `<ul>` permanently
+    // unmeasured and the dynamic CSS rule below stuck at its own base `visibility: hidden`, with
+    // no further keystroke ever able to recover it (confirmed live, Track H E2E, 28 sep 2026: a
+    // wishlist people-picker whose search stopped matching an already-picked person, then matched
+    // again, never showed the reopened listbox for the rest of that page session).
+    const position = hooks.usePosition(inputRef, listboxRef, listboxVisible, { placement, offset })
 
     hooks.useCloseOnOutside(containerRef, open, () => setOpen(false))
 
@@ -315,9 +333,6 @@ export function createMultiSelect<E>(
 
     const activeOption = activeIndex !== null ? availableOptions[activeIndex] : undefined
     const activeOptionId = activeOption ? `${baseId}-option-${activeOption.value}` : undefined
-    // See this file's own doc, "Already-committed options are excluded..." — the listbox doesn't
-    // render at all once nothing real is left to offer, rather than mounting an empty `<ul>`.
-    const listboxVisible = open && !atMax && availableOptions.length > 0
 
     // The dynamic-positioning CSSOM rule — see `MULTI_SELECT_LISTBOX_POSITION_CSS`'s own doc and
     // `Select/render.ts`'s own identical effect (not repeated here). Scoped to THIS instance via

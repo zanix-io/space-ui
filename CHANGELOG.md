@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/) and this project
 adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [2.4.3] - 2026-09-28
+
+### Fixed
+
+- **`MultiSelect`** (both bindings) — the listbox's own position hook is now driven by whether the
+  listbox itself is actually mounted, never by the bare `open` boolean `Combobox`'s identical call
+  correctly uses (there, the two are the same thing — its own `<ul>` stays mounted, empty, for as
+  long as `open` is true; `MultiSelect`'s own `<ul>` additionally unmounts whenever nothing is left
+  to offer, a real, documented divergence from `Combobox`). Real, confirmed bug: a live search that
+  stopped matching anything — then matched again — never reopened the listbox for the rest of that
+  page's session, because the position hook's own effect is keyed on its `active` argument, and
+  `open` itself never toggles across that round trip; only `listboxVisible` (this component's own
+  derived mount condition) does. The freshly remounted `<ul>` got a real CSSOM rule (that part was
+  already correctly keyed), just never measured — permanently stuck at its own static base
+  `visibility: hidden`.
+
 ## [2.4.2] - 2026-09-28
 
 ### Fixed

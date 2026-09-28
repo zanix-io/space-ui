@@ -602,6 +602,59 @@ Deno.test('MultiSelect: the listbox is positioned via the input reference rect',
   unmount()
 })
 
+Deno.test(
+  'MultiSelect: the listbox re-measures and shows again after a query that matched nothing, ' +
+    'then matches again — real, confirmed bug: this used to stay permanently closed for the ' +
+    'rest of the session, since `open` itself never toggles across that round trip and the ' +
+    'position hook was keyed on `open`, never on the listbox actually (re)mounting',
+  () => {
+    const { container, rerender, unmount } = mount(
+      <MultiSelect {...basicProps({ inputValue: '' })} />,
+    )
+    const input = must(container.querySelector<HTMLInputElement>('input'))
+    stubRect(input, { x: 20, y: 40, width: 200, height: 30 })
+
+    act(() => {
+      input.dispatchEvent(new FocusEvent('focusin', { bubbles: true }))
+    })
+    let listbox = must(
+      container.querySelector<HTMLElement>('[data-space-ui="multi-select-listbox"]'),
+    )
+    stubRect(listbox, { x: 0, y: 0, width: 200, height: 90 })
+    act(() => dispatchWindowEvent(new Event('resize')))
+    assertStringIncludes(
+      getDynamicRule(container, listbox, 'data-multi-select-id').style.transform,
+      'translate(',
+    )
+
+    // A live search matching nothing — the caller's own filtered `options` goes empty while
+    // `open` stays exactly as it was (never toggled by this component itself).
+    rerender(<MultiSelect {...basicProps({ inputValue: 'nomatch', options: [] })} />)
+    assertEquals(container.querySelector('[data-space-ui="multi-select-listbox"]'), null)
+
+    // Back to a query that matches again — the caller's own `options` is a genuinely NEW array
+    // (never the identical reference), same as any real caller re-filtering per keystroke.
+    // Deliberately NO manual `stubRect`/`resize` trigger here, unlike the setup above — a real
+    // caller never fires one either; the remount itself is the only thing that should ever need
+    // to re-measure.
+    rerender(<MultiSelect {...basicProps({ inputValue: 'en' })} />)
+    listbox = must(container.querySelector<HTMLElement>('[data-space-ui="multi-select-listbox"]'))
+
+    // `visibility`, not `transform`: the buggy version DOES still create a fresh CSSOM rule for
+    // this new `<ul>` (that part was already correctly keyed on `listboxVisible`) — it just never
+    // updates it past its own static base (`MULTI_SELECT_LISTBOX_POSITION_CSS`'s own `visibility:
+    // 'hidden'`), because `usePosition`'s own effect never re-ran to produce a fresh `position` to
+    // apply. A real caller sees exactly this: a `<ul>` technically in the DOM, permanently
+    // invisible.
+    assertEquals(
+      getDynamicRule(container, listbox, 'data-multi-select-id').style.visibility,
+      'visible',
+    )
+
+    unmount()
+  },
+)
+
 Deno.test('MultiSelect: the listbox min-width matches the input — never narrower than the control it belongs to', () => {
   const { container, unmount } = mount(<MultiSelect {...basicProps()} />)
   const input = must(container.querySelector<HTMLInputElement>('input'))
