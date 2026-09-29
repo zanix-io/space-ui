@@ -378,6 +378,10 @@ export { FOCUSABLE_SELECTOR, useFocusScope } from 'shared/focus-scope.ts'
 export type { FocusScopeOptions, TabKeyEvent } from 'shared/focus-scope.ts'
 
 export { liveRegionProps, VISUALLY_HIDDEN_CSS } from 'shared/live-region.ts'
+
+// Plain DOM, no renderer: shows the `Thumbnail` images the browser has already loaded before their
+// component hydrates — see the function's own doc.
+export { revealLoadedThumbnails } from 'shared/reveal-loaded-thumbnails.ts'
 export type { LiveRegionPoliteness } from 'shared/live-region.ts'
 
 export { createRovingKeyDownHandler, getNextRovingIndex } from 'shared/roving-focus.ts'

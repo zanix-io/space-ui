@@ -165,3 +165,62 @@ Deno.test('useImageLoadState: a src change resets a prior failed/loaded state', 
 
   unmount()
 })
+
+/** Runs `run` with the `<img>` prototype reporting `complete`/`naturalWidth` the way a browser does
+ * for an image it already fetched, and a `decode()` that never settles — so anything `run` asserts
+ * about `loaded` came from the layout effect, not from the decode promise. */
+async function withImageState(
+  state: { complete: boolean; naturalWidth: number },
+  run: () => void | Promise<void>,
+) {
+  const proto = Object.getPrototypeOf(document.createElement('img'))
+  const originals = {
+    complete: Object.getOwnPropertyDescriptor(proto, 'complete'),
+    naturalWidth: Object.getOwnPropertyDescriptor(proto, 'naturalWidth'),
+    decode: proto.decode,
+  }
+  Object.defineProperty(proto, 'complete', { get: () => state.complete, configurable: true })
+  Object.defineProperty(proto, 'naturalWidth', {
+    get: () => state.naturalWidth,
+    configurable: true,
+  })
+  proto.decode = () => new Promise(() => {})
+  try {
+    await run()
+  } finally {
+    for (const key of ['complete', 'naturalWidth'] as const) {
+      if (originals[key]) Object.defineProperty(proto, key, originals[key])
+      else delete proto[key]
+    }
+    proto.decode = originals.decode
+  }
+}
+
+Deno.test(
+  'useImageLoadState: an image that already finished loading is loaded on mount, without waiting for decode()',
+  async () => {
+    await withImageState({ complete: true, naturalWidth: 480 }, () => {
+      let state!: ImageLoadState
+      const { unmount } = mount('https://cdn.example.com/cached.jpg', (value) => state = value)
+
+      assertEquals(state.loaded, true)
+      assertEquals(state.failed, false)
+
+      unmount()
+    })
+  },
+)
+
+Deno.test(
+  'useImageLoadState: a complete image with no intrinsic size (broken) is not loaded on mount',
+  async () => {
+    await withImageState({ complete: true, naturalWidth: 0 }, () => {
+      let state!: ImageLoadState
+      const { unmount } = mount('https://cdn.example.com/broken.jpg', (value) => state = value)
+
+      assertEquals(state.loaded, false)
+
+      unmount()
+    })
+  },
+)

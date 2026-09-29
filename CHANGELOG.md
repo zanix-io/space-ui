@@ -5,6 +5,27 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/) and this project
 adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [2.5.0] - 2026-09-29
+
+### Added
+
+- **`revealLoadedThumbnails`** (both barrels) — shows the `Thumbnail` images the browser has already
+  loaded without waiting for the component to hydrate. A server-rendered `Thumbnail` is always
+  `data-pending`: its `<img>` is hidden and its `Skeleton` mounted until the client state turns
+  loaded, and that only happens after hydration. An image loaded from the cache long before stayed
+  hidden that whole time. The function marks such a thumbnail loaded in the DOM (`data-loaded`, no
+  `data-pending`, no `Skeleton`), only when the `<img>` is `complete` with a non-zero
+  `naturalWidth`, so a broken image keeps hiding until the component shows its fallback. It also
+  reveals an image that finishes loading later and a thumbnail a client-side navigation inserts, and
+  returns a function that stops it. Call it once before hydration starts.
+
+### Changed
+
+- **`useImageLoadState`** (both bindings) checks the image in a layout effect on mount: an `<img>`
+  that is `complete` with a non-zero `naturalWidth` is loaded before the first paint, instead of
+  after the `decode()` promise settles. A broken image is also `complete`, so it stays pending until
+  `decode()` rejects, as before. `Thumbnail` and `Avatar` use the hook.
+
 ## [2.4.3] - 2026-09-28
 
 ### Fixed

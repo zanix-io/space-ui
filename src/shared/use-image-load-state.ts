@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useLayoutEffect, useState } from 'react'
 import type { ImageLoadState } from './image-load-state.ts'
 
 export type { ImageLoadState } from './image-load-state.ts'
@@ -56,6 +56,16 @@ export function useImageLoadState(
     setFailed(false)
     setLoaded(false)
   }
+
+  // Runs before the browser paints, so an image that already finished loading (a cache hit) is
+  // shown on the first frame instead of after the `decode()` promise below settles. Only a confirmed
+  // load counts here (`complete` with an intrinsic size): a broken image is also `complete`, and
+  // stays pending until `decode()` rejects.
+  useLayoutEffect(() => {
+    if (!src) return
+    const img = rootRef.current?.querySelector('img')
+    if (img?.complete && img.naturalWidth > 0) setLoaded(true)
+  }, [src])
 
   useEffect(() => {
     if (!src) return
