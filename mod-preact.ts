@@ -538,6 +538,11 @@ export { FOCUSABLE_SELECTOR, useFocusScope } from 'shared/focus-scope.preact.ts'
 export type { FocusScopeOptions, TabKeyEvent } from 'shared/focus-scope.preact.ts'
 
 export {
+  /** See `shared/reveal-loaded-thumbnails.ts`'s own `revealLoadedThumbnails` for the full doc. */
+  revealLoadedThumbnails,
+} from 'shared/reveal-loaded-thumbnails.ts'
+
+export {
   /** See `shared/live-region.ts`'s own `liveRegionProps` for the full doc. */
   liveRegionProps,
   /** See `shared/live-region.ts`'s own `VISUALLY_HIDDEN_CSS` for the full doc. */

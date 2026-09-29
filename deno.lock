@@ -2,7 +2,7 @@
   "version": "5",
   "specifiers": {
     "jsr:@std/assert@0.224": "0.224.0",
-    "jsr:@std/async@^1.0.0-rc.1": "1.5.0",
+    "jsr:@std/async@^1.0.0-rc.1": "1.5.1",
     "jsr:@std/cli@~0.224.7": "0.224.7",
     "jsr:@std/crypto@^1.1.0": "1.1.0",
     "jsr:@std/encoding@1.0.0-rc.2": "1.0.0-rc.2",
@@ -15,21 +15,21 @@
     "jsr:@std/path@0.224": "0.224.0",
     "jsr:@std/path@1.0.0-rc.2": "1.0.0-rc.2",
     "jsr:@std/streams@~0.224.5": "0.224.5",
-    "jsr:@zanix/server@^4.1.0": "4.2.3",
-    "jsr:@zanix/space@1": "1.8.0",
-    "jsr:@zanix/space@^1.8.0": "1.8.0",
-    "jsr:@zanix/utils@^4.1.0": "4.4.0",
-    "jsr:@zanix/utils@^4.4.0": "4.4.0",
+    "jsr:@zanix/server@^4.1.0": "4.3.4",
+    "jsr:@zanix/space@1": "1.16.3",
+    "jsr:@zanix/space@^1.8.0": "1.16.3",
+    "jsr:@zanix/utils@^4.1.0": "4.7.1",
+    "jsr:@zanix/utils@^4.5.0": "4.7.1",
     "npm:@formatjs/icu-messageformat-parser@^3.5.17": "3.5.17",
     "npm:@formatjs/intl@^4.1.19": "4.1.20",
-    "npm:@types/react-dom@^19.2.0": "19.2.7_@types+react@19.2.18",
-    "npm:@types/react@^19.2.0": "19.2.18",
+    "npm:@types/react-dom@^19.2.0": "19.3.0_@types+react@19.3.0",
+    "npm:@types/react@^19.2.0": "19.3.0",
     "npm:happy-dom@^20.11.2": "20.14.0",
-    "npm:markdown-to-jsx@^9.10.2": "9.10.2_react@19.2.8",
+    "npm:markdown-to-jsx@^9.10.2": "9.10.2_react@19.3.0",
     "npm:preact-render-to-string@^6.5.0": "6.7.0_preact@10.29.8",
     "npm:preact@^10.29.0": "10.29.8_preact-render-to-string@6.7.0",
-    "npm:react-dom@^19.2.0": "19.2.8_react@19.2.8",
-    "npm:react@^19.2.0": "19.2.8",
+    "npm:react-dom@^19.2.0": "19.3.0_react@19.3.0",
+    "npm:react@^19.2.0": "19.3.0",
     "npm:schema-dts@^1.1.5": "1.1.5"
   },
   "jsr": {
@@ -40,8 +40,8 @@
         "jsr:@std/internal"
       ]
     },
-    "@std/async@1.5.0": {
-      "integrity": "4c1f22d287a17ad7d8643b1952bc5a4d21e5d8b68dc8c20d8268eecc69096e82"
+    "@std/async@1.5.1": {
+      "integrity": "c82455dc70cab29a0adf3ac8075db934785bffdd3902af5afcf25d21a74cfd86"
     },
     "@std/cli@0.224.7": {
       "integrity": "654ca6477518e5e3a0d3fabafb2789e92b8c0febf1a1d24ba4b567aba94b5977"
@@ -95,16 +95,16 @@
     "@std/streams@0.224.5": {
       "integrity": "bcde7818dd5460d474cdbd674b15f6638b9cd73cd64e52bd852fba2bd4d8ec91"
     },
-    "@zanix/server@4.2.3": {
-      "integrity": "475a3b19e2bd349900948b36b41ae11d5d23506a9a588f1d5b5d768567d35fc8",
+    "@zanix/server@4.3.4": {
+      "integrity": "f1b2c3a5eb80f191950c80ba0444f9e17fe9e9a1332b2bbad03d36276461dd7b",
       "dependencies": [
         "jsr:@std/http",
         "jsr:@std/path@0.224",
         "jsr:@zanix/utils@^4.1.0"
       ]
     },
-    "@zanix/space@1.8.0": {
-      "integrity": "2fb247acc6d8876745afbeab0cbc50ecb70079c9a87e4e596b0a280a23a5d2d5",
+    "@zanix/space@1.16.3": {
+      "integrity": "b882a04c4927989268039f5becf48cee9266f86dfb4f8642c63cb4f539b17087",
       "dependencies": [
         "jsr:@std/path@0.224",
         "jsr:@zanix/server",
@@ -117,8 +117,8 @@
         "npm:react-dom"
       ]
     },
-    "@zanix/utils@4.4.0": {
-      "integrity": "759615e2b3e91c3e51696cf9cebd3f056d6e238372024860651b3672e817e339",
+    "@zanix/utils@4.7.1": {
+      "integrity": "337d70b83fe362310057658d3983ae7c893850ab8e86f340bc020fa067553f05",
       "dependencies": [
         "jsr:@std/crypto",
         "jsr:@std/fmt@0.224",
@@ -153,14 +153,14 @@
         "undici-types"
       ]
     },
-    "@types/react-dom@19.2.7_@types+react@19.2.18": {
-      "integrity": "sha512-I8bPpDLcHBv1qiIiXDCy71Rt8eQDKJP0sMSWJphDdAcdqiJ1sGpZamavoEIRZmYzjia9LuEb2HlYdDpmoENpvQ==",
+    "@types/react-dom@19.3.0_@types+react@19.3.0": {
+      "integrity": "sha512-ZI7bU42mZXXKHn/qNLEw2IrbiINU7X5+vfgdixBHkCNpYWXjKgfQ/P+uyGb5CjOLB9UcnTeg3rylQtV2hym44Q==",
       "dependencies": [
         "@types/react"
       ]
     },
-    "@types/react@19.2.18": {
-      "integrity": "sha512-AnzbBERsrLKtk2XSfTbYRLjQPdy116Sty4q+T+Bp3IC4l6jNBvreVPAHmpq9qhXQM7CXZPjLVmGMw9sy+hxQ3w==",
+    "@types/react@19.3.0": {
+      "integrity": "sha512-N0rFCuH9YoxG9/m61l9MfpJKfmLOVU0em7ipIz6TRgSSkvReLB9vL85GB+yr8Bs5leqpvg96JSwF4ZS1s4viQg==",
       "dependencies": [
         "csstype"
       ]
@@ -205,7 +205,7 @@
         "@formatjs/icu-messageformat-parser"
       ]
     },
-    "markdown-to-jsx@9.10.2_react@19.2.8": {
+    "markdown-to-jsx@9.10.2_react@19.3.0": {
       "integrity": "sha512-iR9GadlIox0q1uXnpqdxpF02Vb1WDmZ/QIXWjBR5htzjUEEhyIWbM65LuVKavdwJaVo4q95C/F2OOyNjWe91ig==",
       "dependencies": [
         "react"
@@ -229,18 +229,18 @@
         "preact-render-to-string"
       ]
     },
-    "react-dom@19.2.8_react@19.2.8": {
-      "integrity": "sha512-rVprimfGBG3DR+Tq0IQG2DT5PxKth1WIGDmj5yPmlzr4YBe7uyE+Du4oVqTDXZSHGGGXRtTJEGSSePyQCMBglQ==",
+    "react-dom@19.3.0_react@19.3.0": {
+      "integrity": "sha512-JDk8dgif51OjFoDE70+OT9ICyYr+69HlmihNwp1+Nsfbna3t5sIiCa9ZJktDmQ4/1b/rn26hIAR2uYXDMr5r0Q==",
       "dependencies": [
         "react",
         "scheduler"
       ]
     },
-    "react@19.2.8": {
-      "integrity": "sha512-PWaYA1L/q9u2u7xYQi+Y3L3Yfnie7XyLeaJICV1MGD6LprsBxcAqGjYyr0eY3p+QdsA+x/Irkt4Qif8D63+Sbw=="
+    "react@19.3.0": {
+      "integrity": "sha512-E8LUcbtBWt20bbl2YoHfx4ZDBdxVTfOKtCZn9cDSJ4l6/nuoApcpIBcj47t2wZoVX8g2ZHuMHbiShgCR1T5Sog=="
     },
-    "scheduler@0.27.0": {
-      "integrity": "sha512-eNv+WrVbKu1f3vbYJT/xtiF5syA5HPIMtf9IgY/nKg0sWqzAUEvqY/xm7OcZc/qafLx/iO9FgOmeSAp4v5ti/Q=="
+    "scheduler@0.28.0": {
+      "integrity": "sha512-juorfCmIkIw8tT+p5BXSm6PJjQF/ycEYmKyzURCIt/RaZIhL+PulbQ9Yu2z1HdOJDdqDTlxA1+xKBmHXJsczAw=="
     },
     "schema-dts@1.1.5": {
       "integrity": "sha512-RJr9EaCmsLzBX2NDiO5Z3ux2BVosNZN5jo0gWgsyKvxKIUL5R3swNvoorulAeL9kLB0iTSX7V6aokhla2m7xbg=="
@@ -262,7 +262,7 @@
       "jsr:@std/path@0.224",
       "jsr:@zanix/space@1",
       "jsr:@zanix/space@^1.8.0",
-      "jsr:@zanix/utils@^4.4.0",
+      "jsr:@zanix/utils@^4.5.0",
       "npm:@formatjs/icu-messageformat-parser@^3.5.17",
       "npm:@formatjs/intl@^4.1.19",
       "npm:@types/react-dom@^19.2.0",
