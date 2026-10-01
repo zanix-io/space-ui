@@ -214,3 +214,31 @@ Deno.test(
     unmount()
   },
 )
+
+// --- a hidden <input type="hidden"> is never a valid focus target -------------------------------
+
+Deno.test('useFocusScope: a hidden <input type="hidden"> is skipped for initial focus', () => {
+  function HiddenInputHarness({ onReady }: { onReady: (info: Ready) => void }) {
+    const containerRef = useRef<HTMLElement | null>(null)
+    const handler = useFocusScope(containerRef, true, { initialFocusIndex: 1 })
+    onReady({ containerRef, handler })
+    return (
+      <div ref={containerRef as never}>
+        <button type='button'>close</button>
+        <input type='hidden' name='_csrf' value='token' />
+        <button type='button'>real field</button>
+      </div>
+    )
+  }
+
+  const container = document.createElement('div')
+  document.body.appendChild(container)
+  const root = createRoot(container)
+  let info: Ready | undefined
+  act(() => root.render(<HiddenInputHarness onReady={(i) => (info = i)} />))
+  if (!info) throw new Error('harness did not report')
+
+  assertEquals(document.activeElement?.textContent, 'real field')
+
+  act(() => root.unmount())
+})

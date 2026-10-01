@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/) and this project
 adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [2.5.3] - 2026-09-30
+
+### Fixed
+
+- **`Modal`/`Drawer`** (both bindings): the focus trap could also pick a hidden
+  `<input
+  type="hidden">` (a CSRF token, say) as its initial-focus target — never actually
+  focusable in a real browser, same silent-no-op/stuck-outside-the-dialog symptom 2.5.2's own
+  `hidden`-ancestor fix addressed, just for a different reason. `FOCUSABLE_SELECTOR` now excludes it
+  too.
+
 ## [2.5.2] - 2026-09-30
 
 ### Added

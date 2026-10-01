@@ -9,10 +9,13 @@ import { useEffect, useRef } from 'react'
  * `Modal` itself was never built on THAT primitive either) — only `Tab`-cycling is generic enough
  * to extract.
  */
+// `:not([type="hidden"])` — a hidden input is never actually focusable in a real browser, same as
+// a `hidden`-ancestor element; without this, a dialog whose first real field is a hidden `<input>`
+// (a CSRF token, say) picks it as the initial-focus target and `.focus()` silently does nothing.
 export const FOCUSABLE_SELECTOR: string = [
   'a[href]',
   'button:not([disabled])',
-  'input:not([disabled])',
+  'input:not([disabled]):not([type="hidden"])',
   'select:not([disabled])',
   'textarea:not([disabled])',
   '[tabindex]:not([tabindex="-1"])',

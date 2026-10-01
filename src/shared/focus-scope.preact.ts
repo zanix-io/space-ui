@@ -5,10 +5,11 @@ import { useEffect, useRef } from 'preact/hooks'
  * own focus trap once `Drawer` became a real second consumer; deliberately excludes `Escape`
  * handling). Same contract, same behavior, independent implementation.
  */
+// See `focus-scope.ts`'s own identical constant for why `:not([type="hidden"])` is there.
 export const FOCUSABLE_SELECTOR: string = [
   'a[href]',
   'button:not([disabled])',
-  'input:not([disabled])',
+  'input:not([disabled]):not([type="hidden"])',
   'select:not([disabled])',
   'textarea:not([disabled])',
   '[tabindex]:not([tabindex="-1"])',
