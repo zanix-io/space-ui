@@ -3,7 +3,7 @@ import { h, render as renderDOM } from 'preact'
 import type { VNode } from 'preact'
 import { act } from 'preact/test-utils'
 import { render as renderToString } from 'preact-render-to-string'
-import { assert, assertEquals, assertStringIncludes } from '@std/assert'
+import { assert, assertEquals, assertMatch, assertStringIncludes } from '@std/assert'
 import { must } from './dom-test-setup.ts'
 import { RangeSlider } from 'components/RangeSlider/index.preact.ts'
 import type { RangeSliderProps } from 'components/RangeSlider/index.preact.ts'
@@ -29,6 +29,28 @@ function mount(props: RangeSliderProps) {
 
 function handles(container: HTMLElement) {
   return Array.from(container.querySelectorAll<HTMLElement>('[role="slider"]'))
+}
+
+/** The CSSOM rule `getOrInsertDynamicRule` inserts for one moving part (`selectorFragment`
+ * identifies which: `[data-range-slider-handle='single']`, `'min'`, `'max'`, or the fill's own
+ * `[data-range-slider-id='...']` with no `data-range-slider-handle` at all). `initialPositionCss`
+ * (`render.ts`'s own doc) renders a FIRST rule with the identical selector as plain SSR text,
+ * before the dynamic one is ever inserted — `sheet.insertRule`'s own index argument always appends,
+ * so the LAST matching rule in source order is always the one hydration's own `useLayoutEffect`
+ * actually mutates on every later value change; the first is the static SSR snapshot, which never
+ * changes again once the dynamic rule takes over the cascade. */
+function lastDynamicRule(container: Element, selectorFragment: string): CSSStyleRule {
+  let found: CSSStyleRule | undefined
+  for (const styleEl of Array.from(container.querySelectorAll('style'))) {
+    const sheet = (styleEl as HTMLStyleElement).sheet
+    if (!sheet) continue
+    for (const rule of Array.from(sheet.cssRules)) {
+      const styleRule = rule as CSSStyleRule
+      if (styleRule.selectorText?.includes(selectorFragment)) found = styleRule
+    }
+  }
+  if (!found) throw new Error(`Expected a dynamic rule matching ${selectorFragment}, found none`)
+  return found
 }
 
 function stubRect(el: Element, width: number) {
@@ -331,6 +353,93 @@ Deno.test(
     })
 
     assertEquals(handle.getAttribute('aria-valuenow'), '50')
+    unmount()
+  },
+)
+
+// --- SSR: the handle/fill jump this suite exists for -----------------------------------------
+//
+// `getOrInsertDynamicRule`'s own CSSOM mutation only ever runs once a `useLayoutEffect` fires —
+// `preact-render-to-string` never runs an effect at all, so without `initialPositionCss`
+// (`render.ts`'s own doc), the server-rendered `<style>` text would carry no `left`/`width` for the
+// fill/handles at all, and every first paint would show them at their unstyled default spot until
+// the client hydrates.
+
+Deno.test(
+  "RangeSlider (preact) SSR: the single handle's real position is already in the server HTML",
+  () => {
+    const html = renderToString(element({ label: 'Radius', min: 0, max: 100, defaultValue: 66 }))
+
+    assertMatch(html, /\[data-range-slider-handle='single'\]\{left:66%\}/)
+    assertMatch(html, /\[data-range-slider-id='[^']*'\]\{left:0%;width:66%\}/)
+  },
+)
+
+Deno.test(
+  "RangeSlider (preact) SSR: the two-handle range shape carries both handles' real positions",
+  () => {
+    const html = renderToString(
+      element({
+        minLabel: 'Min age',
+        maxLabel: 'Max age',
+        min: 0,
+        max: 100,
+        defaultValue: [20, 80],
+      }),
+    )
+
+    assertMatch(html, /\[data-range-slider-handle='min'\]\{left:20%\}/)
+    assertMatch(html, /\[data-range-slider-handle='max'\]\{left:80%\}/)
+    assertMatch(html, /\[data-range-slider-id='[^']*'\]\{left:20%;width:60%\}/)
+  },
+)
+
+Deno.test(
+  'RangeSlider (preact) SSR: an out-of-bounds/off-step defaultValue is normalized first',
+  () => {
+    // Same clamp+round-to-step every later committed value goes through (`render.ts`'s own
+    // `normalize`) — the server-rendered position has to match what the client commits to on
+    // hydration, or the "no jump" guarantee breaks for exactly this edge case.
+    const html = renderToString(
+      element({ label: 'Radius', min: 10, max: 100, step: 10, defaultValue: 3 }),
+    )
+
+    assertMatch(html, /\[data-range-slider-handle='single'\]\{left:0%\}/)
+  },
+)
+
+// --- real DOM: hydration lands on the SAME value the server already rendered ------------------
+
+Deno.test(
+  'RangeSlider (preact): once mounted, the dynamic rule matches the SSR-rendered position exactly',
+  () => {
+    const { container, unmount } = mount({ label: 'Radius', min: 0, max: 100, defaultValue: 66 })
+
+    const rule = lastDynamicRule(container, "[data-range-slider-handle='single']")
+    assertEquals(rule.style.left, '66%')
+
+    unmount()
+  },
+)
+
+Deno.test(
+  'RangeSlider (preact): dragging after mount still updates the dynamic rule live',
+  () => {
+    const { container, unmount } = mount({ label: 'Radius', min: 0, max: 100, defaultValue: 66 })
+    const track = must(container.querySelector<HTMLElement>('[data-space-ui="range-slider-track"]'))
+    stubRect(track, 100)
+    const [handle] = handles(container)
+
+    act(() => {
+      handle.dispatchEvent(pointerEvent('pointerdown', 66))
+    })
+    act(() => {
+      document.dispatchEvent(pointerEvent('pointermove', 20))
+    })
+
+    const rule = lastDynamicRule(container, "[data-range-slider-handle='single']")
+    assertEquals(rule.style.left, '20%')
+
     unmount()
   },
 )

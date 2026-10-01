@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/) and this project
 adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [2.5.1] - 2026-09-30
+
+### Fixed
+
+- **`RangeSlider`** (both bindings) no longer jumps on load: its handle(s) and filled track used to
+  render at their unstyled default position (the track's own top-left corner) through the whole
+  first paint, snapping to the real value only once the client hydrated and a `useLayoutEffect`
+  inserted the CSSOM rule that actually positions them — that effect never runs during SSR. The same
+  `left`/`width` percentages now also render as plain, server-renderable CSS text inside the same
+  `<style>` element SSR already emits, so the first paint already shows the real position; the
+  dynamically-inserted rule still takes over on hydration, winning the cascade by source order for
+  the same value in the common case, so hydration itself causes no visible change either.
+
 ## [2.5.0] - 2026-09-29
 
 ### Added

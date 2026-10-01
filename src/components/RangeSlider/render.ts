@@ -13,9 +13,11 @@ import type { RangeSliderBaseProps } from './types.ts'
  * track, `position: absolute` on the fill and every handle) — the one-time layout setup every
  * instance needs regardless of its own current value, built ONCE at module scope, injected via a
  * `<style nonce={nonce}>` element instead of an inline `style` attribute (see
- * `RangeSliderCommonProps.nonce`'s own doc for the full CSP reasoning). The actual per-instance
- * `left`/`width` values — genuinely dynamic, unlike this — are applied separately, straight onto a
- * CSSOM rule; see `createRangeSlider`'s own doc below.
+ * `RangeSliderCommonProps.nonce`'s own doc for the full CSP reasoning). The per-instance `left`/
+ * `width` values are genuinely dynamic, unlike this — `createRangeSlider`'s own `initialPositionCss`
+ * renders them into the SAME `<style>` element's initial text (server-renderable, since it's plain
+ * arithmetic on props), then a CSSOM rule takes over once the client hydrates; see that function's
+ * own doc below for the full reasoning.
  */
 const RANGE_SLIDER_POSITION_CSS: string =
   buildOverlayCss('range-slider-track', { position: 'relative' }) +
@@ -135,15 +137,22 @@ function percentFor(value: number, min: number, max: number): number {
  * than `Avatar`'s `width`/`height` or `ProgressBar`'s `height`/duration, which only change rarely —
  * so this component follows `Tooltip`/`Popover`'s own precedent instead (`shared/
  * overlay-position-css.ts`'s `getOrInsertDynamicRule`/`removeDynamicRule`): a `<style nonce={nonce}>`
- * element carries the static, module-level {@linkcode RANGE_SLIDER_POSITION_CSS} as its initial text
- * (never rebuilt), plus one empty per-instance rule per moving part (the fill, and each handle),
- * inserted once via `getOrInsertDynamicRule` and then mutated directly
- * (`CSSStyleRule.style.setProperty('left', ...)`) on every value change — never a `<style>` text
- * rebuild every render, and never an inline `style` attribute either (a real, confirmed CSP
- * violation under a nonce-based `style-src`; see that module's own doc for the full mechanism).
- * Without a matching nonce, the `<style>` element itself is what a strict CSP blocks — every handle
- * simply stays at its default, unpositioned spot until a matching nonce is supplied, a real,
- * documented fallback, never a crash.
+ * element carries the static, module-level {@linkcode RANGE_SLIDER_POSITION_CSS} as its initial
+ * text, immediately followed by `initialPositionCss` — the SAME `left`/`width` the dynamic rule
+ * below would apply, computed as plain server-renderable CSS text so the very first paint (SSR,
+ * before any client script runs) already shows the handle/fill at their real position instead of
+ * their unstyled default spot. Once the client hydrates, `getOrInsertDynamicRule` inserts one empty
+ * per-instance rule per moving part (the fill, and each handle) and mutates it directly
+ * (`CSSStyleRule.style.setProperty('left', ...)`) on every later value change — never a `<style>`
+ * text rebuild every render, and never an inline `style` attribute either (a real, confirmed CSP
+ * violation under a nonce-based `style-src`; see that module's own doc for the full mechanism). A
+ * dynamically-inserted rule always lands after `initialPositionCss` in the stylesheet
+ * (`sheet.insertRule`'s own index argument appends), so it wins the cascade by source order for the
+ * same selector the instant it exists — the same value in the common case, so hydration itself
+ * causes no visible change either. Without a matching nonce, the `<style>` element itself is what a
+ * strict CSP blocks — the WHOLE element, `initialPositionCss` included — so every handle falls back
+ * to its unstyled default spot and the dynamic rule never lands either, a real, documented
+ * fallback, never a crash.
  *
  * `data-range-slider-id` (the attribute scoping every per-instance CSSOM rule to THIS instance) is
  * `deriveStableCometId`'s own output (`shared/stable-comet-id.ts`), never the renderer's bare
@@ -349,6 +358,36 @@ export function createRangeSlider<E>(
     const singleSelector =
       `[data-space-ui='range-slider-handle'][data-range-slider-id='${sliderId}'][data-range-slider-handle='single']`
 
+    // Computed on every render (plain arithmetic on props/state, no DOM access) — unlike the CSSOM
+    // rules below, this runs during SSR too, which is what lets `initialPositionCss` reflect the
+    // real value on the very first paint.
+    const startPercent = isRange ? percentFor(valueTuple[0], min, max) : 0
+    const endPercent = isRange
+      ? percentFor(valueTuple[1], min, max)
+      : percentFor(valueTuple[0], min, max)
+    // `lowerPercent` is the range shape's own lower handle, or simply THE handle's own position for
+    // the single shape; `upperPercent` is only ever meaningful when `isRange` (`valueTuple[1]` stays
+    // pinned to `max` otherwise, per `valueTuple`'s own definition above).
+    const lowerPercent = percentFor(valueTuple[0], min, max)
+    const upperPercent = percentFor(valueTuple[1], min, max)
+
+    // `getOrInsertDynamicRule`'s own CSSOM mutation (below) only ever runs once a `useLayoutEffect`
+    // fires — never during SSR (`styleEl.sheet` doesn't exist yet) — so the handle/fill otherwise
+    // sit at their unstyled default position (the track's own top-left corner) through the whole
+    // first paint, only snapping to the real spot once the client hydrates: a real, confirmed jump
+    // on every load, worse the slower the client script takes to run. This string carries the exact
+    // same `left`/`width` the effect below would apply, as plain server-renderable CSS text inside
+    // the SAME `<style>` element SSR already emits — so the first paint is already correct. Once
+    // hydration inserts the dynamic rule (via `sheet.insertRule`, always appended after whatever
+    // text the element started with), it wins the cascade by source order for the same selector —
+    // same value in the common case, so this never causes its own flash either.
+    const initialPositionCss = [
+      `${rangeSelector}{left:${startPercent}%;width:${Math.max(0, endPercent - startPercent)}%}`,
+      isRange
+        ? `${minSelector}{left:${lowerPercent}%}\n${maxSelector}{left:${upperPercent}%}`
+        : `${singleSelector}{left:${lowerPercent}%}`,
+    ].join('\n')
+
     // Inserted once per real mount — `sliderId`/the selectors above are stable for this instance's
     // whole lifetime (derived from props that don't change shape after mount), deliberately not a
     // dependency, same discipline `Tooltip/render.ts`'s own `dynamicSelector` comment documents.
@@ -372,19 +411,17 @@ export function createRangeSlider<E>(
 
     // Applies the CURRENT `left`/`width` on every value change — `useLayoutEffect`, not `useEffect`,
     // so a drag never visibly flashes/jumps a frame behind, same reasoning `Tooltip/render.ts`'s own
-    // position-applying effect documents.
+    // position-applying effect documents. Reuses `startPercent`/`endPercent`/`lowerPercent`/
+    // `upperPercent` from this same render rather than recomputing them — this effect's own deps
+    // already match exactly what those depend on.
     hooks.useLayoutEffect(() => {
-      const startPercent = isRange ? percentFor(valueTuple[0], min, max) : 0
-      const endPercent = isRange
-        ? percentFor(valueTuple[1], min, max)
-        : percentFor(valueTuple[0], min, max)
       rangeRuleRef.current?.style.setProperty('left', `${startPercent}%`)
       rangeRuleRef.current?.style.setProperty('width', `${Math.max(0, endPercent - startPercent)}%`)
       if (isRange) {
-        minRuleRef.current?.style.setProperty('left', `${percentFor(valueTuple[0], min, max)}%`)
-        maxRuleRef.current?.style.setProperty('left', `${percentFor(valueTuple[1], min, max)}%`)
+        minRuleRef.current?.style.setProperty('left', `${lowerPercent}%`)
+        maxRuleRef.current?.style.setProperty('left', `${upperPercent}%`)
       } else {
-        singleRuleRef.current?.style.setProperty('left', `${percentFor(valueTuple[0], min, max)}%`)
+        singleRuleRef.current?.style.setProperty('left', `${lowerPercent}%`)
       }
     }, [valueTuple[0], valueTuple[1], min, max, isRange])
 
@@ -399,7 +436,11 @@ export function createRangeSlider<E>(
     return h(
       'div',
       { id, className, 'data-space-ui': 'range-slider', 'data-range-slider-id': sliderId },
-      h('style', { key: 'style', nonce, ref: styleElRef }, RANGE_SLIDER_POSITION_CSS),
+      h(
+        'style',
+        { key: 'style', nonce, ref: styleElRef },
+        RANGE_SLIDER_POSITION_CSS + '\n' + initialPositionCss,
+      ),
       h(
         'div',
         {
