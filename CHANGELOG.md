@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/) and this project
 adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [2.5.6] - 2026-10-1
+
+### Added
+
+- **`Drawer`** (both bindings) takes a new `closeOnOverlayClick` prop (`@default false`), the same
+  contract `Modal`'s own already has: with its backdrop shown (`showOverlay`, the default), a click
+  directly on the backdrop closes the drawer — a click on the panel itself never does, and a drawer
+  stacked under another open overlay never closes from it. Unchanged for an existing consumer that
+  leaves it unset, which keeps closing only from its close button, `Escape`, or (with no backdrop)
+  an outside click.
+
 ## [2.5.5] - 2026-10-1
 
 ### Fixed

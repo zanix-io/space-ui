@@ -7,9 +7,9 @@ import { buildOverlayCss } from 'shared/overlay-position-css.ts'
  */
 export type DrawerBaseProps = {
   open: boolean
-  /** Called whenever this drawer wants to close — the close button, `Escape`, or an outside click
-   * (only when `showOverlay` is `false`, see `index.ts`'s own doc) — same contract
-   * `ModalBaseProps.onClose` already has. */
+  /** Called whenever this drawer wants to close — the close button, `Escape`, an outside click
+   * (`showOverlay: false`), or a backdrop click (`showOverlay: true` + `closeOnOverlayClick: true`)
+   * — see `index.ts`'s own doc; same contract `ModalBaseProps.onClose` already has. */
   onClose: () => void
   /** Same contract as `ModalBaseProps.closeButtonContent` — overrides the close button's own
    * visible content in place of the default inline "X" `shared/close-button-icon.ts` renders (see
@@ -21,8 +21,15 @@ export type DrawerBaseProps = {
    * choice every time: unlike `Modal`'s own `position` (where `'center'` is the unambiguous normal
    * case), there's no single edge that's obviously "the" default for a drawer. */
   side: DrawerSide
-  /** @default true */
+  /** A dimmed backdrop behind the panel. `true` (default) absorbs an outside click and does nothing
+   * on its own, unless `closeOnOverlayClick` opts back in; `false` renders no backdrop and always
+   * closes on an outside click instead — same contract as `ModalBaseProps.showOverlay`.
+   * @default true */
   showOverlay?: boolean
+  /** Closes on a click directly on the backdrop — only applies while `showOverlay` is `true`. Same
+   * contract as `ModalBaseProps.closeOnOverlayClick`.
+   * @default false */
+  closeOnOverlayClick?: boolean
   /** @default true */
   closeOnEscape?: boolean
   id?: string

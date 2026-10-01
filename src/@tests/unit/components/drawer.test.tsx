@@ -204,6 +204,51 @@ Deno.test('Drawer: with a backdrop, an outside click never closes it', () => {
   unmount()
 })
 
+Deno.test('Drawer: with a backdrop, closeOnOverlayClick={false} (default) never closes on a backdrop click', () => {
+  let closed = false
+  const { container, unmount } = mount(
+    <Drawer open onClose={() => (closed = true)} side='bottom' label='Filters'>
+      <p>Body</p>
+    </Drawer>,
+  )
+
+  const backdrop = must(container.querySelector('[data-space-ui="drawer-backdrop"]'))
+  act(() => backdrop.dispatchEvent(new MouseEvent('click', { bubbles: true })))
+
+  assertEquals(closed, false)
+  unmount()
+})
+
+Deno.test('Drawer: with a backdrop, closeOnOverlayClick={true} closes on a backdrop click', () => {
+  let closed = false
+  const { container, unmount } = mount(
+    <Drawer open onClose={() => (closed = true)} side='bottom' label='Filters' closeOnOverlayClick>
+      <p>Body</p>
+    </Drawer>,
+  )
+
+  const backdrop = must(container.querySelector('[data-space-ui="drawer-backdrop"]'))
+  act(() => backdrop.dispatchEvent(new MouseEvent('click', { bubbles: true })))
+
+  assertEquals(closed, true)
+  unmount()
+})
+
+Deno.test('Drawer: closeOnOverlayClick={true} never closes from a click on the panel itself', () => {
+  let closed = false
+  const { container, unmount } = mount(
+    <Drawer open onClose={() => (closed = true)} side='bottom' label='Filters' closeOnOverlayClick>
+      <p>Body</p>
+    </Drawer>,
+  )
+
+  const panel = must(container.querySelector('[role="dialog"]'))
+  act(() => panel.dispatchEvent(new MouseEvent('click', { bubbles: true })))
+
+  assertEquals(closed, false)
+  unmount()
+})
+
 Deno.test('Drawer: without a backdrop, an outside click closes it', () => {
   let closed = false
   const { unmount } = mount(

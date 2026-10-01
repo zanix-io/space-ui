@@ -53,7 +53,9 @@ export type DrawerProps = DrawerBaseProps & DrawerAccessibleName & { children: R
  * ## Otherwise identical to `Modal`'s own contract
  *
  * Accessible-name requirement (compile-time via {@linkcode DrawerAccessibleName}, `logger.warn`
- * fallback for untyped callers), `showOverlay`/outside-click as the same single decision, focus
+ * fallback for untyped callers), `showOverlay`/`closeOnOverlayClick` as the same two independent
+ * decisions (a backdrop that absorbs a click unless `closeOnOverlayClick` opts in; no backdrop and
+ * an outside click closes it), focus
  * management (capture → move into the panel, skipping the close button as the initial target →
  * restore on close, but only if still topmost), scroll lock — see `Modal/index.ts`'s own doc for
  * the full reasoning behind each; not repeated here since none of it changes for an edge-anchored

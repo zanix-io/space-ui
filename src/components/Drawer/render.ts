@@ -77,6 +77,7 @@ export function createDrawer<E, Node>(
       label,
       ariaLabelledBy,
       showOverlay = true,
+      closeOnOverlayClick = false,
       closeOnEscape = true,
       id,
       className,
@@ -133,8 +134,20 @@ export function createDrawer<E, Node>(
     // inline `style` attribute — see `DRAWER_POSITION_CSS`'s own doc for the full CSP reasoning.
     const styleEl = h('style', { key: 'style', nonce }, DRAWER_POSITION_CSS)
 
+    // Same `isTopOverlay` guard `Modal/render.ts`'s own backdrop click has: a click on the backdrop
+    // of a drawer stacked under another open overlay must never close the wrong one.
+    const handleBackdropClick = closeOnOverlayClick
+      ? () => {
+        if (isTopOverlay(stackId)) onClose()
+      }
+      : undefined
+
     const backdrop = showOverlay
-      ? h('div', { key: 'backdrop', 'data-space-ui': 'drawer-backdrop' })
+      ? h('div', {
+        key: 'backdrop',
+        'data-space-ui': 'drawer-backdrop',
+        onClick: handleBackdropClick,
+      })
       : null
 
     return hAny(Fragment, null, [

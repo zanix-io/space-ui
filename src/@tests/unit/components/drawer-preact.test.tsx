@@ -221,6 +221,53 @@ Deno.test('Drawer (preact): with a backdrop, an outside click never closes it', 
   unmount()
 })
 
+for (const closeOnOverlayClick of [false, true]) {
+  Deno.test(
+    `Drawer (preact): with a backdrop, closeOnOverlayClick=${closeOnOverlayClick} ${
+      closeOnOverlayClick ? 'closes' : 'never closes'
+    } on a backdrop click`,
+    () => {
+      let closed = false
+      const { container, unmount } = mount({
+        open: true,
+        onClose: () => (closed = true),
+        side: 'bottom',
+        label: 'Filters',
+        closeOnOverlayClick,
+        children: 'Body',
+      })
+
+      const backdrop = must(container.querySelector('[data-space-ui="drawer-backdrop"]'))
+      act(() => {
+        backdrop.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+      })
+
+      assertEquals(closed, closeOnOverlayClick)
+      unmount()
+    },
+  )
+}
+
+Deno.test('Drawer (preact): closeOnOverlayClick never closes from a click on the panel itself', () => {
+  let closed = false
+  const { container, unmount } = mount({
+    open: true,
+    onClose: () => (closed = true),
+    side: 'bottom',
+    label: 'Filters',
+    closeOnOverlayClick: true,
+    children: 'Body',
+  })
+
+  const panel = must(container.querySelector('[role="dialog"]'))
+  act(() => {
+    panel.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+  })
+
+  assertEquals(closed, false)
+  unmount()
+})
+
 // --- close button / Escape --------------------------------------------------------------------
 
 Deno.test('Drawer (preact): renders a real, accessible close button', () => {
