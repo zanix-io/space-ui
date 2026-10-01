@@ -49,6 +49,13 @@ export type MultiSelectBaseProps = {
    * `max`, selecting an option, committing free text, and the listbox itself all become no-ops
    * until a chip is removed. Removing a chip is never blocked by `max`. */
   max?: number
+  /** `false` (default, unchanged behavior): the listbox stays open after a selection — picking
+   * several options in a row never requires reopening it. `true`: a selection also closes the
+   * listbox (same `setOpen(false)` path `Escape`/an outside click/blur already use) — a caller
+   * whose own field is normally edited one value at a time (the common "one date, a short list of
+   * tags" case, as opposed to a long multi-pick list a caller fills in rapid succession) opts into
+   * this instead of every consumer's listbox closing on every pick. @default false */
+  closeOnSelect?: boolean
   /** Controlled listbox-open state — same contract as every other overlay in this package. Note the
    * listbox is only ever actually VISIBLE while `open` is true AND at least one option remains to
    * show (see `index.ts`'s own doc) — `open` itself still reflects the caller's own intent

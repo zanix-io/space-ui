@@ -120,6 +120,7 @@ export function createMultiSelect<E>(
       defaultInputValue = '',
       onInputValueChange,
       max,
+      closeOnSelect = false,
       open: controlledOpen,
       defaultOpen = false,
       onOpenChange,
@@ -197,11 +198,13 @@ export function createMultiSelect<E>(
 
     // Shared by both a real option selection and a raw free-text commit — adds the chip (a no-op if
     // already present or `max` is reached), then clears the input, ready for the next pick.
+    // `closeOnSelect` closes the listbox too, same as it already does for `Escape`/an outside click.
     const commitValue = (value: string) => {
       if (atMax || values.includes(value)) return
       setValues([...values, value])
       setInputValue('')
       setActiveIndex(null)
+      if (closeOnSelect) setOpen(false)
     }
 
     const selectOption = (option: MultiSelectOption) => {
@@ -240,6 +243,12 @@ export function createMultiSelect<E>(
     const containerRef = hooks.useRef<HTMLSpanElement | null>(null)
     const styleElRef = hooks.useRef<HTMLStyleElement | null>(null)
     const dynamicRuleRef = hooks.useRef<CSSStyleRule | null>(null)
+    // `closeOnSelect` only — the chip-remove button's own programmatic `inputRef.current?.focus()`
+    // (below) would otherwise reopen the listbox THROUGH `handleFocus`, undoing the close that same
+    // flag just asked for the moment a caller removes one chip. Sets right before that one `.focus()`
+    // call, consumed (and cleared) by the very next `handleFocus` it triggers — never affects a real,
+    // caller-initiated focus (tab, click) any other time.
+    const suppressFocusOpenRef = hooks.useRef(false)
 
     // `listboxVisible`, never the bare `open` `Combobox`'s own identical call passes — real,
     // confirmed bug this closes: unlike `Combobox` (whose `<ul>` stays mounted the whole time
@@ -274,7 +283,13 @@ export function createMultiSelect<E>(
       if (!open) setOpen(true)
     }
 
-    const handleFocus = () => setOpen(true)
+    const handleFocus = () => {
+      if (suppressFocusOpenRef.current) {
+        suppressFocusOpenRef.current = false
+        return
+      }
+      setOpen(true)
+    }
     const handleBlur = () => {
       setOpen(false)
       if (allowCustomValue) commitTypedText()
@@ -393,8 +408,12 @@ export function createMultiSelect<E>(
           // click back into the input a SECOND time before the option they just freed up (by
           // removing this chip) became pickable again. `Backspace`-on-empty (`handleKeyDown`)
           // never had this gap — that removal happens on the input itself, focus never leaves it.
+          // `closeOnSelect`: that same caller asked every selection to close the list too — without
+          // suppressing it here, this refocus's own `handleFocus` would reopen it right back, one
+          // remove away from the list `closeOnSelect` just asked to stay shut.
           onClick: () => {
             removeValue(value)
+            if (closeOnSelect) suppressFocusOpenRef.current = true
             inputRef.current?.focus()
           },
           label: `Remove ${label}`,

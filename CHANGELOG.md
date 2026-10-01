@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/) and this project
 adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [2.5.4] - 2026-10-1
+
+### Added
+
+- **`MultiSelect`** (both bindings) takes a new `closeOnSelect` prop (`@default false`): a selection
+  also closes the listbox, and a chip removal's own programmatic refocus no longer reopens it either
+  — both unchanged for an existing consumer that leaves it unset. Suited to a field edited one value
+  at a time (a handful of tags on one record) rather than a long multi-pick list a caller fills in
+  rapid succession.
+
 ## [2.5.3] - 2026-09-30
 
 ### Fixed

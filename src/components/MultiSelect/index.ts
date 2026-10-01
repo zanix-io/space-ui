@@ -80,6 +80,16 @@ export type MultiSelectProps = MultiSelectBaseProps
  * `values`/`onValuesChange` is the single source of truth for the committed chips, the same
  * controlled/uncontrolled duality every other stateful component in this package keeps.
  *
+ * ## `closeOnSelect` — opt-in, never the default
+ *
+ * `false` (default): the listbox stays open after a selection, and removing a chip's own
+ * programmatic refocus (see "Chip removal" above) reopens it exactly as it always has — unchanged
+ * for every existing consumer. `true`: a selection also closes the listbox, and that same refocus
+ * no longer reopens it on a removal either — one flag governing both, since a caller who wants the
+ * list to stay shut after picking one value wants it shut after UN-picking one too. Suited to a
+ * field edited one value at a time (a handful of tags on one record); a caller that expects several
+ * rapid picks in a row (a long multi-select list) keeps the current behavior by leaving this unset.
+ *
  * ## Not a `Combobox` composition — a genuine sibling implementation instead
  *
  * `MultiSelect` doesn't render a real `<Combobox/>` internally (so it carries no `"combobox"` hook)

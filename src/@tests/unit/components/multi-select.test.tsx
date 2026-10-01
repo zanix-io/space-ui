@@ -548,6 +548,79 @@ Deno.test('MultiSelect: Escape closes it without selecting, keeping the typed te
   unmount()
 })
 
+// --- closeOnSelect ------------------------------------------------------------------------------
+
+Deno.test('MultiSelect: a selection leaves the listbox open by default', () => {
+  const { container, unmount } = mount(<MultiSelect {...basicProps()} />)
+  const input = must(container.querySelector<HTMLInputElement>('input'))
+
+  act(() => {
+    input.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true }))
+  })
+  act(() => {
+    input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }))
+  })
+
+  assertEquals(container.querySelector('[data-space-ui="multi-select-listbox"]') !== null, true)
+
+  unmount()
+})
+
+Deno.test('MultiSelect: closeOnSelect closes the listbox once a selection commits', () => {
+  const { container, unmount } = mount(<MultiSelect {...basicProps({ closeOnSelect: true })} />)
+  const input = must(container.querySelector<HTMLInputElement>('input'))
+
+  act(() => {
+    input.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true }))
+  })
+  act(() => {
+    input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }))
+  })
+
+  assertEquals(container.querySelector('[data-space-ui="multi-select-listbox"]'), null)
+
+  unmount()
+})
+
+Deno.test(
+  "MultiSelect: removing a chip reopens the listbox by default (the remove button's own " +
+    'refocus triggers it, same as any other focus) — unchanged, closeOnSelect unset',
+  () => {
+    const { container, unmount } = mount(
+      <MultiSelect {...basicProps({ defaultValues: ['en'] })} />,
+    )
+    const removeButton = must(container.querySelector('button[aria-label="Remove English"]'))
+
+    act(() => {
+      removeButton.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    })
+
+    assertEquals(container.querySelector('[data-space-ui="multi-select-listbox"]') !== null, true)
+
+    unmount()
+  },
+)
+
+Deno.test(
+  "MultiSelect: closeOnSelect also keeps a chip's own removal from reopening the listbox " +
+    "through its remove button's own refocus",
+  () => {
+    const { container, unmount } = mount(
+      <MultiSelect {...basicProps({ defaultValues: ['en'], closeOnSelect: true })} />,
+    )
+    const removeButton = must(container.querySelector('button[aria-label="Remove English"]'))
+
+    act(() => {
+      removeButton.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    })
+
+    assertEquals(container.querySelector('[data-space-ui="multi-select-listbox"]'), null)
+    assertEquals(document.activeElement, container.querySelector('input'))
+
+    unmount()
+  },
+)
+
 // --- controlled / uncontrolled -----------------------------------------------------------------
 
 Deno.test('MultiSelect: controlled values — a selection notifies, never self-mutates', () => {
