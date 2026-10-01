@@ -294,6 +294,18 @@ export function createMultiSelect<E>(
       setOpen(false)
       if (allowCustomValue) commitTypedText()
     }
+    // A click never fires a NEW `focus` event when the input is ALREADY the document's active
+    // element — a browser only fires `focus` on an actual unfocused-to-focused transition, not on
+    // a redundant click of an already-focused one. Real, confirmed bug this closes: the chip-
+    // remove button's own `inputRef.current?.focus()` (below) leaves the input in exactly that
+    // state — focused, listbox closed (intentionally, right after a removal) — and a caller
+    // clicking straight back into it to see suggestions again got no response at all, since
+    // `handleFocus` was the ONLY thing that ever opened this listbox. Pre-existing even without
+    // `closeOnSelect` (`Escape` leaves the same "focused, closed" state), just far more likely to
+    // be hit now that a removal reaches it too.
+    const handleClick = () => {
+      if (!open) setOpen(true)
+    }
 
     // No current option → `ArrowDown` lands on the first, `ArrowUp` on the last — same shape
     // `Combobox/index.ts`'s own `nextIndexFor` already establishes.
@@ -467,6 +479,7 @@ export function createMultiSelect<E>(
       [changeEventProp]: handleChange,
       onFocus: handleFocus,
       onBlur: handleBlur,
+      onClick: handleClick,
       onKeyDown: handleKeyDown,
     })
 

@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/) and this project
 adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [2.5.5] - 2026-10-1
+
+### Fixed
+
+- **`MultiSelect`** (both bindings): a click on the input never reopened the listbox once it was
+  already focused but closed (right after `closeOnSelect` closed it, or after `Escape`) — a click on
+  an already-focused element never fires a new `focus` event, the only thing that previously ever
+  opened this listbox. The input's own `onClick` now also opens it when closed.
+
 ## [2.5.4] - 2026-10-1
 
 ### Added

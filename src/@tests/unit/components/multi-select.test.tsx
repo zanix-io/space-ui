@@ -621,6 +621,35 @@ Deno.test(
   },
 )
 
+Deno.test(
+  'MultiSelect: clicking the input reopens the listbox even when already focused — real, ' +
+    'confirmed bug this closes: a click never fires a NEW `focus` event on an already-focused ' +
+    "element, so the chip-remove button's own refocus (above) left a caller with no way back in " +
+    'via a plain click, only `focus` ever opened this listbox before',
+  () => {
+    const { container, unmount } = mount(
+      <MultiSelect {...basicProps({ defaultValues: ['en'], closeOnSelect: true })} />,
+    )
+    const removeButton = must(container.querySelector('button[aria-label="Remove English"]'))
+    const input = must(container.querySelector<HTMLInputElement>('input'))
+
+    act(() => {
+      removeButton.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    })
+    assertEquals(container.querySelector('[data-space-ui="multi-select-listbox"]'), null)
+    assertEquals(document.activeElement, input)
+
+    // The input is already focused (no new `focus` event will fire) — only a real `click` on it
+    // should still reopen the listbox.
+    act(() => {
+      input.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    })
+    assertEquals(container.querySelector('[data-space-ui="multi-select-listbox"]') !== null, true)
+
+    unmount()
+  },
+)
+
 // --- controlled / uncontrolled -----------------------------------------------------------------
 
 Deno.test('MultiSelect: controlled values — a selection notifies, never self-mutates', () => {
