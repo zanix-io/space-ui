@@ -60,6 +60,10 @@ export type DatePickerBaseProps = {
    * trigger's own formatted value, when `withTime` is `true`. No locale-derived default — see
    * `index.ts`'s own doc for why. @default 'h24' */
   hourCycle?: 'h12' | 'h24'
+  /** `'HH:mm'` (24-hour) — the time a freshly picked day starts at while nothing is selected yet,
+   * when `withTime` is `true`. Once a value exists, picking another day keeps its time. A malformed
+   * string is ignored, same as an unset one. @default '00:00' */
+  defaultTime?: string
   /** BCP-47 locale used to format the trigger's own displayed value and the weekday/month names in
    * the popup (`Intl.DateTimeFormat` directly — see `index.ts`'s own doc for why this is a plain
    * prop rather than reading `useIntl()`'s own formatter). @default 'en' */

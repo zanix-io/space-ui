@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/) and this project
 adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [2.6.0] - 2026-10-1
+
+### Added
+
+- **`DatePicker`** (both bindings) takes a new `defaultTime` prop (`'HH:mm'`, 24-hour,
+  `@default '00:00'`), used only with `withTime`: the time a freshly picked day starts at while
+  nothing is selected yet. Once a value exists, picking another day keeps that value's own time, as
+  before. Unchanged for an existing consumer that leaves it unset.
+
 ## [2.5.6] - 2026-10-1
 
 ### Added

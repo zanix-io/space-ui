@@ -78,6 +78,19 @@ export function parseISODateTime(value: string | null | undefined): CalendarDate
   return { date, hour, minute }
 }
 
+/** Parses a bare `'HH:mm'` (24-hour) time of day — `null` for anything malformed or out of range,
+ * same contract as {@linkcode parseISODateTime}. */
+export function parseTimeOfDay(
+  value: string | null | undefined,
+): { hour: number; minute: number } | null {
+  const match = value ? /^(\d{2}):(\d{2})$/.exec(value) : null
+  if (!match) return null
+  const hour = Number(match[1])
+  const minute = Number(match[2])
+  if (hour > 23 || minute > 59) return null
+  return { hour, minute }
+}
+
 /** Formats a {@linkcode CalendarDate} plus `hour`/`minute` as `'YYYY-MM-DDTHH:mm'` — the inverse of
  * {@linkcode parseISODateTime}. Always minute precision, never seconds — this component has no UI
  * for selecting seconds, so emitting a trailing `:00` would be a precision this component never

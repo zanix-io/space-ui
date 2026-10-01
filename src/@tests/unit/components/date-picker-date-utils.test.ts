@@ -18,6 +18,7 @@ import {
   isYearDisabled,
   parseISODate,
   parseISODateTime,
+  parseTimeOfDay,
   wrapValue,
 } from 'components/DatePicker/date-utils.ts'
 
@@ -235,4 +236,13 @@ Deno.test('wrapValue: wraps at both boundaries', () => {
   assertEquals(wrapValue(23, 1, 0, 23), 0)
   assertEquals(wrapValue(0, -1, 0, 23), 23)
   assertEquals(wrapValue(59, 1, 0, 59), 0)
+})
+
+Deno.test('parseTimeOfDay: a real HH:mm parses, anything else is null', () => {
+  assertEquals(parseTimeOfDay('18:00'), { hour: 18, minute: 0 })
+  assertEquals(parseTimeOfDay('00:05'), { hour: 0, minute: 5 })
+  assertEquals(parseTimeOfDay('24:00'), null)
+  assertEquals(parseTimeOfDay('18:60'), null)
+  assertEquals(parseTimeOfDay('6pm'), null)
+  assertEquals(parseTimeOfDay(undefined), null)
 })

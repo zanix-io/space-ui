@@ -449,7 +449,8 @@ ahead of time:
   field — this is a picker, not typed date entry, sidestepping the well-known date-string parsing
   ambiguity entirely. `withTime?: boolean` (default `false`) opts into an additional `Hour`/`Minute`
   section — `value` carries `'YYYY-MM-DDTHH:mm'` (minute precision, 24h by default,
-  `hourCycle: 'h12'` for AM/PM) instead of a bare `'YYYY-MM-DD'`; each control is a real
+  `hourCycle: 'h12'` for AM/PM) instead of a bare `'YYYY-MM-DD'`, and `defaultTime` (`'HH:mm'`,
+  default midnight) sets the time a first-picked day starts at; each control is a real
   `role="spinbutton"` (arrow-key adjust, wrapping at the boundary), never a bare
   `<input type="number">` — picking a day no longer auto-closes the popup in this mode (time still
   needs setting), a "Done" button closes explicitly instead. `locale` (BCP-47, default `'en'`) is a

@@ -31,6 +31,7 @@ import {
   isYearDisabled,
   parseISODate,
   parseISODateTime,
+  parseTimeOfDay,
   wrapValue,
 } from './date-utils.ts'
 import type { DatePickerBaseProps } from './types.ts'
@@ -145,6 +146,7 @@ export function createDatePicker<E>(
       icon,
       withTime = false,
       hourCycle = 'h24',
+      defaultTime,
       locale = 'en',
       id,
       className,
@@ -185,8 +187,10 @@ export function createDatePicker<E>(
     const parsedDateTime = withTime ? parseISODateTime(value) : null
     const parsedDateOnly = withTime ? null : parseISODate(value)
     const selectedDate = withTime ? (parsedDateTime?.date ?? null) : parsedDateOnly
-    const selectedHour = parsedDateTime?.hour ?? 0
-    const selectedMinute = parsedDateTime?.minute ?? 0
+    // With nothing selected yet, a picked day starts at `defaultTime` (midnight when unset).
+    const startTime = parseTimeOfDay(defaultTime)
+    const selectedHour = parsedDateTime?.hour ?? startTime?.hour ?? 0
+    const selectedMinute = parsedDateTime?.minute ?? startTime?.minute ?? 0
 
     // `null` until the first post-mount effect below — never read during render itself. This is
     // what keeps SSR/first-client-paint deterministic (seam 6) despite "what month should an

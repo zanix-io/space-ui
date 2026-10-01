@@ -125,6 +125,9 @@ export type DatePickerProps = DatePickerBaseProps
  * - `hourCycle` (`'h12'` AM/PM or `'h24'`, default `'h24'`) controls both the spinbutton section's
  *   own display and the trigger's own formatted value. No locale-DERIVED default — see `locale`
  *   below for why this stays an explicit prop rather than something inferred.
+ * - `defaultTime` (`'HH:mm'`, default midnight) is the time a freshly picked day starts at while
+ *   nothing is selected yet — an evening event shouldn't make every author scroll up from `00:00`.
+ *   Once a value exists, picking another day keeps that value's own time.
  *
  * ## `locale` is a plain, explicit prop — not read from `useIntl()`
  *

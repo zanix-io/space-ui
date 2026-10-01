@@ -242,6 +242,44 @@ Deno.test('DatePicker (preact): withTime — picking a day does NOT close the po
   unmount()
 })
 
+Deno.test('DatePicker (preact): withTime — a first-picked day starts at defaultTime', () => {
+  const values: (string | null)[] = []
+  const { container, unmount } = mount({
+    withTime: true,
+    defaultTime: '18:00',
+    min: '2024-05-01',
+    defaultOpen: true,
+    onValueChange: (v) => values.push(v),
+  })
+  const cell = must(container.querySelector<HTMLElement>('[data-date$="-15"]'))
+
+  act(() => {
+    cell.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+  })
+
+  assertEquals(values.length, 1)
+  assertEquals(values[0]?.endsWith('-15T18:00'), true)
+  unmount()
+})
+
+Deno.test('DatePicker (preact): withTime — an existing value keeps its own time over defaultTime', () => {
+  const values: (string | null)[] = []
+  const { container, unmount } = mount({
+    withTime: true,
+    defaultTime: '18:00',
+    value: '2024-05-10T09:30',
+    onValueChange: (v) => values.push(v),
+  })
+  openPicker(container)
+
+  act(() => {
+    getCell(container, '2024-05-15').dispatchEvent(new MouseEvent('click', { bubbles: true }))
+  })
+
+  assertEquals(values, ['2024-05-15T09:30'])
+  unmount()
+})
+
 Deno.test('DatePicker (preact): withTime — ArrowUp on the minute spinbutton wraps 59 → 0', () => {
   const values: (string | null)[] = []
   const { container, unmount } = mount({
