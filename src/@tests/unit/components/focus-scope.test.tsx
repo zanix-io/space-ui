@@ -18,11 +18,13 @@ function fakeTabEvent(shiftKey = false) {
 }
 
 function Harness(
-  { active, options, onReady, focusable = true }: {
+  { active, options, onReady, focusable = true, hiddenFirst = false }: {
     active: boolean
     options?: FocusScopeOptions
     onReady: (info: Ready) => void
     focusable?: boolean
+    /** Renders an extra focusable button first, wrapped in a `hidden` ancestor. */
+    hiddenFirst?: boolean
   },
 ) {
   const containerRef = useRef<HTMLElement | null>(null)
@@ -31,6 +33,11 @@ function Harness(
 
   return (
     <div ref={containerRef as never}>
+      {hiddenFirst && (
+        <div hidden>
+          <button type='button'>hidden</button>
+        </div>
+      )}
       {focusable && (
         <>
           <button type='button'>one</button>
@@ -46,13 +53,20 @@ function mount(
   options: FocusScopeOptions | undefined,
   onReady: (info: Ready) => void,
   focusable = true,
+  hiddenFirst = false,
 ) {
   const container = document.createElement('div')
   document.body.appendChild(container)
   const root = createRoot(container)
   act(() =>
     root.render(
-      <Harness active={active} options={options} onReady={onReady} focusable={focusable} />,
+      <Harness
+        active={active}
+        options={options}
+        onReady={onReady}
+        focusable={focusable}
+        hiddenFirst={hiddenFirst}
+      />,
     )
   )
 
@@ -65,6 +79,7 @@ function mount(
             options={nextOptions}
             onReady={onReady}
             focusable={focusable}
+            hiddenFirst={hiddenFirst}
           />,
         )
       ),
@@ -161,5 +176,41 @@ Deno.test(
 
     unmount()
     trigger.remove()
+  },
+)
+
+// --- a hidden ancestor is never a valid focus target ---------------------------------------------
+
+Deno.test(
+  'useFocusScope: a focusable element inside a hidden ancestor is skipped for initial focus',
+  () => {
+    const { unmount } = mount(true, undefined, () => {}, true, true)
+
+    assertEquals(document.activeElement?.textContent, 'one')
+
+    unmount()
+  },
+)
+
+Deno.test(
+  'useFocusScope: Tab-cycling skips a focusable element inside a hidden ancestor too',
+  () => {
+    let info: Ready | undefined
+    const { unmount } = mount(true, undefined, (i) => (info = i), true, true)
+    if (!info) throw new Error('harness did not report')
+
+    const buttons = info.containerRef.current?.querySelectorAll<HTMLButtonElement>('button')
+    const second = buttons?.[buttons.length - 1]
+    if (!second) throw new Error('expected a second button')
+    act(() => second.focus())
+    assertEquals(document.activeElement?.textContent, 'two')
+
+    const { event, wasPrevented } = fakeTabEvent()
+    info.handler(event)
+
+    assertEquals(wasPrevented(), true)
+    assertEquals(document.activeElement?.textContent, 'one')
+
+    unmount()
   },
 )

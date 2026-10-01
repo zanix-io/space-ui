@@ -5,6 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/) and this project
 adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [2.5.2] - 2026-09-30
+
+### Added
+
+- **`Modal`** (both bindings) takes a new `closeOnOverlayClick` prop (`@default false`) — closes on
+  a click directly on the backdrop while `showOverlay` is `true`. Before, the only way to close on
+  an outside click at all was `showOverlay={false}`, which also removes the dimmed backdrop; a
+  visibly dimmed modal that still dismisses on a backdrop click no longer needs a consumer to fake
+  its own backdrop. Respects the modal stack, same as `Escape` already does.
+
+### Fixed
+
+- **`Modal`/`Drawer`** (both bindings): the focus trap's initial-focus target could land inside a
+  `hidden` ancestor (a tab strip's non-default section, a collapsed accordion panel) — `.focus()` on
+  it is a silent no-op in every browser, so focus never actually left whatever triggered the dialog
+  open. With focus outside the dialog, `Escape`/`Tab` never reached its own key handler at all,
+  making the dialog look unresponsive to the keyboard until the caller clicked something inside it
+  first. The focus scope now skips any candidate inside a `hidden` ancestor.
+
 ## [2.5.1] - 2026-09-30
 
 ### Fixed

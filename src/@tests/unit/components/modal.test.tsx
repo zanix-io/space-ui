@@ -296,6 +296,113 @@ Deno.test('Modal: without a backdrop, an outside click closes it', () => {
   unmount()
 })
 
+Deno.test(
+  'Modal: with a backdrop, closeOnOverlayClick={false} (default) still never closes on a backdrop click',
+  () => {
+    let closed = false
+    const { container, unmount } = mount(
+      <Modal open onClose={() => (closed = true)} label='X'>
+        Body
+      </Modal>,
+    )
+
+    const backdrop = must(container.querySelector('[data-space-ui="modal-backdrop"]'))
+    act(() => {
+      backdrop.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    })
+
+    assertEquals(closed, false)
+    unmount()
+  },
+)
+
+Deno.test(
+  'Modal: with a backdrop, closeOnOverlayClick={true} closes on a backdrop click',
+  () => {
+    let closed = false
+    const { container, unmount } = mount(
+      <Modal open onClose={() => (closed = true)} label='X' closeOnOverlayClick>
+        Body
+      </Modal>,
+    )
+
+    const backdrop = must(container.querySelector('[data-space-ui="modal-backdrop"]'))
+    act(() => {
+      backdrop.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    })
+
+    assertEquals(closed, true)
+    unmount()
+  },
+)
+
+Deno.test(
+  'Modal: closeOnOverlayClick={true} never closes from a click on the dialog itself',
+  () => {
+    let closed = false
+    const { container, unmount } = mount(
+      <Modal open onClose={() => (closed = true)} label='X' closeOnOverlayClick>
+        Body
+      </Modal>,
+    )
+
+    const dialog = must(container.querySelector('[role="dialog"]'))
+    act(() => {
+      dialog.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    })
+
+    assertEquals(closed, false)
+    unmount()
+  },
+)
+
+Deno.test('Modal: with two open, a backdrop click closes only the topmost', () => {
+  const closedIds: string[] = []
+  const container = document.createElement('div')
+  document.body.appendChild(container)
+  const root = createRoot(container)
+
+  act(() =>
+    root.render(
+      <>
+        <Modal
+          open
+          onClose={() => closedIds.push('a')}
+          label='A'
+          id='modal-a'
+          closeOnOverlayClick
+        >
+          A body
+        </Modal>
+        <Modal
+          open
+          onClose={() => closedIds.push('b')}
+          label='B'
+          id='modal-b'
+          closeOnOverlayClick
+        >
+          B body
+        </Modal>
+      </>,
+    )
+  )
+
+  const backdrops = container.querySelectorAll('[data-space-ui="modal-backdrop"]')
+  assertEquals(backdrops.length, 2)
+
+  act(() => {
+    backdrops[0].dispatchEvent(new MouseEvent('click', { bubbles: true }))
+  })
+  assertEquals(closedIds, [])
+
+  act(() => {
+    backdrops[1].dispatchEvent(new MouseEvent('click', { bubbles: true }))
+  })
+  assertEquals(closedIds, ['b'])
+
+  act(() => root.unmount())
+})
+
 // --- Escape ----------------------------------------------------------------------------------
 
 Deno.test('Modal: Escape closes by default', () => {

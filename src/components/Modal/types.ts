@@ -7,9 +7,9 @@ import { buildOverlayCss } from 'shared/overlay-position-css.ts'
  */
 export type ModalBaseProps = {
   open: boolean
-  /** Called whenever this modal wants to close — the close button, `Escape`, or an outside click
-   * (only when `showOverlay` is `false`, see `index.ts`'s own doc). Always the single source of
-   * truth for closing: this component never closes itself independently of this callback. */
+  /** Called whenever this modal wants to close — the close button, `Escape`, an outside click
+   * (`showOverlay: false`), or a backdrop click (`showOverlay: true` + `closeOnOverlayClick:
+   * true`) — see `index.ts`'s own doc. The single source of truth: never closes itself. */
   onClose: () => void
   /**
    * Overrides the close button's own visible content — an icon from a consumer's own icon system
@@ -22,12 +22,14 @@ export type ModalBaseProps = {
    * does. Omit for the default "X".
    */
   closeButtonContent?: unknown
-  /** A dimmed backdrop behind the dialog. Also controls the outside-click contract: `true` (the
-   * default) never closes on an outside click — the backdrop itself absorbs it; `false` renders no
-   * backdrop and closes on any click outside the dialog. Not a separate `closeOnOutsideClick` prop
-   * — see `index.ts`'s own doc for why that would just be a second way to say the same thing.
+  /** A dimmed backdrop behind the dialog. `true` (default) absorbs an outside click and does
+   * nothing on its own, unless `closeOnOverlayClick` opts back in; `false` renders no backdrop and
+   * always closes on an outside click instead — see `index.ts`'s own doc for the full contract.
    * @default true */
   showOverlay?: boolean
+  /** Closes on a click directly on the backdrop — only applies while `showOverlay` is `true`.
+   * @default false */
+  closeOnOverlayClick?: boolean
   /** @default true */
   closeOnEscape?: boolean
   /** @default 'center' */

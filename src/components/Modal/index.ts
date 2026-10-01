@@ -107,14 +107,14 @@ const bound = createModal<ReactElement, ReactNode>(
  * a real accessibility gap to catch in development and tests, not a structural misuse: a
  * mislabeled dialog still opens, still traps focus, still closes correctly.
  *
- * ## Backdrop and outside-click are the same decision, not two
+ * ## Backdrop vs. outside-click: two independent decisions
  *
- * `showOverlay` (default `true`) does two things at once: renders a dimmed backdrop, AND never
- * closes on an outside click (the backdrop itself absorbs it). `showOverlay={false}` renders no
- * backdrop and DOES close on an outside click — reusing {@linkcode useCloseOnOutside} verbatim,
- * the same small hook `Menu`'s own submenu disclosure already uses. No separate
- * `closeOnOutsideClick` prop: it would just be a second way to express a rule `showOverlay`
- * already determines.
+ * `showOverlay` (default `true`) renders a dimmed backdrop or none. Dismissal is separate:
+ * - `showOverlay={false}` always closes on any outside click ({@linkcode useCloseOnOutside}).
+ *   `closeOnOverlayClick` has nothing to target here and is ignored.
+ * - `showOverlay={true}` renders a backdrop that absorbs a click and does nothing, unless
+ *   `closeOnOverlayClick` (default `false`) opts in — a plain `onClick` on the backdrop itself, so
+ *   a click on the dialog's own content never triggers it.
  *
  * ## `nonce`, for a nonce-based `style-src` CSP
  *

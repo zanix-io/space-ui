@@ -119,6 +119,7 @@ export function createModal<E, Node>(
       label,
       ariaLabelledBy,
       showOverlay = true,
+      closeOnOverlayClick = false,
       closeOnEscape = true,
       position = 'center',
       id,
@@ -192,8 +193,20 @@ export function createModal<E, Node>(
     // the consuming page has no nonce-based CSP.
     const styleEl = h('style', { key: 'style', nonce }, MODAL_POSITION_CSS)
 
+    // `isTopOverlay` guards this the same way the Escape branch above does: a backdrop click on a
+    // modal stacked under another open one must never close the wrong one.
+    const handleBackdropClick = closeOnOverlayClick
+      ? () => {
+        if (isTopOverlay(stackId)) onClose()
+      }
+      : undefined
+
     const backdrop = showOverlay
-      ? h('div', { key: 'backdrop', 'data-space-ui': 'modal-backdrop' })
+      ? h('div', {
+        key: 'backdrop',
+        'data-space-ui': 'modal-backdrop',
+        onClick: handleBackdropClick,
+      })
       : null
 
     return hAny(Fragment, null, [

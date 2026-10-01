@@ -18,6 +18,28 @@ export const FOCUSABLE_SELECTOR: string = [
   '[tabindex]:not([tabindex="-1"])',
 ].join(', ')
 
+/** `true` unless `element` or an ancestor carries the native `hidden` attribute — `FOCUSABLE_
+ * SELECTOR` can't express "not inside a hidden ancestor" as a plain CSS selector. Without this, a
+ * dialog whose content shows/hides sections via `hidden` (a tab strip, an accordion) can pick an
+ * initial-focus candidate that's currently hidden; `.focus()` on it is then a silent no-op, so
+ * focus stays outside the dialog and `Escape`/`Tab` never reach its own `onKeyDown`. */
+function isReachable(element: HTMLElement): boolean {
+  let node: HTMLElement | null = element
+  while (node) {
+    if (node.hidden) return false
+    node = node.parentElement
+  }
+  return true
+}
+
+/** Every `querySelectorAll(FOCUSABLE_SELECTOR)` call site in this module goes through this
+ * instead, so none of them skip {@linkcode isReachable}'s own filter. */
+function focusableDescendants(container: HTMLElement): HTMLElement[] {
+  return Array.from(container.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR)).filter(
+    isReachable,
+  )
+}
+
 /** Tuning knobs for {@linkcode useFocusScope}'s focus-trap behavior. */
 export type FocusScopeOptions = {
   /**
@@ -72,7 +94,7 @@ export function useFocusScope(
     previousActiveElementRef.current = document.activeElement as HTMLElement | null
     const container = containerRef.current
     if (container) {
-      const focusables = container.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR)
+      const focusables = focusableDescendants(container)
       const target = focusables[initialFocusIndex] ?? focusables[0] ?? container
       target.focus()
     }
@@ -91,7 +113,7 @@ export function useFocusScope(
     if (event.key !== 'Tab') return
     const container = containerRef.current
     if (!container) return
-    const focusableEls = Array.from(container.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR))
+    const focusableEls = focusableDescendants(container)
     if (focusableEls.length === 0) {
       event.preventDefault()
       return

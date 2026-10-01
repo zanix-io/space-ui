@@ -4,6 +4,7 @@ import type { VNode } from 'preact'
 import { useRef } from 'preact/hooks'
 import { act } from 'preact/test-utils'
 import { assertEquals } from '@std/assert'
+import { must } from './dom-test-setup.ts'
 import { useFocusScope } from 'shared/focus-scope.preact.ts'
 import type { FocusScopeOptions, TabKeyEvent } from 'shared/focus-scope.preact.ts'
 
@@ -20,11 +21,13 @@ function fakeTabEvent(shiftKey = false) {
 }
 
 function Harness(
-  { active, options, onReady, focusable = true }: {
+  { active, options, onReady, focusable = true, hiddenFirst = false }: {
     active: boolean
     options?: FocusScopeOptions
     onReady: (info: Ready) => void
     focusable?: boolean
+    /** Renders an extra focusable button first, wrapped in a `hidden` ancestor. */
+    hiddenFirst?: boolean
   },
 ) {
   const containerRef = useRef<HTMLElement | null>(null)
@@ -34,12 +37,15 @@ function Harness(
   return h(
     'div',
     { ref: containerRef },
-    focusable
-      ? [
-        h('button', { type: 'button' }, 'one'),
-        h('button', { type: 'button' }, 'two'),
-      ]
-      : null,
+    [
+      hiddenFirst ? h('div', { hidden: true }, h('button', { type: 'button' }, 'hidden')) : null,
+      focusable
+        ? [
+          h('button', { type: 'button' }, 'one'),
+          h('button', { type: 'button' }, 'two'),
+        ]
+        : null,
+    ],
   )
 }
 
@@ -48,8 +54,9 @@ function element(
   options: FocusScopeOptions | undefined,
   onReady: (info: Ready) => void,
   focusable = true,
+  hiddenFirst = false,
 ): VNode {
-  return h(Harness, { active, options, onReady, focusable }) as VNode
+  return h(Harness, { active, options, onReady, focusable, hiddenFirst }) as VNode
 }
 
 function mount(
@@ -57,14 +64,17 @@ function mount(
   options: FocusScopeOptions | undefined,
   onReady: (info: Ready) => void,
   focusable = true,
+  hiddenFirst = false,
 ) {
   const container = document.createElement('div')
   document.body.appendChild(container)
-  act(() => renderDOM(element(active, options, onReady, focusable), container))
+  act(() => renderDOM(element(active, options, onReady, focusable, hiddenFirst), container))
 
   return {
     rerender: (nextActive: boolean, nextOptions?: FocusScopeOptions) =>
-      act(() => renderDOM(element(nextActive, nextOptions, onReady, focusable), container)),
+      act(() =>
+        renderDOM(element(nextActive, nextOptions, onReady, focusable, hiddenFirst), container)
+      ),
     unmount: () => act(() => renderDOM(null, container)),
   }
 }
@@ -161,5 +171,42 @@ Deno.test(
 
     unmount()
     trigger.remove()
+  },
+)
+
+// --- a hidden ancestor is never a valid focus target ---------------------------------------------
+
+Deno.test(
+  'useFocusScope (preact): a focusable element inside a hidden ancestor is skipped for initial focus',
+  () => {
+    const { unmount } = mount(true, undefined, () => {}, true, true)
+
+    assertEquals(document.activeElement?.textContent, 'one')
+
+    unmount()
+  },
+)
+
+Deno.test(
+  'useFocusScope (preact): Tab-cycling skips a focusable element inside a hidden ancestor too',
+  () => {
+    let info: Ready | undefined
+    const { unmount } = mount(true, undefined, (i) => (info = i), true, true)
+    if (!info) throw new Error('harness did not report')
+
+    const buttons = info.containerRef.current?.querySelectorAll<HTMLButtonElement>('button')
+    const second = must(buttons?.[buttons.length - 1])
+    act(() => second.focus())
+    assertEquals(document.activeElement?.textContent, 'two')
+
+    const { event, wasPrevented } = fakeTabEvent()
+    info.handler(event)
+
+    // Wraps forward from the last real focusable ("two") to the first ("one") — never to the
+    // hidden button, which `isReachable` already excluded from both `first`/`last`.
+    assertEquals(wasPrevented(), true)
+    assertEquals(document.activeElement?.textContent, 'one')
+
+    unmount()
   },
 )

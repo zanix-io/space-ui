@@ -14,6 +14,24 @@ export const FOCUSABLE_SELECTOR: string = [
   '[tabindex]:not([tabindex="-1"])',
 ].join(', ')
 
+/** See `focus-scope.ts`'s own identical helper for the full reasoning. */
+function isReachable(element: HTMLElement): boolean {
+  let node: HTMLElement | null = element
+  while (node) {
+    if (node.hidden) return false
+    node = node.parentElement
+  }
+  return true
+}
+
+/** Every `querySelectorAll(FOCUSABLE_SELECTOR)` call site in this module goes through this
+ * instead, so none of them skip {@linkcode isReachable}'s own filter. */
+function focusableDescendants(container: HTMLElement): HTMLElement[] {
+  return Array.from(container.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR)).filter(
+    isReachable,
+  )
+}
+
 /** Options controlling {@linkcode useFocusScope}'s initial-focus and restore-focus behavior — see
  * `focus-scope.ts`'s own doc for the full contract. */
 export type FocusScopeOptions = {
@@ -46,7 +64,7 @@ export function useFocusScope(
     previousActiveElementRef.current = document.activeElement as HTMLElement | null
     const container = containerRef.current
     if (container) {
-      const focusables = container.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR)
+      const focusables = focusableDescendants(container)
       const target = focusables[initialFocusIndex] ?? focusables[0] ?? container
       target.focus()
     }
@@ -62,7 +80,7 @@ export function useFocusScope(
     if (event.key !== 'Tab') return
     const container = containerRef.current
     if (!container) return
-    const focusableEls = Array.from(container.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR))
+    const focusableEls = focusableDescendants(container)
     if (focusableEls.length === 0) {
       event.preventDefault()
       return
