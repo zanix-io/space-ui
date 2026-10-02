@@ -467,6 +467,35 @@ Deno.test('Modal (preact): opening moves focus to the first focusable element in
   trigger.remove()
 })
 
+Deno.test('Modal (preact): initialFocusIndex picks the initially focused element, and null moves none', () => {
+  const trigger = document.createElement('button')
+  document.body.appendChild(trigger)
+  act(() => trigger.focus())
+
+  // Index 0 is the close button, so 2 is the second content button.
+  const picked = mount({
+    open: true,
+    onClose: () => {},
+    label: 'X',
+    initialFocusIndex: 2,
+    children: [h('button', {}, 'A'), h('button', {}, 'B')],
+  })
+  assertEquals(document.activeElement?.textContent, 'B')
+  picked.unmount()
+
+  act(() => trigger.focus())
+  const none = mount({
+    open: true,
+    onClose: () => {},
+    label: 'X',
+    initialFocusIndex: null,
+    children: h('button', {}, 'A'),
+  })
+  assertStrictEquals(document.activeElement, trigger)
+  none.unmount()
+  trigger.remove()
+})
+
 Deno.test('Modal (preact): with no other focusable content, its close button gets focus', () => {
   const { container, unmount } = mount({
     open: true,

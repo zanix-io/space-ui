@@ -36,7 +36,7 @@ function focusableDescendants(container: HTMLElement): HTMLElement[] {
 /** Options controlling {@linkcode useFocusScope}'s initial-focus and restore-focus behavior — see
  * `focus-scope.ts`'s own doc for the full contract. */
 export type FocusScopeOptions = {
-  initialFocusIndex?: number
+  initialFocusIndex?: number | null
   shouldRestoreFocus?: () => boolean
 }
 
@@ -64,10 +64,12 @@ export function useFocusScope(
 
     previousActiveElementRef.current = document.activeElement as HTMLElement | null
     const container = containerRef.current
-    if (container) {
+    if (container && initialFocusIndex !== null) {
       const focusables = focusableDescendants(container)
       const target = focusables[initialFocusIndex] ?? focusables[0] ?? container
-      target.focus()
+      // `preventScroll`: a dialog taller than the viewport must open at its top, not scrolled to
+      // wherever the first content focusable (often its last element) happens to sit.
+      target.focus({ preventScroll: true })
     }
 
     return () => {

@@ -127,6 +127,38 @@ Deno.test(
   },
 )
 
+Deno.test('useFocusScope (preact): a null initialFocusIndex moves no focus on activation', () => {
+  const trigger = document.createElement('button')
+  document.body.appendChild(trigger)
+  trigger.focus()
+
+  const { unmount } = mount(true, { initialFocusIndex: null }, () => {})
+
+  assertEquals(document.activeElement, trigger)
+
+  unmount()
+  trigger.remove()
+})
+
+// --- initial focus must never scroll ----------------------------------------------------------
+
+Deno.test('useFocusScope: the initial focus never scrolls the dialog to its target', () => {
+  const original = HTMLElement.prototype.focus
+  const calls: (FocusOptions | undefined)[] = []
+  HTMLElement.prototype.focus = function (options?: FocusOptions) {
+    calls.push(options)
+    return original.call(this, options)
+  }
+  try {
+    const { unmount } = mount(true, undefined, () => {})
+
+    assertEquals(calls[0], { preventScroll: true })
+    unmount()
+  } finally {
+    HTMLElement.prototype.focus = original
+  }
+})
+
 Deno.test(
   'useFocusScope (preact): zero focusable descendants — the container itself becomes the target',
   () => {

@@ -20,7 +20,7 @@ export type DrawerHooks = {
   useFocusScope: (
     containerRef: { current: HTMLElement | null },
     active: boolean,
-    options: { initialFocusIndex?: number; shouldRestoreFocus?: () => boolean },
+    options: { initialFocusIndex?: number | null; shouldRestoreFocus?: () => boolean },
   ) => (event: { key: string; shiftKey: boolean; preventDefault(): void }) => void
   useCloseOnOutside: (
     ref: { current: HTMLElement | null },
@@ -78,6 +78,7 @@ export function createDrawer<E, Node>(
       ariaLabelledBy,
       showOverlay = true,
       closeOnOverlayClick = false,
+      initialFocusIndex = 1,
       closeOnEscape = true,
       id,
       className,
@@ -100,7 +101,7 @@ export function createDrawer<E, Node>(
     // Same declaration-order requirement `Modal/render.ts`'s own doc explains in full — sibling
     // effects clean up in the SAME order they were declared, not reversed.
     const handleFocusScopeTab = hooks.useFocusScope(containerRef, open, {
-      initialFocusIndex: 1,
+      initialFocusIndex,
       shouldRestoreFocus: () => isTopOverlay(stackId),
     })
 

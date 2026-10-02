@@ -43,7 +43,7 @@ export type ModalHooks = {
   useFocusScope: (
     containerRef: { current: HTMLElement | null },
     active: boolean,
-    options: { initialFocusIndex?: number; shouldRestoreFocus?: () => boolean },
+    options: { initialFocusIndex?: number | null; shouldRestoreFocus?: () => boolean },
   ) => (event: { key: string; shiftKey: boolean; preventDefault(): void }) => void
   useCloseOnOutside: (
     ref: { current: HTMLElement | null },
@@ -120,6 +120,7 @@ export function createModal<E, Node>(
       ariaLabelledBy,
       showOverlay = true,
       closeOnOverlayClick = false,
+      initialFocusIndex = 1,
       closeOnEscape = true,
       position = 'center',
       id,
@@ -155,7 +156,7 @@ export function createModal<E, Node>(
       // the INITIAL focus target specifically: auto-focusing a dismissive control risks an
       // accidental close from a reflexive Enter/Space. It's still reachable normally once `Tab`
       // cycling is in play.
-      initialFocusIndex: 1,
+      initialFocusIndex,
       // Closing a modal that has another one stacked on top of it must never yank focus out of the
       // modal that's still trapping it.
       shouldRestoreFocus: () => isTopOverlay(stackId),

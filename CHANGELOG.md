@@ -5,6 +5,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/) and this project
 adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [2.6.1] - 2026-10-1
+
+### Added
+
+- **`Modal`/`Drawer`** (both bindings) take a new `initialFocusIndex` prop (`@default 1`): which
+  focusable descendant of the panel, by index in DOM order, gets focus when it opens. Index `0` is
+  the panel's own close button, so the default stays the first content focusable. An index past the
+  last focusable falls back to the first one; `null` moves no focus on open at all (`Tab` is still
+  trapped inside, and focus still returns to the opener on close). Unchanged for an existing
+  consumer that leaves it unset.
+
+### Fixed
+
+- **`Modal`/`Drawer`** (both bindings) no longer scroll to their first content focusable when they
+  open. The initial focus is applied with `preventScroll`, so a dialog taller than the viewport
+  (typically on mobile, where that focusable is its last button) opens at its top instead of
+  scrolled to the bottom. Keyboard focus lands on the same element as before.
+
 ## [2.6.0] - 2026-10-1
 
 ### Added

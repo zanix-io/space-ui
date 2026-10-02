@@ -30,6 +30,15 @@ export type ModalBaseProps = {
   /** Closes on a click directly on the backdrop — only applies while `showOverlay` is `true`.
    * @default false */
   closeOnOverlayClick?: boolean
+  /** Which focusable descendant of the panel (by index, in DOM order) gets focus when it opens.
+   * Index `0` is this component's own close button, so the default `1` is the first content
+   * focusable — never the dismissive control, whose accidental activation by a reflexive
+   * Enter/Space would close the panel at once. An index past the last focusable falls back to the
+   * first one; `null` moves no focus on open at all (`Tab` is still trapped inside, and focus
+   * still returns to the opener on close). Opening never scrolls the panel to the focused
+   * element.
+   * @default 1 */
+  initialFocusIndex?: number | null
   /** @default true */
   closeOnEscape?: boolean
   /** @default 'center' */

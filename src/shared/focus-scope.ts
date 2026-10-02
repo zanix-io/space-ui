@@ -51,8 +51,9 @@ export type FocusScopeOptions = {
    * descendant #0, by construction) as the INITIAL target specifically — auto-focusing a dismissive
    * control risks an accidental close from a reflexive Enter/Space. Falls back to the previous
    * index, then to the container itself (`tabIndex={-1}`), if the requested index doesn't exist.
+   * `null` moves no focus on activation at all (the trap and the restore on deactivate still apply).
    */
-  initialFocusIndex?: number
+  initialFocusIndex?: number | null
   /**
    * Called once, at deactivate time, to decide whether to actually restore focus to whatever was
    * captured on activate. Defaults to always restoring. `Modal` passes a predicate that checks
@@ -96,10 +97,12 @@ export function useFocusScope(
 
     previousActiveElementRef.current = document.activeElement as HTMLElement | null
     const container = containerRef.current
-    if (container) {
+    if (container && initialFocusIndex !== null) {
       const focusables = focusableDescendants(container)
       const target = focusables[initialFocusIndex] ?? focusables[0] ?? container
-      target.focus()
+      // `preventScroll`: a dialog taller than the viewport must open at its top, not scrolled to
+      // wherever the first content focusable (often its last element) happens to sit.
+      target.focus({ preventScroll: true })
     }
 
     return () => {

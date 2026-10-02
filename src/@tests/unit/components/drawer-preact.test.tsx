@@ -378,6 +378,21 @@ Deno.test('Drawer (preact): opening moves focus to the first focusable content e
   unmount()
 })
 
+Deno.test('Drawer (preact): initialFocusIndex picks the initially focused element', () => {
+  const { unmount } = mount({
+    open: true,
+    onClose: () => {},
+    side: 'left',
+    label: 'Cart',
+    initialFocusIndex: 2,
+    children: [h('a', { href: '/a' }, 'First'), h('a', { href: '/b' }, 'Second')],
+  })
+
+  assertEquals(document.activeElement?.textContent, 'Second')
+
+  unmount()
+})
+
 Deno.test('Drawer (preact): with no focusable content, the close button gets focus', () => {
   const { unmount } = mount({
     open: true,

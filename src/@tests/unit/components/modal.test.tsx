@@ -464,6 +464,32 @@ Deno.test('Modal: opening moves focus to the first focusable element inside', ()
   trigger.remove()
 })
 
+Deno.test('Modal: initialFocusIndex picks the initially focused element, and null moves none', () => {
+  const trigger = document.createElement('button')
+  document.body.appendChild(trigger)
+  act(() => trigger.focus())
+
+  // Index 0 is the close button, so 2 is the second content button.
+  const picked = mount(
+    <Modal open onClose={() => {}} label='X' initialFocusIndex={2}>
+      <button type='button'>A</button>
+      <button type='button'>B</button>
+    </Modal>,
+  )
+  assertEquals(document.activeElement?.textContent, 'B')
+  picked.unmount()
+
+  act(() => trigger.focus())
+  const none = mount(
+    <Modal open onClose={() => {}} label='X' initialFocusIndex={null}>
+      <button type='button'>A</button>
+    </Modal>,
+  )
+  assertStrictEquals(document.activeElement, trigger)
+  none.unmount()
+  trigger.remove()
+})
+
 Deno.test('Modal: with no focusable content besides its own close button, that gets focus', () => {
   const { container, unmount } = mount(
     <Modal open onClose={() => {}} label='X'>

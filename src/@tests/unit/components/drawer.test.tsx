@@ -368,6 +368,19 @@ Deno.test('Drawer: opening moves focus to the first focusable content element', 
   unmount()
 })
 
+Deno.test('Drawer: initialFocusIndex picks the initially focused element', () => {
+  const { unmount } = mount(
+    <Drawer open onClose={() => {}} side='left' label='Cart' initialFocusIndex={2}>
+      <a href='/a'>First</a>
+      <a href='/b'>Second</a>
+    </Drawer>,
+  )
+
+  assertEquals(document.activeElement?.textContent, 'Second')
+
+  unmount()
+})
+
 Deno.test('Drawer: with no focusable content, the close button gets focus', () => {
   const { unmount } = mount(
     <Drawer open onClose={() => {}} side='left' label='Cart'>
