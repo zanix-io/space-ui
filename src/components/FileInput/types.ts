@@ -39,6 +39,35 @@ export type FileInputBaseProps = {
   name?: string
   disabled?: boolean
   required?: boolean
+  /** A validation message the caller owns, applied to this component's own real
+   * `<input type="file">` with `setCustomValidity`, so the browser's native constraint validation
+   * reports it: the input is `:invalid`, `form.checkValidity()` is `false`,
+   * `form.reportValidity()` shows the message in the browser's own bubble, and a `<form>` submit is
+   * blocked. The caller needs no ref or submit listener.
+   *
+   * A non-empty string sets the error; `undefined` or `''` clears it. The component follows every
+   * change of the prop and clears the error when it unmounts. It never decides what is valid:
+   * whether the chosen files are acceptable (a size limit, a type the caller checks itself) stays
+   * the caller's call. Choosing or clearing a file never removes the message on its own, because
+   * the browser does not clear a custom validity when the value changes: the caller recomputes it
+   * from `onFilesChange` and passes `undefined` once the selection is acceptable.
+   *
+   * It does not touch `aria-invalid`, which is the caller's too. Pass both together, and give the
+   * visible text to `Field`'s `error`; the native message is the browser's notice when a submit is
+   * attempted:
+   *
+   * ```tsx
+   * const message = tooBig ? 'The file must be under 5 MB' : undefined
+   * <Field label='Photo' error={message}>
+   *   {(field) => <FileInput {...field} onFilesChange={check} validationMessage={message} />}
+   * </Field>
+   * ```
+   *
+   * The control must stay a candidate for constraint validation: visually hiding it with
+   * `display: none` or the `hidden` attribute excludes it from validation, so the message is never
+   * reported. Hide it with a visually-hidden technique instead (clip or off-screen positioning).
+   * Nothing is set on the server: the error applies once the component mounts in the browser. */
+  validationMessage?: string
   id?: string
   className?: string
   /** Spread this straight from `FieldRenderProps` (`components/Field/types.ts`, not restated here)

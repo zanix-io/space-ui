@@ -1,11 +1,16 @@
 import type { CreateElement } from 'typings/renderer.ts'
 import type { InputBaseProps } from './types.ts'
+import { useCustomValidity } from 'shared/custom-validity.ts'
+import type { UseCustomValidityEffect } from 'shared/custom-validity.ts'
 
-/** The subset of `useState` this component's shared body needs, injected alongside `h` — same
- * `render.ts`-factory technique {@linkcode createTable}'s own `TableHooks` established (see
- * `Table/render.ts`'s own doc for the full soundness reasoning, not repeated here). */
+/** The hooks this component's shared body needs, injected alongside `h` — same `render.ts`-factory
+ * technique {@linkcode createTable}'s own `TableHooks` established (see `Table/render.ts`'s own doc
+ * for the full soundness reasoning, not repeated here). `useRef`/`useEffect` back
+ * `InputBaseProps.validationMessage` (see `shared/custom-validity.ts`). */
 export type InputHooks = {
   useState: <T>(initial: T) => [T, (value: T | ((current: T) => T)) => void]
+  useRef: <T>(initial: T) => { current: T }
+  useEffect: UseCustomValidityEffect
 }
 
 /**
@@ -56,6 +61,7 @@ export function createInput<E>(
       disabled,
       readOnly,
       required,
+      validationMessage,
       autoComplete,
       min,
       max,
@@ -77,6 +83,11 @@ export function createInput<E>(
     const isControlled = controlledValue !== undefined
     const [internalValue, setInternalValue] = hooks.useState(defaultValue)
     const value = isControlled ? controlledValue : internalValue
+
+    // The caller's validation message goes onto the real `<input>`, so native constraint
+    // validation reports it (see `InputBaseProps.validationMessage`).
+    const inputRef = hooks.useRef<HTMLInputElement | null>(null)
+    useCustomValidity(hooks.useEffect, inputRef, validationMessage)
 
     const handleChange = (event: { target: { value: string } }) => {
       const next = event.target.value
@@ -102,6 +113,7 @@ export function createInput<E>(
     }
 
     return h('input', {
+      ref: inputRef,
       type,
       value,
       placeholder,

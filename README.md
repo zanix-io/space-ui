@@ -284,12 +284,13 @@ ahead of time:
   `role="radiogroup"` wrapping `role="radio"` items, roving tabindex (arrow keys move — and
   immediately select — the focused item; only the selected one, or the first when nothing's selected
   yet, sits in the normal `Tab` sequence). Data-driven (`items: RadioGroupItem[]`), controlled
-  (`value`/`onValueChange`) with an uncontrolled `defaultValue` fallback. The same shape also
-  correctly covers a visually segmented single-select control — no separate component for that,
-  since ARIA cares about the logical relationship, not the styling. Deliberately does NOT cover a
-  multi-select toggle group (independently-pressable buttons, `aria-pressed` rather than
-  `aria-checked`, no roving tabindex at all) — a genuinely different widget, out of scope until
-  something needs it.
+  (`value`/`onValueChange`) with an uncontrolled `defaultValue` fallback. No `validationMessage`:
+  the items are `Button`s with `role="radio"`, not native `<input type="radio">`, so no native
+  control carries a custom validity. The same shape also correctly covers a visually segmented
+  single-select control — no separate component for that, since ARIA cares about the logical
+  relationship, not the styling. Deliberately does NOT cover a multi-select toggle group
+  (independently-pressable buttons, `aria-pressed` rather than `aria-checked`, no roving tabindex at
+  all) — a genuinely different widget, out of scope until something needs it.
 
 - ✅ **`Tabs`** — the WAI-ARIA Tabs pattern: `role="tablist"` wrapping `role="tab"` items, roving
   tabindex with the same "arrow keys select immediately" automatic-activation behavior `RadioGroup`
@@ -349,7 +350,10 @@ ahead of time:
   `value`/`onValueChange` with an uncontrolled `defaultValue` fallback. Accepts exactly the props
   `Field`'s own render-prop hands back (`id`/`aria-describedby`/`aria-invalid`), so spreading them
   straight onto `Input` is the whole integration when composing inside `Field` — a bare `Input` with
-  no `Field` around it is just as legitimate.
+  no `Field` around it is just as legitimate. `validationMessage` hands the caller's own verdict to
+  the browser's native constraint validation (`setCustomValidity` on the real `<input>`), so an
+  invalid value blocks a `<form>` submit and shows the browser's message with no ref or listener on
+  the caller's side; pass `aria-invalid` alongside it and the visible text to `Field`'s `error`.
 
 - ✅ **`FileInput`** — a thin wrapper around a native `<input type="file">`, a genuinely different
   shape from `Input`, not a `type` variant of it: browsers never let a script set `.value`/`.files`
@@ -360,7 +364,12 @@ ahead of time:
   add/remove-file UI, no upload progress, no preview — real, consumer-side composition territory.
   `resetTrigger` (changed to force the one native mutation a script CAN make — clearing the
   selection) reuses the same shape `Recaptcha`/`HCaptcha`/`Turnstile`'s own `resetTrigger` already
-  established for an analogous platform constraint.
+  established for an analogous platform constraint. `validationMessage` hands the caller's own
+  verdict to the browser's native constraint validation (`setCustomValidity` on the real
+  `<input type="file">`), so an unacceptable selection blocks a `<form>` submit and shows the
+  browser's message; the browser keeps it when the selection changes, so the caller recomputes it
+  from `onFilesChange`. The input is never hidden by the component: a caller that hides it visually
+  must not use `display: none` or `hidden`, which exclude it from validation.
 
 - ✅ **`Textarea`** — a thin, accessible wrapper around a native `<textarea>`, the multi-line
   counterpart `Input` has no equivalent for. Controlled `value`/`onValueChange` with an uncontrolled
@@ -371,7 +380,10 @@ ahead of time:
   editor, no resizable-widget abstraction beyond what the native element gives for free (resize
   behavior, if any, is plain CSS on `className`). Same `Field`-composition contract as `Input`:
   accepts exactly the props `Field`'s own render-prop hands back
-  (`id`/`aria-describedby`/`aria-invalid`).
+  (`id`/`aria-describedby`/`aria-invalid`). `validationMessage` hands the caller's own verdict to
+  the browser's native constraint validation (`setCustomValidity` on the real `<textarea>`), so an
+  invalid value blocks a `<form>` submit and shows the browser's message with no ref or listener on
+  the caller's side; pass `aria-invalid` alongside it and the visible text to `Field`'s `error`.
 
 - ✅ **`ToastProvider`/`useToast`** — imperative toast notifications: `showToast(message)`/
   `closeToast(id)`, plain `useState`+`Context` like `ModalProvider` (never Zustand). Always-present
@@ -409,7 +421,11 @@ ahead of time:
   wrong here on purpose). `options` is never filtered internally — the caller already owns
   `inputValue` and decides what counts as a match, same "presents data, never owns it" seam every
   component here keeps. No `trigger` render-prop unlike `Popover`/`Tooltip` — the input isn't
-  arbitrary caller content, so this component owns and renders it directly.
+  arbitrary caller content, so this component owns and renders it directly. The same seam covers
+  validity: `validationMessage` hands the caller's own verdict to the browser's native constraint
+  validation (`setCustomValidity` on the real input), so an invalid value blocks a `<form>` submit
+  and shows the browser's message with no ref or listener on the caller's side; pass `aria-invalid`
+  alongside it and the visible text to `Field`'s `error`.
 
 - ✅ **`Select`** — a single-select dropdown: a trigger `Button` showing the current selection,
   opening a positioned popup (`role="listbox"`/`role="option"`) — the WAI-ARIA "Collapsible Dropdown
@@ -429,7 +445,9 @@ ahead of time:
   fallbacks, same shape as every other stateful component here. No `aria-describedby`/`aria-invalid`
   passthrough in this first version — `Button`'s own closed prop API has no such passthrough today;
   a disclosed, not guessed-at, scope limit, same spirit as `Combobox`'s own `noOptionsMessage`
-  omission.
+  omission. No `validationMessage` (nor `required`/`aria-invalid`): the trigger is a `<button>` and
+  the options a `listbox`, so there is no native text control to carry a custom validity —
+  `Combobox`, `Input`, `Textarea`, `PasswordInput`, `MultiSelect` and `FileInput` have one.
 
 - ✅ **`DatePicker`** — a single-date picker: a trigger `Button` showing the formatted selected
   date, opening a positioned popup with a day grid — plus a dedicated YEAR-selection view (a paged,
@@ -459,7 +477,8 @@ ahead of time:
   requirement. Deterministic first render (seam 6): an empty, freshly-opened picker's own "today"
   starts `null`, resolved only after mount, the same `Counter`/`Showcase` idiom. Zero `@zanix/space`
   dependency (pure calendar arithmetic plus native `Intl`, never `@formatjs/intl`) — ships from the
-  root barrel, same as `Select`/`Combobox`.
+  root barrel, same as `Select`/`Combobox`. No `validationMessage`: the trigger is a `Button` and
+  the value lives in a popup grid, with no native text input to carry a custom validity.
 
 - ✅ **`MultiSelect`** — a multi-value tag/chip input, filling the real gap `Select`/`Combobox`
   leave (both single-select only, `value: string | null`, never `values: string[]`): a text input
@@ -485,7 +504,10 @@ ahead of time:
   established (a computed `changeEventProp`, not a full second implementation) — not a `Combobox`
   composition internally, since the tight coupling a real composition would need (intercepting
   `Combobox`'s own internally-owned `Enter`/blur handling from outside it) would be fragile in a way
-  owning the input directly isn't.
+  owning the input directly isn't. `validationMessage` hands the caller's own verdict to the
+  browser's native constraint validation (`setCustomValidity` on the real typing `<input>`, the one
+  that carries `required` while no chip is committed), independent of `required` and of the chips;
+  pass `aria-invalid` alongside it and the visible text to `Field`'s `error`.
 
 - ✅ **`RichText`** — renders ICU rich-text content (the default) or literal Markdown
   (`contentFormat: 'markdown'`) into real component output, built on `useIntl().formatRichText` —
@@ -588,7 +610,8 @@ ahead of time:
   technique both already recognize). Controlled `visible`/`onVisibleChange` with an uncontrolled
   `defaultVisible` fallback. `showIcon`/`hideIcon` render-props override this component's own
   default inline "eye"/"eye-off" glyphs; `getToggleLabel` overrides the default English
-  `'Show password'`/`'Hide password'` accessible name.
+  `'Show password'`/`'Hide password'` accessible name. `validationMessage` reaches the inner `Input`
+  unchanged and stays in place while the show/hide toggle flips its `type`.
 - ✅ **`Countdown`** — a real-time countdown toward a wall-clock instant, distinct from `Counter` (a
   fixed-duration count-UP reveal animation — a genuinely different contract, not reused here).
   `target: Date | number` is an already-resolved absolute instant, never a relative "seconds from

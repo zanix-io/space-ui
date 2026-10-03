@@ -1,4 +1,4 @@
-import { useId, useLayoutEffect, useRef, useState } from 'react'
+import { useEffect, useId, useLayoutEffect, useRef, useState } from 'react'
 import type { ReactElement } from 'react'
 import type { CreateElement } from 'typings/renderer.ts'
 import { createElementWithNonceHydrationFix } from 'shared/create-element-nonce-hydration-fix.ts'
@@ -90,6 +90,15 @@ export type MultiSelectProps = MultiSelectBaseProps
  * field edited one value at a time (a handful of tags on one record); a caller that expects several
  * rapid picks in a row (a long multi-select list) keeps the current behavior by leaving this unset.
  *
+ * ## Reporting a value as invalid
+ *
+ * `validationMessage` hands the caller's own verdict to the browser's native constraint
+ * validation (`setCustomValidity` on the real `<input>`, the one that carries `role="combobox"`
+ * and, while no chip is committed, `required`): an unacceptable selection blocks a `<form>` submit
+ * and shows the browser's message, with no ref or listener on the caller's side. It is independent
+ * of `required` and applies with or without chips. This component never decides what is valid, and
+ * `aria-invalid` stays the caller's — see {@linkcode MultiSelectBaseProps.validationMessage}.
+ *
  * ## Not a `Combobox` composition — a genuine sibling implementation instead
  *
  * `MultiSelect` doesn't render a real `<Combobox/>` internally (so it carries no `"combobox"` hook)
@@ -102,6 +111,6 @@ export const MultiSelect: (props: MultiSelectProps) => ReactElement = createMult
   ReactElement
 >(
   createElementWithNonceHydrationFix as unknown as CreateElement<ReactElement>,
-  { useId, useRef, useState, useLayoutEffect, useCloseOnOutside, usePosition },
+  { useId, useRef, useState, useLayoutEffect, useEffect, useCloseOnOutside, usePosition },
   'onChange',
 )

@@ -1,6 +1,6 @@
 import { h } from 'preact'
 import type { VNode } from 'preact'
-import { useState } from 'preact/hooks'
+import { useEffect, useRef, useState } from 'preact/hooks'
 import type { CreateElement } from 'typings/renderer.ts'
 import { createInput } from './render.ts'
 import type { InputBaseProps } from './types.ts'
@@ -21,6 +21,6 @@ export type InputProps = InputBaseProps
  */
 export const Input: (props: InputProps) => VNode = createInput<VNode>(
   h as unknown as CreateElement<VNode>,
-  { useState },
+  { useState, useRef, useEffect },
   'onInput',
 )

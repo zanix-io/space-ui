@@ -166,3 +166,81 @@ Deno.test('PasswordInput: nonce lands on the self-rendered stroke <style> elemen
   assertStringIncludes(html, 'stroke-width:1.6px')
   assertEquals(html.includes(' style='), false)
 })
+
+// --- validationMessage -----------------------------------------------------------------------
+
+function inForm(props: Partial<Parameters<typeof PasswordInput>[0]> = {}) {
+  return (
+    <form>
+      <PasswordInput aria-label='Password' {...props} />
+    </form>
+  )
+}
+
+Deno.test('PasswordInput: validationMessage marks the inner input invalid through native validation', () => {
+  const { container, unmount } = mount(inForm({ validationMessage: 'Too weak' }))
+  const input = must(container.querySelector<HTMLInputElement>('input'))
+  const form = must(container.querySelector('form'))
+
+  assertEquals(input.validity.customError, true)
+  assertEquals(input.validationMessage, 'Too weak')
+  assertEquals(form.checkValidity(), false)
+
+  unmount()
+})
+
+Deno.test('PasswordInput: the error survives showing and hiding the password', () => {
+  const { container, unmount } = mount(inForm({ validationMessage: 'Too weak' }))
+  const input = must(container.querySelector<HTMLInputElement>('input'))
+  const button = must(container.querySelector<HTMLButtonElement>('button'))
+  assertEquals(input.type, 'password')
+
+  act(() => button.click())
+  assertEquals(input.type, 'text')
+  assertEquals(input.validity.customError, true)
+  assertEquals(input.validationMessage, 'Too weak')
+
+  act(() => button.click())
+  assertEquals(input.type, 'password')
+  assertEquals(input.validity.customError, true)
+
+  unmount()
+})
+
+Deno.test('PasswordInput: removing validationMessage clears the error, and unmounting clears it too', () => {
+  const { container, rerender, unmount } = mount(inForm({ validationMessage: 'Too weak' }))
+  const input = must(container.querySelector<HTMLInputElement>('input'))
+  assertEquals(input.validity.customError, true)
+
+  rerender(inForm())
+  assertEquals(input.validity.customError, false)
+
+  rerender(inForm({ validationMessage: 'Again' }))
+  assertEquals(input.validationMessage, 'Again')
+  unmount()
+  assertEquals(input.validity.customError, false)
+})
+
+Deno.test('PasswordInput: validationMessage renders nothing on the server', () => {
+  const plain = renderToStaticMarkup(inForm())
+  const withMessage = renderToStaticMarkup(inForm({ validationMessage: 'Too weak' }))
+
+  assertEquals(withMessage, plain)
+  assertEquals(withMessage.includes('Too weak'), false)
+})
+
+Deno.test('PasswordInput: validationMessage coexists with required, and leaves aria-invalid alone', () => {
+  const { container, rerender, unmount } = mount(
+    inForm({ required: true, validationMessage: 'Too weak' }),
+  )
+  const input = must(container.querySelector<HTMLInputElement>('input'))
+
+  assertEquals(input.validity.valueMissing, true)
+  assertEquals(input.validity.customError, true)
+  assertEquals(input.getAttribute('aria-invalid'), null)
+
+  rerender(inForm({ required: true, validationMessage: 'Too weak', 'aria-invalid': true }))
+  assertEquals(input.getAttribute('aria-invalid'), 'true')
+
+  unmount()
+})

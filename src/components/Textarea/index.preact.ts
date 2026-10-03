@@ -1,6 +1,6 @@
 import { h } from 'preact'
 import type { VNode } from 'preact'
-import { useState } from 'preact/hooks'
+import { useEffect, useRef, useState } from 'preact/hooks'
 import type { CreateElement } from 'typings/renderer.ts'
 import { createTextarea } from './render.ts'
 import type { TextareaBaseProps } from './types.ts'
@@ -21,6 +21,6 @@ export type TextareaProps = TextareaBaseProps
  */
 export const Textarea: (props: TextareaProps) => VNode = createTextarea<VNode>(
   h as unknown as CreateElement<VNode>,
-  { useState },
+  { useState, useRef, useEffect },
   'onInput',
 )

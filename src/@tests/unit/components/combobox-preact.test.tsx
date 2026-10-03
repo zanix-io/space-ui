@@ -617,3 +617,112 @@ Deno.test('Combobox (preact): id/className land on the input', () => {
 
   unmount()
 })
+
+// --- validationMessage -----------------------------------------------------------------------
+
+function formElement(props: Partial<ComboboxProps> = {}): VNode {
+  return h('form', null, h(Combobox, { options: FRUITS, 'aria-label': 'Fruit', ...props })) as VNode
+}
+
+function mountInForm(props: Partial<ComboboxProps> = {}) {
+  const container = document.createElement('div')
+  document.body.appendChild(container)
+  act(() => renderDOM(formElement(props), container))
+  return {
+    container,
+    rerender: (next: Partial<ComboboxProps> = {}) =>
+      act(() => renderDOM(formElement(next), container)),
+    unmount: () => act(() => renderDOM(null, container)),
+  }
+}
+
+Deno.test('Combobox (Preact): validationMessage marks the real input invalid through native validation', () => {
+  const { container, unmount } = mountInForm({ validationMessage: 'Pick a fruit from the list' })
+  const input = must(container.querySelector('input'))
+  const form = must(container.querySelector('form'))
+
+  assertEquals(input.validity.customError, true)
+  assertEquals(input.validationMessage, 'Pick a fruit from the list')
+  assertEquals(input.checkValidity(), false)
+  assertEquals(form.checkValidity(), false)
+
+  unmount()
+})
+
+Deno.test('Combobox (Preact): no validationMessage leaves the input valid', () => {
+  const { container, unmount } = mountInForm()
+  const input = must(container.querySelector('input'))
+
+  assertEquals(input.validity.customError, false)
+  assertEquals(must(container.querySelector('form')).checkValidity(), true)
+
+  unmount()
+})
+
+Deno.test('Combobox (Preact): removing validationMessage, or emptying it, clears the error', () => {
+  const { container, rerender, unmount } = mountInForm({ validationMessage: 'Not valid' })
+  const input = must(container.querySelector('input'))
+  assertEquals(input.validity.customError, true)
+
+  rerender()
+  assertEquals(input.validity.customError, false)
+  assertEquals(input.checkValidity(), true)
+
+  rerender({ validationMessage: 'Not valid' })
+  assertEquals(input.validity.customError, true)
+  rerender({ validationMessage: '' })
+  assertEquals(input.validity.customError, false)
+
+  unmount()
+})
+
+Deno.test('Combobox (Preact): a changed validationMessage replaces the previous one', () => {
+  const { container, rerender, unmount } = mountInForm({ validationMessage: 'First' })
+  const input = must(container.querySelector('input'))
+  assertEquals(input.validationMessage, 'First')
+
+  rerender({ validationMessage: 'Second' })
+  assertEquals(input.validationMessage, 'Second')
+  assertEquals(input.validity.customError, true)
+
+  unmount()
+})
+
+Deno.test('Combobox (Preact): unmounting clears the error it set', () => {
+  const { container, unmount } = mountInForm({ validationMessage: 'Not valid' })
+  const input = must(container.querySelector('input'))
+  assertEquals(input.validity.customError, true)
+
+  unmount()
+  assertEquals(input.validity.customError, false)
+})
+
+Deno.test('Combobox (Preact): validationMessage renders nothing on the server', () => {
+  const plain = renderToString(formElement())
+  const withMessage = renderToString(formElement({ validationMessage: 'Not valid' }))
+
+  assertEquals(withMessage, plain)
+  assertEquals(withMessage.includes('Not valid'), false)
+})
+
+Deno.test('Combobox (Preact): validationMessage coexists with required, and leaves aria-invalid alone', () => {
+  const { container, rerender, unmount } = mountInForm({
+    required: true,
+    validationMessage: 'Not valid',
+  })
+  const input = must(container.querySelector('input'))
+
+  assertEquals(input.validity.valueMissing, true)
+  assertEquals(input.validity.customError, true)
+  assertEquals(input.getAttribute('aria-invalid'), null)
+
+  rerender({ required: true, validationMessage: 'Not valid', 'aria-invalid': true })
+  assertEquals(input.getAttribute('aria-invalid'), 'true')
+
+  rerender({ required: true, 'aria-invalid': true })
+  assertEquals(input.validity.valueMissing, true)
+  assertEquals(input.validity.customError, false)
+  assertEquals(input.getAttribute('aria-invalid'), 'true')
+
+  unmount()
+})

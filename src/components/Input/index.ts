@@ -1,4 +1,4 @@
-import { createElement, useState } from 'react'
+import { createElement, useEffect, useRef, useState } from 'react'
 import type { ReactElement } from 'react'
 import type { CreateElement } from 'typings/renderer.ts'
 import { createInput } from './render.ts'
@@ -26,6 +26,14 @@ export type InputProps = InputBaseProps
  * {@linkcode InputBaseProps.autoFocus}'s own doc for why that one is a plain native attribute
  * rather than a `ref` prop — the real, shipped consumer this whole extension was added for, a
  * six-box OTP/verification-code field, needs nothing more).
+ *
+ * ## Reporting a value as invalid
+ *
+ * `validationMessage` hands the caller's own verdict to the browser's native constraint
+ * validation (`setCustomValidity` on the real `<input>`): an invalid value blocks a `<form>` submit
+ * and shows the browser's message, with no ref or listener on the caller's side. This component
+ * never decides what is valid, and `aria-invalid` stays the caller's — see
+ * {@linkcode InputBaseProps.validationMessage}.
  *
  * ## Composing inside `Field`
  *
@@ -55,6 +63,6 @@ export type InputProps = InputBaseProps
  */
 export const Input: (props: InputProps) => ReactElement = createInput<ReactElement>(
   createElement as unknown as CreateElement<ReactElement>,
-  { useState },
+  { useState, useRef, useEffect },
   'onChange',
 )

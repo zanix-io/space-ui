@@ -1,4 +1,4 @@
-import { createElement, useRef, useState } from 'react'
+import { createElement, useEffect, useRef, useState } from 'react'
 import type { ReactElement, ReactNode } from 'react'
 import type { CreateElement } from 'typings/renderer.ts'
 import { createSocialLinksInput } from './render.ts'
@@ -128,6 +128,6 @@ export type SocialLinksInputProps = SocialLinksInputBaseProps & {
 export const SocialLinksInput: (props: SocialLinksInputProps) => ReactElement =
   createSocialLinksInput<ReactElement>(
     createElement as unknown as CreateElement<ReactElement>,
-    { useState, useRef },
+    { useState, useRef, useEffect },
     'onChange',
   ) as (props: SocialLinksInputProps) => ReactElement

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { ReactElement, ReactNode } from 'react'
 import type { CreateElement } from 'typings/renderer.ts'
 import { createElementWithNonceHydrationFix } from 'shared/create-element-nonce-hydration-fix.ts'
@@ -62,6 +62,6 @@ export const PasswordInput: (props: PasswordInputProps) => ReactElement = create
   ReactElement
 >(
   createElementWithNonceHydrationFix as unknown as CreateElement<ReactElement>,
-  { useState },
+  { useState, useRef, useEffect },
   'onChange',
 ) as (props: PasswordInputProps) => ReactElement

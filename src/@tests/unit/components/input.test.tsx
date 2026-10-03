@@ -191,7 +191,11 @@ Deno.test('createInput: forwards inputMode/onPaste/autoFocus straight into the p
   }
   const factoryInput = createInput<null>(
     fakeH,
-    { useState: (initial) => [initial, () => {}] },
+    {
+      useState: (initial) => [initial, () => {}],
+      useRef: (initial) => ({ current: initial }),
+      useEffect: () => {},
+    },
     'onChange',
   )
   const onPaste = () => {}
@@ -201,4 +205,114 @@ Deno.test('createInput: forwards inputMode/onPaste/autoFocus straight into the p
   assertEquals(captured.props?.inputMode, 'numeric')
   assertEquals(captured.props?.onPaste, onPaste)
   assertEquals(captured.props?.autoFocus, true)
+})
+
+// --- validationMessage -----------------------------------------------------------------------
+
+function inForm(props: Partial<Parameters<typeof Input>[0]> = {}) {
+  return (
+    <form>
+      <Input aria-label='Field' {...props} />
+    </form>
+  )
+}
+
+Deno.test('Input: validationMessage marks the real input invalid through native validation', () => {
+  const { container, unmount } = mount(inForm({ validationMessage: 'Not acceptable' }))
+  const control = must(container.querySelector('input'))
+  const form = must(container.querySelector('form'))
+
+  assertEquals(control.validity.customError, true)
+  assertEquals(control.validationMessage, 'Not acceptable')
+  assertEquals(control.checkValidity(), false)
+  assertEquals(form.checkValidity(), false)
+
+  unmount()
+})
+
+Deno.test('Input: no validationMessage leaves the input valid', () => {
+  const { container, unmount } = mount(inForm())
+
+  assertEquals(must(container.querySelector('input')).validity.customError, false)
+  assertEquals(must(container.querySelector('form')).checkValidity(), true)
+
+  unmount()
+})
+
+Deno.test('Input: removing validationMessage, or emptying it, clears the error', () => {
+  const { container, rerender, unmount } = mount(inForm({ validationMessage: 'Not valid' }))
+  const control = must(container.querySelector('input'))
+  assertEquals(control.validity.customError, true)
+
+  rerender(inForm())
+  assertEquals(control.validity.customError, false)
+  assertEquals(control.checkValidity(), true)
+
+  rerender(inForm({ validationMessage: 'Not valid' }))
+  assertEquals(control.validity.customError, true)
+  rerender(inForm({ validationMessage: '' }))
+  assertEquals(control.validity.customError, false)
+
+  unmount()
+})
+
+Deno.test('Input: a changed validationMessage replaces the previous one', () => {
+  const { container, rerender, unmount } = mount(inForm({ validationMessage: 'First' }))
+  const control = must(container.querySelector('input'))
+  assertEquals(control.validationMessage, 'First')
+
+  rerender(inForm({ validationMessage: 'Second' }))
+  assertEquals(control.validationMessage, 'Second')
+  assertEquals(control.validity.customError, true)
+
+  unmount()
+})
+
+Deno.test('Input: unmounting clears the error it set', () => {
+  const { container, unmount } = mount(inForm({ validationMessage: 'Not valid' }))
+  const control = must(container.querySelector('input'))
+  assertEquals(control.validity.customError, true)
+
+  unmount()
+  assertEquals(control.validity.customError, false)
+})
+
+Deno.test('Input: typing does not clear the error — only the caller does', () => {
+  const { container, unmount } = mount(inForm({ validationMessage: 'Not valid' }))
+  const control = must(container.querySelector('input'))
+
+  typeInto(control, 'something else')
+  assertEquals(control.value, 'something else')
+  assertEquals(control.validity.customError, true)
+
+  unmount()
+})
+
+Deno.test('Input: validationMessage renders nothing on the server', () => {
+  const plain = renderToStaticMarkup(inForm())
+  const withMessage = renderToStaticMarkup(inForm({ validationMessage: 'Not valid' }))
+
+  assertEquals(withMessage, plain)
+  assertEquals(withMessage.includes('Not valid'), false)
+})
+
+Deno.test('Input: validationMessage coexists with required, and leaves aria-invalid alone', () => {
+  const { container, rerender, unmount } = mount(
+    inForm({ required: true, validationMessage: 'Not valid' }),
+  )
+  const control = must(container.querySelector('input'))
+
+  assertEquals(control.validity.valueMissing, true)
+  assertEquals(control.validity.customError, true)
+  assertEquals(control.getAttribute('aria-invalid'), null)
+
+  rerender(inForm({ required: true, validationMessage: 'Not valid', 'aria-invalid': true }))
+  assertEquals(control.getAttribute('aria-invalid'), 'true')
+
+  rerender(inForm({ required: true, 'aria-invalid': true }))
+  assertEquals(control.validity.valueMissing, true)
+  assertEquals(control.validity.customError, false)
+  assertEquals(control.getAttribute('aria-invalid'), 'true')
+
+  unmount()
 })

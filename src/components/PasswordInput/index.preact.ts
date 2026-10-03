@@ -1,6 +1,6 @@
 import { h } from 'preact'
 import type { ComponentChildren, VNode } from 'preact'
-import { useState } from 'preact/hooks'
+import { useEffect, useRef, useState } from 'preact/hooks'
 import type { CreateElement } from 'typings/renderer.ts'
 import { createPasswordInput } from './render.ts'
 import type { PasswordInputBaseProps } from './types.ts'
@@ -31,6 +31,6 @@ export type PasswordInputProps = PasswordInputBaseProps & {
 // `ReactNode`.
 export const PasswordInput: (props: PasswordInputProps) => VNode = createPasswordInput<VNode>(
   h as unknown as CreateElement<VNode>,
-  { useState },
+  { useState, useRef, useEffect },
   'onInput',
 ) as (props: PasswordInputProps) => VNode

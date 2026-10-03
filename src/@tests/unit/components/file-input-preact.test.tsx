@@ -133,3 +133,160 @@ Deno.test('FileInput (preact): composes cleanly with the props Field.children ha
 
   unmount()
 })
+
+// --- validationMessage -----------------------------------------------------------------------
+
+// Wrapped in a `<form>` through a tiny parent so the control's native validity can also be read
+// from `form.checkValidity()`, same as the React file's own `inForm`.
+function formElement(props: FileInputProps) {
+  return h('form', null, h(FileInput, { 'aria-label': 'Field', ...props })) as VNode
+}
+
+function mountInForm(props: FileInputProps = {}) {
+  const container = document.createElement('div')
+  document.body.appendChild(container)
+  act(() => renderDOM(formElement(props), container))
+  return {
+    container,
+    rerender: (next: FileInputProps) => act(() => renderDOM(formElement(next), container)),
+    unmount: () => act(() => renderDOM(null, container)),
+  }
+}
+
+Deno.test('FileInput (preact): validationMessage marks the real file input invalid through native validation', () => {
+  const { container, unmount } = mountInForm({ validationMessage: 'Too large' })
+  const control = must(container.querySelector<HTMLInputElement>('input'))
+  const form = must(container.querySelector('form'))
+
+  assertEquals(control.type, 'file')
+  assertEquals(control.validity.customError, true)
+  assertEquals(control.validationMessage, 'Too large')
+  assertEquals(control.checkValidity(), false)
+  assertEquals(form.checkValidity(), false)
+
+  unmount()
+})
+
+Deno.test('FileInput (preact): the rendered input is a candidate for constraint validation, never hidden', () => {
+  const { container, unmount } = mountInForm({ validationMessage: 'Too large' })
+  const control = must(container.querySelector<HTMLInputElement>('input'))
+
+  assertEquals(control.willValidate, true)
+  assertEquals(control.hidden, false)
+  assertEquals(control.getAttribute('style'), null)
+
+  unmount()
+})
+
+Deno.test('FileInput (preact): no validationMessage leaves the input valid', () => {
+  const { container, unmount } = mountInForm()
+
+  assertEquals(must(container.querySelector<HTMLInputElement>('input')).validity.customError, false)
+  assertEquals(must(container.querySelector('form')).checkValidity(), true)
+
+  unmount()
+})
+
+Deno.test('FileInput (preact): removing validationMessage, or emptying it, clears the error', () => {
+  const { container, rerender, unmount } = mountInForm({ validationMessage: 'Not valid' })
+  const control = must(container.querySelector<HTMLInputElement>('input'))
+  assertEquals(control.validity.customError, true)
+
+  rerender({})
+  assertEquals(control.validity.customError, false)
+  assertEquals(control.checkValidity(), true)
+
+  rerender({ validationMessage: 'Not valid' })
+  assertEquals(control.validity.customError, true)
+  rerender({ validationMessage: '' })
+  assertEquals(control.validity.customError, false)
+
+  unmount()
+})
+
+Deno.test('FileInput (preact): a changed validationMessage replaces the previous one', () => {
+  const { container, rerender, unmount } = mountInForm({ validationMessage: 'First' })
+  const control = must(container.querySelector<HTMLInputElement>('input'))
+  assertEquals(control.validationMessage, 'First')
+
+  rerender({ validationMessage: 'Second' })
+  assertEquals(control.validationMessage, 'Second')
+  assertEquals(control.validity.customError, true)
+
+  unmount()
+})
+
+Deno.test('FileInput (preact): unmounting clears the error it set', () => {
+  const { container, unmount } = mountInForm({ validationMessage: 'Not valid' })
+  const control = must(container.querySelector<HTMLInputElement>('input'))
+  assertEquals(control.validity.customError, true)
+
+  unmount()
+  assertEquals(control.validity.customError, false)
+})
+
+Deno.test('FileInput (preact): choosing or clearing a file does not clear the error — only the caller does', () => {
+  const { container, rerender, unmount } = mountInForm({ validationMessage: 'Too large' })
+  const control = must(container.querySelector<HTMLInputElement>('input'))
+
+  setFiles(control, [new File(['x'], 'big.bin')])
+  act(() => {
+    control.dispatchEvent(new Event('change', { bubbles: true }))
+  })
+  assertEquals(control.validity.customError, true)
+
+  setFiles(control, [])
+  act(() => {
+    control.dispatchEvent(new Event('change', { bubbles: true }))
+  })
+  assertEquals(control.validity.customError, true)
+
+  // The caller recomputes it from `onFilesChange` and passes `undefined` once the selection is fine.
+  rerender({})
+  assertEquals(control.validity.customError, false)
+
+  unmount()
+})
+
+Deno.test('FileInput (preact): a resetTrigger change leaves the caller-owned error in place', () => {
+  const { container, rerender, unmount } = mountInForm({
+    validationMessage: 'Too large',
+    resetTrigger: 1,
+  })
+  const control = must(container.querySelector<HTMLInputElement>('input'))
+
+  rerender({ validationMessage: 'Too large', resetTrigger: 2 })
+  assertEquals(control.validity.customError, true)
+
+  unmount()
+})
+
+Deno.test('FileInput (preact): validationMessage renders nothing on the server', () => {
+  const plain = renderToString(formElement({}))
+  const withMessage = renderToString(formElement({ validationMessage: 'Not valid' }))
+
+  assertEquals(withMessage, plain)
+  assertEquals(withMessage.includes('Not valid'), false)
+})
+
+Deno.test('FileInput (preact): validationMessage coexists with required, and leaves aria-invalid alone', () => {
+  const { container, rerender, unmount } = mountInForm({
+    required: true,
+    validationMessage: 'Not valid',
+  })
+  const control = must(container.querySelector<HTMLInputElement>('input'))
+
+  assertEquals(control.validity.valueMissing, true)
+  assertEquals(control.validity.customError, true)
+  assertEquals(control.getAttribute('aria-invalid'), null)
+
+  rerender({ required: true, validationMessage: 'Not valid', 'aria-invalid': true })
+  assertEquals(control.getAttribute('aria-invalid'), 'true')
+
+  rerender({ required: true, 'aria-invalid': true })
+  assertEquals(control.validity.valueMissing, true)
+  assertEquals(control.validity.customError, false)
+  assertEquals(control.getAttribute('aria-invalid'), 'true')
+
+  unmount()
+})

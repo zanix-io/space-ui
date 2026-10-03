@@ -7,13 +7,12 @@ import { detectSocialNetwork } from './detect-social-network.ts'
 import { generateEntryId } from './generate-entry-id.ts'
 import type { SocialLinkEntry, SocialLinksInputBaseProps } from './types.ts'
 
-/** The subset of `useState`/`useRef` this component's shared body needs, injected alongside `h` —
- * same `render.ts`-factory technique `Menu`/`Table`/`Input` already use. `useRef` holds the id of an
- * entry just added via the "+" button, read back once by that ROW's own callback `ref` (see
- * `render.ts`'s own doc below) — a plain mutable ref, never itself a render trigger. */
-export type SocialLinksInputHooks = InputHooks & {
-  useRef: <T>(initial: T) => { current: T }
-}
+/** The hooks this component's shared body needs, injected alongside `h` — same `render.ts`-factory
+ * technique `Menu`/`Table`/`Input` already use: exactly {@linkcode InputHooks}, since the rows
+ * compose `Input`. Its `useRef` also holds the id of an entry just added via the "+" button, read
+ * back once by that ROW's own callback `ref` (see `render.ts`'s own doc below) — a plain mutable
+ * ref, never itself a render trigger. */
+export type SocialLinksInputHooks = InputHooks
 
 /** {@linkcode SocialLinksInputBaseProps} plus the one render-prop this binding's own node type
  * parametrizes — `index.ts`/`index.preact.ts` each instantiate this with `ReactNode`/

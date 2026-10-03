@@ -82,6 +82,32 @@ export type MultiSelectBaseProps = {
    * is satisfied and the browser stops blocking submission on this input's own empty text, exactly
    * matching "at least one" rather than "always something typed." @default false */
   required?: boolean
+  /** A validation message the caller owns, applied to this component's own real `<input>` with
+   * `setCustomValidity`, so the browser's native constraint validation reports it: the input is
+   * `:invalid`, `form.checkValidity()` is `false`, `form.reportValidity()` shows the message in the
+   * browser's own bubble, and a `<form>` submit is blocked. The caller needs no ref, submit listener
+   * or blur handler.
+   *
+   * A non-empty string sets the error; `undefined` or `''` clears it. The component follows every
+   * change of the prop and clears the error when it unmounts. It never decides what is valid:
+   * whether the chosen values are acceptable (a minimum count, a forbidden combination) stays the
+   * caller's call, the same "presents data, never owns it" seam as `options`. The message is
+   * independent of `required`: it applies whether or not a chip is committed.
+   *
+   * It does not touch `aria-invalid`, which is the caller's too. Pass both together, and give the
+   * visible text to `Field`'s `error`; the native message is the browser's notice when a submit is
+   * attempted:
+   *
+   * ```tsx
+   * const message = values.length < 2 ? 'Pick at least two interests' : undefined
+   * <Field label='Interests' error={message}>
+   *   {(field) => <MultiSelect {...field} options={interests} validationMessage={message} />}
+   * </Field>
+   * ```
+   *
+   * Nothing is set on the server: the error applies once the component mounts in the browser, so a
+   * server-rendered page carries no native error before then. */
+  validationMessage?: string
   'aria-describedby'?: string
   'aria-invalid'?: boolean
   'aria-label'?: string

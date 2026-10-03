@@ -1,6 +1,6 @@
 import { h } from 'preact'
 import type { ComponentChildren, VNode } from 'preact'
-import { useRef, useState } from 'preact/hooks'
+import { useEffect, useRef, useState } from 'preact/hooks'
 import type { CreateElement } from 'typings/renderer.ts'
 import { createSocialLinksInput } from './render.ts'
 import type { SocialLinkEntry, SocialLinksInputBaseProps } from './types.ts'
@@ -22,6 +22,6 @@ export const SocialLinksInput: (props: SocialLinksInputProps) => VNode = createS
   VNode
 >(
   h as unknown as CreateElement<VNode>,
-  { useState, useRef },
+  { useState, useRef, useEffect },
   'onInput',
 ) as (props: SocialLinksInputProps) => VNode

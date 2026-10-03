@@ -194,3 +194,149 @@ Deno.test('FileInput: composes cleanly with the props Field.children hands back'
 
   unmount()
 })
+
+// --- validationMessage -----------------------------------------------------------------------
+
+function inForm(props: Partial<Parameters<typeof FileInput>[0]> = {}) {
+  return (
+    <form>
+      <FileInput aria-label='Field' {...props} />
+    </form>
+  )
+}
+
+Deno.test('FileInput: validationMessage marks the real file input invalid through native validation', () => {
+  const { container, unmount } = mount(inForm({ validationMessage: 'Too large' }))
+  const control = must(container.querySelector<HTMLInputElement>('input'))
+  const form = must(container.querySelector('form'))
+
+  assertEquals(control.type, 'file')
+  assertEquals(control.validity.customError, true)
+  assertEquals(control.validationMessage, 'Too large')
+  assertEquals(control.checkValidity(), false)
+  assertEquals(form.checkValidity(), false)
+
+  unmount()
+})
+
+Deno.test('FileInput: the rendered input is a candidate for constraint validation, never hidden', () => {
+  const { container, unmount } = mount(inForm({ validationMessage: 'Too large' }))
+  const control = must(container.querySelector<HTMLInputElement>('input'))
+
+  assertEquals(control.willValidate, true)
+  assertEquals(control.hidden, false)
+  assertEquals(control.getAttribute('style'), null)
+
+  unmount()
+})
+
+Deno.test('FileInput: no validationMessage leaves the input valid', () => {
+  const { container, unmount } = mount(inForm())
+
+  assertEquals(must(container.querySelector<HTMLInputElement>('input')).validity.customError, false)
+  assertEquals(must(container.querySelector('form')).checkValidity(), true)
+
+  unmount()
+})
+
+Deno.test('FileInput: removing validationMessage, or emptying it, clears the error', () => {
+  const { container, rerender, unmount } = mount(inForm({ validationMessage: 'Not valid' }))
+  const control = must(container.querySelector<HTMLInputElement>('input'))
+  assertEquals(control.validity.customError, true)
+
+  rerender(inForm())
+  assertEquals(control.validity.customError, false)
+  assertEquals(control.checkValidity(), true)
+
+  rerender(inForm({ validationMessage: 'Not valid' }))
+  assertEquals(control.validity.customError, true)
+  rerender(inForm({ validationMessage: '' }))
+  assertEquals(control.validity.customError, false)
+
+  unmount()
+})
+
+Deno.test('FileInput: a changed validationMessage replaces the previous one', () => {
+  const { container, rerender, unmount } = mount(inForm({ validationMessage: 'First' }))
+  const control = must(container.querySelector<HTMLInputElement>('input'))
+  assertEquals(control.validationMessage, 'First')
+
+  rerender(inForm({ validationMessage: 'Second' }))
+  assertEquals(control.validationMessage, 'Second')
+  assertEquals(control.validity.customError, true)
+
+  unmount()
+})
+
+Deno.test('FileInput: unmounting clears the error it set', () => {
+  const { container, unmount } = mount(inForm({ validationMessage: 'Not valid' }))
+  const control = must(container.querySelector<HTMLInputElement>('input'))
+  assertEquals(control.validity.customError, true)
+
+  unmount()
+  assertEquals(control.validity.customError, false)
+})
+
+Deno.test('FileInput: choosing or clearing a file does not clear the error — only the caller does', () => {
+  const { container, rerender, unmount } = mount(inForm({ validationMessage: 'Too large' }))
+  const control = must(container.querySelector<HTMLInputElement>('input'))
+
+  setFiles(control, [new File(['x'], 'big.bin')])
+  act(() => {
+    control.dispatchEvent(new Event('change', { bubbles: true }))
+  })
+  assertEquals(control.validity.customError, true)
+
+  setFiles(control, [])
+  act(() => {
+    control.dispatchEvent(new Event('change', { bubbles: true }))
+  })
+  assertEquals(control.validity.customError, true)
+
+  // The caller recomputes it from `onFilesChange` and passes `undefined` once the selection is fine.
+  rerender(inForm())
+  assertEquals(control.validity.customError, false)
+
+  unmount()
+})
+
+Deno.test('FileInput: a resetTrigger change leaves the caller-owned error in place', () => {
+  const { container, rerender, unmount } = mount(
+    inForm({ validationMessage: 'Too large', resetTrigger: 1 }),
+  )
+  const control = must(container.querySelector<HTMLInputElement>('input'))
+
+  rerender(inForm({ validationMessage: 'Too large', resetTrigger: 2 }))
+  assertEquals(control.validity.customError, true)
+
+  unmount()
+})
+
+Deno.test('FileInput: validationMessage renders nothing on the server', () => {
+  const plain = renderToStaticMarkup(inForm())
+  const withMessage = renderToStaticMarkup(inForm({ validationMessage: 'Not valid' }))
+
+  assertEquals(withMessage, plain)
+  assertEquals(withMessage.includes('Not valid'), false)
+})
+
+Deno.test('FileInput: validationMessage coexists with required, and leaves aria-invalid alone', () => {
+  const { container, rerender, unmount } = mount(
+    inForm({ required: true, validationMessage: 'Not valid' }),
+  )
+  const control = must(container.querySelector<HTMLInputElement>('input'))
+
+  assertEquals(control.validity.valueMissing, true)
+  assertEquals(control.validity.customError, true)
+  assertEquals(control.getAttribute('aria-invalid'), null)
+
+  rerender(inForm({ required: true, validationMessage: 'Not valid', 'aria-invalid': true }))
+  assertEquals(control.getAttribute('aria-invalid'), 'true')
+
+  rerender(inForm({ required: true, 'aria-invalid': true }))
+  assertEquals(control.validity.valueMissing, true)
+  assertEquals(control.validity.customError, false)
+  assertEquals(control.getAttribute('aria-invalid'), 'true')
+
+  unmount()
+})

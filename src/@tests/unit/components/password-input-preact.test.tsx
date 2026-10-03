@@ -98,3 +98,89 @@ Deno.test('PasswordInput (preact): nonce lands on the self-rendered stroke <styl
   assertStringIncludes(html, 'stroke-width:1.6px')
   assertEquals(html.includes(' style='), false)
 })
+
+// --- validationMessage -----------------------------------------------------------------------
+
+function formElement(props: PasswordInputProps): VNode {
+  return h('form', null, h(PasswordInput, { 'aria-label': 'Password', ...props })) as VNode
+}
+
+function mountInForm(props: PasswordInputProps = {}) {
+  const container = document.createElement('div')
+  document.body.appendChild(container)
+  act(() => renderDOM(formElement(props), container))
+  return {
+    container,
+    rerender: (next: PasswordInputProps) => act(() => renderDOM(formElement(next), container)),
+    unmount: () => act(() => renderDOM(null, container)),
+  }
+}
+
+Deno.test('PasswordInput (preact): validationMessage marks the inner input invalid through native validation', () => {
+  const { container, unmount } = mountInForm({ validationMessage: 'Too weak' })
+  const input = must(container.querySelector<HTMLInputElement>('input'))
+  const form = must(container.querySelector('form'))
+
+  assertEquals(input.validity.customError, true)
+  assertEquals(input.validationMessage, 'Too weak')
+  assertEquals(form.checkValidity(), false)
+
+  unmount()
+})
+
+Deno.test('PasswordInput (preact): the error survives showing and hiding the password', () => {
+  const { container, unmount } = mountInForm({ validationMessage: 'Too weak' })
+  const input = must(container.querySelector<HTMLInputElement>('input'))
+  const button = must(container.querySelector<HTMLButtonElement>('button'))
+  assertEquals(input.type, 'password')
+
+  act(() => button.click())
+  assertEquals(input.type, 'text')
+  assertEquals(input.validity.customError, true)
+  assertEquals(input.validationMessage, 'Too weak')
+
+  act(() => button.click())
+  assertEquals(input.type, 'password')
+  assertEquals(input.validity.customError, true)
+
+  unmount()
+})
+
+Deno.test('PasswordInput (preact): removing validationMessage clears the error, and unmounting clears it too', () => {
+  const { container, rerender, unmount } = mountInForm({ validationMessage: 'Too weak' })
+  const input = must(container.querySelector<HTMLInputElement>('input'))
+  assertEquals(input.validity.customError, true)
+
+  rerender({})
+  assertEquals(input.validity.customError, false)
+
+  rerender({ validationMessage: 'Again' })
+  assertEquals(input.validationMessage, 'Again')
+  unmount()
+  assertEquals(input.validity.customError, false)
+})
+
+Deno.test('PasswordInput (preact): validationMessage renders nothing on the server', () => {
+  const plain = renderToString(formElement({}))
+  const withMessage = renderToString(formElement({ validationMessage: 'Too weak' }))
+
+  assertEquals(withMessage, plain)
+  assertEquals(withMessage.includes('Too weak'), false)
+})
+
+Deno.test('PasswordInput (preact): validationMessage coexists with required, and leaves aria-invalid alone', () => {
+  const { container, rerender, unmount } = mountInForm({
+    required: true,
+    validationMessage: 'Too weak',
+  })
+  const input = must(container.querySelector<HTMLInputElement>('input'))
+
+  assertEquals(input.validity.valueMissing, true)
+  assertEquals(input.validity.customError, true)
+  assertEquals(input.getAttribute('aria-invalid'), null)
+
+  rerender({ required: true, validationMessage: 'Too weak', 'aria-invalid': true })
+  assertEquals(input.getAttribute('aria-invalid'), 'true')
+
+  unmount()
+})

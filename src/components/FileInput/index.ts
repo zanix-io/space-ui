@@ -36,6 +36,18 @@ export type FileInputProps = FileInputBaseProps
  * {@linkcode FileInputBaseProps.resetTrigger}'s own doc for the full contract. Not a new pattern
  * invented for this component.
  *
+ * ## Reporting a value as invalid
+ *
+ * `validationMessage` hands the caller's own verdict to the browser's native constraint
+ * validation (`setCustomValidity` on the real `<input type="file">`): an unacceptable selection
+ * blocks a `<form>` submit and shows the browser's message, with no ref or listener on the caller's
+ * side. This component never decides what is valid, and `aria-invalid` stays the caller's — see
+ * {@linkcode FileInputBaseProps.validationMessage}. The browser keeps a custom validity when the
+ * selection changes, so the caller recomputes it from `onFilesChange` and passes `undefined` once
+ * the files are acceptable. The input is rendered visible and never hidden by this component; a
+ * caller that hides it visually must not use `display: none` or `hidden`, which take it out of
+ * constraint validation.
+ *
  * ## Composing inside `Field`
  *
  * Accepts exactly the props `Field`'s own render-prop hands back (`FieldRenderProps`, imported

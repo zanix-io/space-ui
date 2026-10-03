@@ -1,4 +1,4 @@
-import { createElement, useId, useLayoutEffect, useRef, useState } from 'react'
+import { createElement, useEffect, useId, useLayoutEffect, useRef, useState } from 'react'
 import type {
   ChangeEvent as ReactChangeEvent,
   KeyboardEvent as ReactKeyboardEvent,
@@ -7,6 +7,7 @@ import type {
 } from 'react'
 import { createElementWithNonceHydrationFix } from 'shared/create-element-nonce-hydration-fix.ts'
 import { useCloseOnOutside } from 'shared/close-on-outside.ts'
+import { useCustomValidity } from 'shared/custom-validity.ts'
 import { getNextRovingIndex } from 'shared/roving-focus.ts'
 import {
   buildOverlayCss,
@@ -139,6 +140,7 @@ export function Combobox(props: ComboboxProps): ReactElement {
     id,
     className,
     required,
+    validationMessage,
     'aria-describedby': ariaDescribedBy,
     'aria-invalid': ariaInvalid,
     'aria-label': ariaLabel,
@@ -237,6 +239,10 @@ export function Combobox(props: ComboboxProps): ReactElement {
   }, [position])
 
   useCloseOnOutside(containerRef, open, () => setOpen(false))
+
+  // The caller's validation message goes onto the real input, so native constraint validation
+  // reports it (see `ComboboxBaseProps.validationMessage`).
+  useCustomValidity(useEffect, inputRef, validationMessage)
 
   // React's own `onChange` is deliberately remapped to fire on every keystroke (the native `input`
   // event), unlike the DOM's own `change` (fires only on blur/commit) — historical React API design,

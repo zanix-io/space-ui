@@ -1,4 +1,4 @@
-import { createElement, useState } from 'react'
+import { createElement, useEffect, useRef, useState } from 'react'
 import type { ReactElement } from 'react'
 import type { CreateElement } from 'typings/renderer.ts'
 import { createTextarea } from './render.ts'
@@ -28,6 +28,14 @@ export type TextareaProps = TextareaBaseProps
  * `rows` (default `4`) and `cols`/`wrap` are the attributes a `<textarea>` actually supports that
  * an `<input>` has no equivalent for — see `types.ts`'s own doc for each.
  *
+ * ## Reporting a value as invalid
+ *
+ * `validationMessage` hands the caller's own verdict to the browser's native constraint
+ * validation (`setCustomValidity` on the real `<textarea>`): an invalid value blocks a `<form>`
+ * submit and shows the browser's message, with no ref or listener on the caller's side. This
+ * component never decides what is valid, and `aria-invalid` stays the caller's — see
+ * {@linkcode TextareaBaseProps.validationMessage}.
+ *
  * ## Composing inside `Field`
  *
  * Same integration `Input` already has: `Textarea` accepts exactly the props `Field`'s own
@@ -54,6 +62,6 @@ export type TextareaProps = TextareaBaseProps
  */
 export const Textarea: (props: TextareaProps) => ReactElement = createTextarea<ReactElement>(
   createElement as unknown as CreateElement<ReactElement>,
-  { useState },
+  { useState, useRef, useEffect },
   'onChange',
 )

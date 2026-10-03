@@ -22,6 +22,31 @@ export type TextareaBaseProps = {
   placeholder?: string
   disabled?: boolean
   readOnly?: boolean
+  /** A validation message the caller owns, applied to this component's own real `<textarea>` with
+   * `setCustomValidity`, so the browser's native constraint validation reports it: the control is
+   * `:invalid`, `form.checkValidity()` is `false`, `form.reportValidity()` shows the message in the
+   * browser's own bubble, and a `<form>` submit is blocked. The caller needs no ref, submit
+   * listener or blur handler.
+   *
+   * A non-empty string sets the error; `undefined` or `''` clears it. The component follows every
+   * change of the prop and clears the error when it unmounts. It never decides what is valid:
+   * whether the value is acceptable stays the caller's call, the same "presents data, never owns
+   * it" seam as the rest of this component.
+   *
+   * It does not touch `aria-invalid`, which is the caller's too. Pass both together, and give the
+   * visible text to `Field`'s `error`; the native message is the browser's notice when a submit is
+   * attempted:
+   *
+   * ```tsx
+   * const message = tooShort ? 'Write at least 20 characters' : undefined
+   * <Field label='Message' error={message}>
+   *   {(field) => <Textarea {...field} validationMessage={message} />}
+   * </Field>
+   * ```
+   *
+   * Nothing is set on the server: the error applies once the component mounts in the browser, so a
+   * server-rendered page carries no native error before then. */
+  validationMessage?: string
   required?: boolean
   /** Native `autocomplete` attribute value (e.g. `'on'`, `'off'`) — passed through verbatim, no
    * allow-list, same reasoning `Input.autoComplete` already documents. */

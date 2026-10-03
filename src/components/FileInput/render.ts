@@ -1,12 +1,14 @@
 import type { CreateElement } from 'typings/renderer.ts'
 import type { FileInputBaseProps } from './types.ts'
+import { useCustomValidity } from 'shared/custom-validity.ts'
+import type { UseCustomValidityEffect } from 'shared/custom-validity.ts'
 
 /** The subset of hooks this component's shared body needs, injected alongside `h` — same
  * `render.ts`-factory technique {@linkcode createTable}'s own `TableHooks` established, extended
  * here to real `useEffect`/`useRef` usage (the `Counter`-verified case, see that file's own doc
  * for the full soundness reasoning — not repeated here). */
 export type FileInputHooks = {
-  useEffect: (effect: () => void | (() => void), deps: unknown[]) => void
+  useEffect: UseCustomValidityEffect
   useRef: <T>(initial: T) => { current: T }
 }
 
@@ -53,6 +55,7 @@ export function createFileInput<E>(
       name,
       disabled,
       required,
+      validationMessage,
       id,
       className,
       'aria-describedby': ariaDescribedBy,
@@ -62,6 +65,10 @@ export function createFileInput<E>(
     } = props
 
     const ref = hooks.useRef<HTMLInputElement | null>(null)
+
+    // The caller's validation message goes onto the real file input, so native constraint
+    // validation reports it (see `FileInputBaseProps.validationMessage`).
+    useCustomValidity(hooks.useEffect, ref, validationMessage)
 
     hooks.useEffect(() => {
       if (resetTrigger === undefined) return

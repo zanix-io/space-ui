@@ -5,6 +5,43 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/) and this project
 adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [2.7.0] - 2026-10-03
+
+### Added
+
+- **`Combobox`** (both bindings) takes a new `validationMessage` prop. A non-empty string is applied
+  to the component's own real `<input>` with `setCustomValidity`, so the browser's native constraint
+  validation reports it: the input is `:invalid`, `form.checkValidity()` is `false`,
+  `form.reportValidity()` shows the message and a `<form>` submit is blocked, with no ref, submit
+  listener or blur handler on the caller's side. `undefined` or `''` clears it, the component
+  follows every change of the prop and clears the error on unmount, and nothing is set on the
+  server. What counts as valid stays the caller's decision, and `aria-invalid` stays the caller's
+  too: pass both, and give the visible text to `Field`'s `error`. Unchanged for an existing consumer
+  that leaves it unset.
+- **`Input`, `Textarea`, `PasswordInput`, `MultiSelect` and `FileInput`** (both bindings) take the
+  same `validationMessage` prop, with the same behavior: a non-empty string is applied with
+  `setCustomValidity` to the real `<input>`/`<textarea>`, `undefined` or `''` clears it, it follows
+  every change of the prop, it is cleared on unmount, nothing is set on the server, and
+  `aria-invalid` stays the caller's. `PasswordInput` forwards it to its inner `Input`, and the error
+  stays in place while the show/hide toggle flips the input's `type`. `MultiSelect` applies it to
+  its typing `<input>`, the one that carries `role="combobox"` and, while no chip is committed,
+  `required`; the message is independent of `required` and of the chips. `FileInput` applies it to
+  its `<input type="file">`; the browser keeps a custom validity when the selection changes, so the
+  caller recomputes it from `onFilesChange`, and the component renders the input visible, so a
+  caller that hides it must not use `display: none` or `hidden`, which exclude it from validation.
+  `SocialLinksInput`'s rows compose `Input` and are unchanged. `Select`, `DatePicker` and
+  `RadioGroup` do not take it: their controls are `Button`s (with a `listbox`, a grid popup or
+  `role="radio"`), not native controls that carry a custom validity. The README says so for each.
+
+### Changed
+
+- The effect that applies a validation message is now one shared hook, `useCustomValidity`
+  (`src/shared/custom-validity.ts`), used by `Combobox`, `Input`, `Textarea`, `MultiSelect` and
+  `FileInput` instead of a copy per binding. `InputHooks` and `TextareaHooks` (internal types of the
+  shared render factories, not exported) gain `useRef` and `useEffect`, `MultiSelectHooks` gains
+  `useEffect`, `FileInputHooks.useEffect` takes the shared effect type, and `SocialLinksInputHooks`
+  is now `InputHooks`; the public components are unchanged.
+
 ## [2.6.1] - 2026-10-1
 
 ### Added

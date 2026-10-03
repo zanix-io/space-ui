@@ -1,10 +1,15 @@
 import type { CreateElement } from 'typings/renderer.ts'
 import type { TextareaBaseProps } from './types.ts'
+import { useCustomValidity } from 'shared/custom-validity.ts'
+import type { UseCustomValidityEffect } from 'shared/custom-validity.ts'
 
-/** The subset of `useState` this component's shared body needs, injected alongside `h` — same
- * `render.ts`-factory technique {@linkcode createInput} already uses. */
+/** The hooks this component's shared body needs, injected alongside `h` — same `render.ts`-factory
+ * technique {@linkcode createInput} already uses. `useRef`/`useEffect` back
+ * `TextareaBaseProps.validationMessage` (see `shared/custom-validity.ts`). */
 export type TextareaHooks = {
   useState: <T>(initial: T) => [T, (value: T | ((current: T) => T)) => void]
+  useRef: <T>(initial: T) => { current: T }
+  useEffect: UseCustomValidityEffect
 }
 
 /**
@@ -40,6 +45,7 @@ export function createTextarea<E>(
       disabled,
       readOnly,
       required,
+      validationMessage,
       autoComplete,
       maxLength,
       rows = 4,
@@ -58,6 +64,11 @@ export function createTextarea<E>(
     const [internalValue, setInternalValue] = hooks.useState(defaultValue)
     const value = isControlled ? controlledValue : internalValue
 
+    // The caller's validation message goes onto the real `<textarea>`, so native constraint
+    // validation reports it (see `TextareaBaseProps.validationMessage`).
+    const textareaRef = hooks.useRef<HTMLTextAreaElement | null>(null)
+    useCustomValidity(hooks.useEffect, textareaRef, validationMessage)
+
     const handleChange = (event: { target: { value: string } }) => {
       const next = event.target.value
       if (isControlled) {
@@ -72,6 +83,7 @@ export function createTextarea<E>(
     }
 
     return h('textarea', {
+      ref: textareaRef,
       value,
       placeholder,
       disabled,

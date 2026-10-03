@@ -1,6 +1,6 @@
 import { h } from 'preact'
 import type { JSX, VNode } from 'preact'
-import { useId, useLayoutEffect, useRef, useState } from 'preact/hooks'
+import { useEffect, useId, useLayoutEffect, useRef, useState } from 'preact/hooks'
 import { useCloseOnOutside } from 'shared/close-on-outside.preact.ts'
 import { getNextRovingIndex } from 'shared/roving-focus.ts'
 import {
@@ -13,6 +13,7 @@ import {
 import { usePosition } from 'shared/use-position.preact.ts'
 import type { ComboboxBaseProps, ComboboxOption } from './types.ts'
 import { resolveActiveNonce } from 'shared/active-nonce.ts'
+import { useCustomValidity } from 'shared/custom-validity.ts'
 
 /** Duplicated verbatim from `index.ts` — see that file's own doc for why (no shared `render.ts`
  * for this component). */
@@ -57,6 +58,7 @@ export function Combobox(props: ComboboxProps): VNode {
     id,
     className,
     required,
+    validationMessage,
     'aria-describedby': ariaDescribedBy,
     'aria-invalid': ariaInvalid,
     'aria-label': ariaLabel,
@@ -146,6 +148,10 @@ export function Combobox(props: ComboboxProps): VNode {
   }, [position])
 
   useCloseOnOutside(containerRef, open, () => setOpen(false))
+
+  // The caller's validation message goes onto the real input, so native constraint validation
+  // reports it (see `ComboboxBaseProps.validationMessage`).
+  useCustomValidity(useEffect, inputRef, validationMessage)
 
   // `onInput`, not `onChange` — a real React/Preact divergence, the same class already documented
   // for `IFrame`'s own `allowFullscreen` casing and `Video`'s own `srcLang`: React deliberately

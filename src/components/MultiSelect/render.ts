@@ -13,6 +13,8 @@ import {
 } from 'shared/overlay-position-css.ts'
 import type { MultiSelectBaseProps, MultiSelectOption } from './types.ts'
 import { resolveActiveNonce } from 'shared/active-nonce.ts'
+import { useCustomValidity } from 'shared/custom-validity.ts'
+import type { UseCustomValidityEffect } from 'shared/custom-validity.ts'
 
 /**
  * The static, non-dynamic part of this component's own listbox positioning — same
@@ -43,6 +45,8 @@ export type MultiSelectHooks = {
   /** For the dynamic-positioning CSSOM rule application — see `createMultiSelect`'s own doc and
    * `Select/render.ts`'s own identical injection (not repeated here). */
   useLayoutEffect: (effect: () => void | (() => void), deps: unknown[]) => void
+  /** For `MultiSelectBaseProps.validationMessage` (see `shared/custom-validity.ts`). */
+  useEffect: UseCustomValidityEffect
   useCloseOnOutside: (
     ref: { current: HTMLElement | null },
     active: boolean,
@@ -130,6 +134,7 @@ export function createMultiSelect<E>(
       id,
       className,
       required,
+      validationMessage,
       'aria-describedby': ariaDescribedBy,
       'aria-invalid': ariaInvalid,
       'aria-label': ariaLabel,
@@ -239,6 +244,9 @@ export function createMultiSelect<E>(
     for (const option of options) labelByValueRef.current.set(option.value, option.label)
 
     const inputRef = hooks.useRef<HTMLInputElement | null>(null)
+    // The caller's validation message goes onto the real input, so native constraint validation
+    // reports it (see `MultiSelectBaseProps.validationMessage`).
+    useCustomValidity(hooks.useEffect, inputRef, validationMessage)
     const listboxRef = hooks.useRef<HTMLUListElement | null>(null)
     const containerRef = hooks.useRef<HTMLSpanElement | null>(null)
     const styleElRef = hooks.useRef<HTMLStyleElement | null>(null)
