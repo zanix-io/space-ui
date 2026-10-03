@@ -46,7 +46,7 @@ async function bundle(directory: string): Promise<void> {
   }
 }
 
-function serve(directory: string): Deno.HttpServer {
+function serve(directory: string): Deno.HttpServer<Deno.NetAddr> {
   return Deno.serve({ port: 0, onListen: () => {} }, async (request) => {
     const url = new URL(request.url)
     if (url.pathname === '/') {
