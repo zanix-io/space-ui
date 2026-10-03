@@ -425,7 +425,9 @@ ahead of time:
   validity: `validationMessage` hands the caller's own verdict to the browser's native constraint
   validation (`setCustomValidity` on the real input), so an invalid value blocks a `<form>` submit
   and shows the browser's message with no ref or listener on the caller's side; pass `aria-invalid`
-  alongside it and the visible text to `Field`'s `error`.
+  alongside it and the visible text to `Field`'s `error`. While the suggestions show, the error is
+  held back (the browser's validation bubble would sit over them) and is applied again,
+  synchronously, when the listbox closes.
 
 - ✅ **`Select`** — a single-select dropdown: a trigger `Button` showing the current selection,
   opening a positioned popup (`role="listbox"`/`role="option"`) — the WAI-ARIA "Collapsible Dropdown
@@ -507,7 +509,9 @@ ahead of time:
   owning the input directly isn't. `validationMessage` hands the caller's own verdict to the
   browser's native constraint validation (`setCustomValidity` on the real typing `<input>`, the one
   that carries `required` while no chip is committed), independent of `required` and of the chips;
-  pass `aria-invalid` alongside it and the visible text to `Field`'s `error`.
+  pass `aria-invalid` alongside it and the visible text to `Field`'s `error`. While the suggestions
+  show, the error is held back (the browser's validation bubble would sit over them) and is applied
+  again, synchronously, when the listbox closes.
 
 - ✅ **`RichText`** — renders ICU rich-text content (the default) or literal Markdown
   (`contentFormat: 'markdown'`) into real component output, built on `useIntl().formatRichText` —

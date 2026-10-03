@@ -193,7 +193,11 @@ export function Combobox(props: ComboboxProps): ReactElement {
   const setOpen = (next: boolean) => {
     if (!isOpenControlled) setInternalOpen(next)
     onOpenChange?.(next)
-    if (!next) setActiveIndex(null)
+    if (!next) {
+      setActiveIndex(null)
+      // Closed inside this event handler, before any click that follows reaches the form's validation.
+      resumeValidity()
+    }
   }
 
   const selectOption = (option: ComboboxOption) => {
@@ -242,7 +246,14 @@ export function Combobox(props: ComboboxProps): ReactElement {
 
   // The caller's validation message goes onto the real input, so native constraint validation
   // reports it (see `ComboboxBaseProps.validationMessage`).
-  useCustomValidity(useEffect, inputRef, validationMessage)
+  // While the listbox shows suggestions the error is held back: the browser's validation bubble
+  // would sit over them. `resumeValidity` applies it again at once when the listbox closes.
+  const resumeValidity = useCustomValidity(
+    useEffect,
+    inputRef,
+    validationMessage,
+    open && options.length > 0,
+  )
 
   // React's own `onChange` is deliberately remapped to fire on every keystroke (the native `input`
   // event), unlike the DOM's own `change` (fires only on blur/commit) — historical React API design,
@@ -287,7 +298,11 @@ export function Combobox(props: ComboboxProps): ReactElement {
     }
 
     if (event.key === 'Enter') {
-      if (!open || activeIndex === null) return
+      if (!open || activeIndex === null) {
+        // An Enter with nothing highlighted submits the form: the error must already be applied.
+        resumeValidity()
+        return
+      }
       const option = options[activeIndex]
       if (!option) return
       event.preventDefault()

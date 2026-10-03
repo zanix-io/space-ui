@@ -572,11 +572,19 @@ Deno.test('MultiSelect (preact): unmounting clears the error it set', () => {
   assertEquals(control.validity.customError, false)
 })
 
-Deno.test('MultiSelect (preact): typing does not clear the error — only the caller does', () => {
+Deno.test('MultiSelect (preact): typing does not clear the error — the open suggestions only hold it back', () => {
   const { container, unmount } = mountInForm({ validationMessage: 'Not valid' })
   const control = must(container.querySelector<HTMLInputElement>('input[role="combobox"]'))
 
   act(() => typeInto(control, 'Engl'))
+  assertEquals(control.value, 'Engl')
+  // The typed text opened the suggestions, so the error is held back while they show.
+  assertEquals(control.validity.customError, false)
+
+  // Closing them brings it back: typing never removed the caller's message, only the caller can.
+  act(() => {
+    control.dispatchEvent(new Event('blur'))
+  })
   assertEquals(control.value, 'Engl')
   assertEquals(control.validity.customError, true)
 
@@ -630,4 +638,152 @@ Deno.test('MultiSelect (preact): validationMessage leaves aria-invalid alone', (
   assertEquals(control.getAttribute('aria-invalid'), 'true')
 
   unmount()
+})
+
+// --- validationMessage while the listbox is open ----------------------------------------------
+// The browser's validation bubble would sit over the suggestions, so the error is held back while
+// they show and applied again, synchronously, when the listbox closes.
+
+function openListbox(input: HTMLInputElement) {
+  act(() => {
+    input.dispatchEvent(new Event('focus'))
+  })
+}
+
+function mountWithSubmitButton(props: Partial<MultiSelectProps> = {}) {
+  const container = document.createElement('div')
+  document.body.appendChild(container)
+  act(() =>
+    renderDOM(
+      h(
+        'form',
+        null,
+        h(MultiSelect, basicProps(props)),
+        h('button', { type: 'submit' }, 'Save'),
+      ) as VNode,
+      container,
+    )
+  )
+  return { container, unmount: () => act(() => renderDOM(null, container)) }
+}
+
+const COMBOBOX = 'input[role="combobox"]'
+
+Deno.test('MultiSelect (preact): validationMessage is held back while the listbox shows suggestions', () => {
+  const { container, unmount } = mountInForm({ validationMessage: 'Pick two' })
+  const input = must(container.querySelector<HTMLInputElement>(COMBOBOX))
+  const form = must(container.querySelector('form'))
+  assertEquals(input.validity.customError, true)
+
+  openListbox(input)
+  assertEquals(container.querySelector('[role="listbox"]') !== null, true)
+  assertEquals(input.validity.customError, false)
+  assertEquals(form.checkValidity(), true)
+
+  unmount()
+})
+
+Deno.test('MultiSelect (preact): validationMessage stays applied while the open listbox has nothing to offer', () => {
+  const { container, unmount } = mountInForm({ validationMessage: 'Pick two', options: [] })
+  const input = must(container.querySelector<HTMLInputElement>(COMBOBOX))
+
+  openListbox(input)
+  assertEquals(container.querySelector('[role="listbox"]'), null)
+  assertEquals(input.validity.customError, true)
+
+  unmount()
+})
+
+Deno.test('MultiSelect (preact): validationMessage is applied again when the listbox closes, by every way it can close', () => {
+  const closers: Record<string, (input: HTMLInputElement) => void> = {
+    Escape: (input) =>
+      input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })),
+    blur: (input) => input.dispatchEvent(new Event('blur')),
+    'outside mousedown': () =>
+      document.body.dispatchEvent(new MouseEvent('mousedown', { bubbles: true })),
+  }
+  for (const [name, close] of Object.entries(closers)) {
+    const { container, unmount } = mountInForm({ validationMessage: 'Pick two' })
+    const input = must(container.querySelector<HTMLInputElement>(COMBOBOX))
+    openListbox(input)
+    assertEquals(input.validity.customError, false, `${name}: held back while open`)
+
+    act(() => close(input))
+    assertEquals(container.querySelector('[role="listbox"]'), null, `${name}: closed`)
+    assertEquals(input.validity.customError, true, `${name}: applied again`)
+    unmount()
+  }
+})
+
+Deno.test('MultiSelect (preact): a selection that closes the listbox applies the message again', () => {
+  const { container, unmount } = mountInForm({ validationMessage: 'Pick two', closeOnSelect: true })
+  const input = must(container.querySelector<HTMLInputElement>(COMBOBOX))
+  openListbox(input)
+  const option = must(container.querySelector('[role="option"]'))
+
+  act(() => {
+    option.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }))
+    option.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+  })
+  assertEquals(container.querySelector('[role="listbox"]'), null)
+  assertEquals(input.validity.customError, true)
+
+  unmount()
+})
+
+Deno.test('MultiSelect (preact): the message is back before a submit click that closes the listbox is validated', () => {
+  const { container, unmount } = mountWithSubmitButton({ validationMessage: 'Pick two' })
+  const input = must(container.querySelector<HTMLInputElement>(COMBOBOX))
+  const form = must(container.querySelector('form'))
+  const button = must(container.querySelector('button'))
+  openListbox(input)
+  assertEquals(form.checkValidity(), true)
+
+  // `mousedown` on a button outside (closes the listbox), the input's `blur`, then `click`. Preact
+  // defers both its re-render and its effects past these handlers, so the message is only there if
+  // the closing handler applied it.
+  button.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }))
+  assertEquals(input.validity.customError, true, 'after mousedown')
+  input.dispatchEvent(new Event('blur'))
+  assertEquals(input.validity.customError, true, 'after blur')
+  assertEquals(form.checkValidity(), false, 'the form is invalid when the click validates it')
+
+  unmount()
+})
+
+Deno.test('MultiSelect (preact): an Enter with nothing to commit applies the message before the implicit submit', () => {
+  const { container, unmount } = mountInForm({ validationMessage: 'Pick two' })
+  const input = must(container.querySelector<HTMLInputElement>(COMBOBOX))
+  openListbox(input)
+  assertEquals(input.validity.customError, false)
+
+  input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }))
+  assertEquals(input.validity.customError, true)
+
+  unmount()
+})
+
+Deno.test('MultiSelect (preact): holding the message back leaves required and aria-invalid alone', () => {
+  const { container, unmount } = mountInForm({
+    required: true,
+    validationMessage: 'Pick two',
+    'aria-invalid': true,
+  })
+  const input = must(container.querySelector<HTMLInputElement>(COMBOBOX))
+  openListbox(input)
+
+  assertEquals(input.validity.customError, false)
+  assertEquals(input.validity.valueMissing, true)
+  assertEquals(input.getAttribute('aria-invalid'), 'true')
+
+  unmount()
+})
+
+Deno.test('MultiSelect (preact): unmounting with the listbox open leaves no error behind', () => {
+  const { container, unmount } = mountInForm({ validationMessage: 'Pick two' })
+  const input = must(container.querySelector<HTMLInputElement>(COMBOBOX))
+  openListbox(input)
+
+  unmount()
+  assertEquals(input.validity.customError, false)
 })

@@ -726,3 +726,153 @@ Deno.test('Combobox (Preact): validationMessage coexists with required, and leav
 
   unmount()
 })
+
+// --- validationMessage while the listbox is open ----------------------------------------------
+// The browser's validation bubble would sit over the suggestions, so the error is held back while
+// they show and applied again, synchronously, when the listbox closes.
+
+function openListbox(input: HTMLInputElement) {
+  act(() => {
+    input.dispatchEvent(new Event('focus'))
+  })
+}
+
+function mountWithSubmitButton(props: Partial<ComboboxProps> = {}) {
+  const container = document.createElement('div')
+  document.body.appendChild(container)
+  act(() =>
+    renderDOM(
+      h(
+        'form',
+        null,
+        h(Combobox, { options: FRUITS, 'aria-label': 'Fruit', ...props }),
+        h('button', { type: 'submit' }, 'Save'),
+      ) as VNode,
+      container,
+    )
+  )
+  return { container, unmount: () => act(() => renderDOM(null, container)) }
+}
+
+Deno.test('Combobox (Preact): validationMessage is held back while the listbox shows suggestions', () => {
+  const { container, unmount } = mountInForm({ validationMessage: 'Pick a fruit' })
+  const input = must(container.querySelector<HTMLInputElement>('input'))
+  const form = must(container.querySelector('form'))
+  assertEquals(input.validity.customError, true)
+
+  openListbox(input)
+  assertEquals(container.querySelector('[role="listbox"]') !== null, true)
+  assertEquals(input.validity.customError, false)
+  assertEquals(form.checkValidity(), true)
+
+  unmount()
+})
+
+Deno.test('Combobox (Preact): validationMessage stays applied while the open listbox has no suggestions', () => {
+  const { container, unmount } = mountInForm({ validationMessage: 'Pick a fruit', options: [] })
+  const input = must(container.querySelector<HTMLInputElement>('input'))
+
+  openListbox(input)
+  assertEquals(input.validity.customError, true)
+  assertEquals(input.validationMessage, 'Pick a fruit')
+
+  unmount()
+})
+
+Deno.test('Combobox (Preact): validationMessage is applied again when the listbox closes, by every way it can close', () => {
+  const closers: Record<string, (input: HTMLInputElement) => void> = {
+    Escape: (input) =>
+      input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })),
+    blur: (input) => input.dispatchEvent(new Event('blur')),
+    'outside mousedown': () =>
+      document.body.dispatchEvent(new MouseEvent('mousedown', { bubbles: true })),
+  }
+  for (const [name, close] of Object.entries(closers)) {
+    const { container, unmount } = mountInForm({ validationMessage: 'Pick a fruit' })
+    const input = must(container.querySelector<HTMLInputElement>('input'))
+    openListbox(input)
+    assertEquals(input.validity.customError, false, `${name}: held back while open`)
+
+    act(() => close(input))
+    assertEquals(container.querySelector('[role="listbox"]'), null, `${name}: closed`)
+    assertEquals(input.validity.customError, true, `${name}: applied again`)
+    unmount()
+  }
+})
+
+Deno.test('Combobox (Preact): picking an option closes the listbox and applies the message again', () => {
+  const { container, unmount } = mountInForm({ validationMessage: 'Pick a fruit' })
+  const input = must(container.querySelector<HTMLInputElement>('input'))
+  openListbox(input)
+  const apple = must(
+    Array.from(container.querySelectorAll('[role="option"]')).find((o) =>
+      o.textContent === 'Apple'
+    ),
+  )
+
+  act(() => {
+    apple.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }))
+    apple.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+  })
+  assertEquals(container.querySelector('[role="listbox"]'), null)
+  assertEquals(input.validity.customError, true)
+
+  unmount()
+})
+
+Deno.test('Combobox (Preact): the message is back before a submit click that closes the listbox is validated', () => {
+  const { container, unmount } = mountWithSubmitButton({ validationMessage: 'Pick a fruit' })
+  const input = must(container.querySelector<HTMLInputElement>('input'))
+  const form = must(container.querySelector('form'))
+  const button = must(container.querySelector('button'))
+  openListbox(input)
+  assertEquals(form.checkValidity(), true)
+
+  // The real order of a click on a button outside the combobox: `mousedown` (outside click closes
+  // the listbox), the input's `blur`, then `click`. Preact defers both its re-render and its
+  // effects past these handlers, so the message is only there if the closing handler applied it.
+  button.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }))
+  assertEquals(input.validity.customError, true, 'after mousedown')
+  input.dispatchEvent(new Event('blur'))
+  assertEquals(input.validity.customError, true, 'after blur')
+  assertEquals(form.checkValidity(), false, 'the form is invalid when the click validates it')
+
+  unmount()
+})
+
+Deno.test('Combobox (Preact): an Enter with nothing highlighted applies the message before the implicit submit', () => {
+  const { container, unmount } = mountInForm({ validationMessage: 'Pick a fruit' })
+  const input = must(container.querySelector<HTMLInputElement>('input'))
+  openListbox(input)
+  assertEquals(input.validity.customError, false)
+
+  input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }))
+  assertEquals(input.validity.customError, true)
+
+  unmount()
+})
+
+Deno.test('Combobox (Preact): holding the message back leaves required and aria-invalid alone', () => {
+  const { container, unmount } = mountInForm({
+    required: true,
+    validationMessage: 'Pick a fruit',
+    'aria-invalid': true,
+  })
+  const input = must(container.querySelector<HTMLInputElement>('input'))
+  openListbox(input)
+
+  assertEquals(input.validity.customError, false)
+  assertEquals(input.validity.valueMissing, true)
+  assertEquals(input.getAttribute('aria-invalid'), 'true')
+
+  unmount()
+})
+
+Deno.test('Combobox (Preact): unmounting with the listbox open leaves no error behind', () => {
+  const { container, unmount } = mountInForm({ validationMessage: 'Pick a fruit' })
+  const input = must(container.querySelector<HTMLInputElement>('input'))
+  openListbox(input)
+
+  unmount()
+  assertEquals(input.validity.customError, false)
+})

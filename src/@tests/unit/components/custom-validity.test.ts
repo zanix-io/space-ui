@@ -84,3 +84,52 @@ Deno.test('useCustomValidity: no element yet is a no-op', () => {
   useCustomValidity(host.useEffect, { current: null }, 'Not valid')
   host.unmount()
 })
+
+Deno.test('useCustomValidity: suspended holds the message back and applies it when it turns false', () => {
+  const control = fakeControl()
+  const host = fakeEffectHost()
+  const ref = { current: control }
+
+  useCustomValidity(host.useEffect, ref, 'Not valid', true)
+  useCustomValidity(host.useEffect, ref, 'Not valid', true)
+  useCustomValidity(host.useEffect, ref, 'Not valid', false)
+  useCustomValidity(host.useEffect, ref, 'Not valid', true)
+  host.unmount()
+
+  // Suspended applies nothing; resuming applies the message; suspending again clears it first.
+  assertEquals(control.calls, ['', '', 'Not valid', '', '', ''])
+})
+
+Deno.test('useCustomValidity: omitting suspended behaves as before', () => {
+  const control = fakeControl()
+  const host = fakeEffectHost()
+
+  useCustomValidity(host.useEffect, { current: control }, 'Not valid')
+  host.unmount()
+
+  assertEquals(control.calls, ['Not valid', ''])
+})
+
+Deno.test('useCustomValidity: resume applies the current message at once, outside any effect', () => {
+  const control = fakeControl()
+  const host = fakeEffectHost()
+  const ref = { current: control }
+
+  const resume = useCustomValidity(host.useEffect, ref, 'Not valid', true)
+  assertEquals(control.calls, [''])
+
+  resume()
+  assertEquals(control.calls, ['', 'Not valid'])
+})
+
+Deno.test('useCustomValidity: resume with no message clears, and with no element is a no-op', () => {
+  const control = fakeControl()
+  const host = fakeEffectHost()
+
+  const clear = useCustomValidity(host.useEffect, { current: control }, undefined, true)
+  clear()
+  assertEquals(control.calls, ['', ''])
+
+  const missing = useCustomValidity(fakeEffectHost().useEffect, { current: null }, 'Not valid')
+  missing()
+})

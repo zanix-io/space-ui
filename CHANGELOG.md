@@ -5,6 +5,30 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/) and this project
 adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [2.7.1] - 2026-10-03
+
+### Fixed
+
+- **`Combobox` and `MultiSelect`** (both bindings): the `validationMessage` error no longer sits
+  under the listbox's suggestions. After a submit was blocked the browser's validation bubble stayed
+  on screen while the caller typed again, over the first suggestion, because the bubble only goes
+  away when the control's validity changes. While the listbox shows suggestions the component now
+  reports no custom error, and it applies the message again when the listbox closes: by a selection,
+  `Escape`, the input losing focus or a click outside. The message is applied inside the closing
+  handler, not in an effect (Preact runs effects after the next paint), so a click on a submit
+  button that closes the listbox still finds the form invalid when it validates, and an `Enter` with
+  nothing to choose applies it before the implicit submit. An open listbox with nothing to show
+  keeps the error. A blocked submit still focuses the field, which opens the suggestions and
+  dismisses the native message in favour of them: show the text inline with `Field`'s `error` as
+  well. No change for a caller that does not set `validationMessage`.
+
+### Changed
+
+- **`useCustomValidity`** (internal) takes a fourth `suspended` argument and returns `resume()`,
+  which applies the message at once. `Combobox` and `MultiSelect` use both; `Input`, `Textarea` and
+  `FileInput` call it as before and are unchanged, since none of them owns a popup the bubble can
+  cover.
+
 ## [2.7.0] - 2026-10-03
 
 ### Added

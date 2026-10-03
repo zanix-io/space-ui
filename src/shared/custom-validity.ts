@@ -35,18 +35,33 @@ export type UseCustomValidityEffect = (
  * cleanup runs and Preact does not: reading it late would leave the error set on a detached node in
  * one renderer only.
  *
+ * `suspended` holds the error back without losing it: while it is `true` the control reports no
+ * custom error, and the message is applied again once it turns `false`. A component whose own
+ * popup would be covered by the browser's validation bubble (a listbox of suggestions) passes
+ * `true` while the popup is showing.
+ *
+ * The returned `resume` applies the message at once, outside any effect. A popup closes inside an
+ * event handler, and an effect runs after the browser paints (Preact defers it to the next frame):
+ * a click on a submit button can reach the form's validation before that, so the closing handler
+ * calls `resume()` itself and the error is back before the click's `submit` is validated.
+ *
  * @param useEffect - The renderer's own `useEffect`.
  * @param control - Ref to the real control.
  * @param message - The caller's validation message, or `undefined`/`''` for none.
+ * @param suspended - Hold the message back while `true`. @default false
+ * @returns `resume`, which applies `message` to the control immediately.
  */
 export function useCustomValidity(
   useEffect: UseCustomValidityEffect,
   control: { current: { setCustomValidity?: (message: string) => void } | null },
   message: string | undefined,
-): void {
+  suspended = false,
+): () => void {
   useEffect(() => {
     const element = control.current
-    applyCustomValidity(element, message)
+    applyCustomValidity(element, suspended ? undefined : message)
     return () => applyCustomValidity(element, undefined)
-  }, [message])
+  }, [message, suspended])
+
+  return () => applyCustomValidity(control.current, message)
 }

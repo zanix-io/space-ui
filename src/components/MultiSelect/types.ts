@@ -105,6 +105,14 @@ export type MultiSelectBaseProps = {
    * </Field>
    * ```
    *
+   * While the listbox shows suggestions the error is held back, because the browser's validation
+   * bubble would sit over them. It is applied again, synchronously, when the listbox closes (a
+   * selection, `Escape`, the input losing focus, a click outside) and before an `Enter` with nothing
+   * to choose submits the form, so a click on a submit button that closes the listbox still finds
+   * the form invalid. An open listbox with nothing left to offer keeps the error. When a submit is blocked the browser
+   * focuses the field, which opens the suggestions and dismisses the native message in favour of
+   * them: give the visible text to `Field`'s `error` as well.
+   *
    * Nothing is set on the server: the error applies once the component mounts in the browser, so a
    * server-rendered page carries no native error before then. */
   validationMessage?: string

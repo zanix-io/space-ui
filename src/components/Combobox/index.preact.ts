@@ -102,7 +102,11 @@ export function Combobox(props: ComboboxProps): VNode {
   const setOpen = (next: boolean) => {
     if (!isOpenControlled) setInternalOpen(next)
     onOpenChange?.(next)
-    if (!next) setActiveIndex(null)
+    if (!next) {
+      setActiveIndex(null)
+      // Closed inside this event handler, before any click that follows reaches the form's validation.
+      resumeValidity()
+    }
   }
 
   const selectOption = (option: ComboboxOption) => {
@@ -151,7 +155,14 @@ export function Combobox(props: ComboboxProps): VNode {
 
   // The caller's validation message goes onto the real input, so native constraint validation
   // reports it (see `ComboboxBaseProps.validationMessage`).
-  useCustomValidity(useEffect, inputRef, validationMessage)
+  // While the listbox shows suggestions the error is held back: the browser's validation bubble
+  // would sit over them. `resumeValidity` applies it again at once when the listbox closes.
+  const resumeValidity = useCustomValidity(
+    useEffect,
+    inputRef,
+    validationMessage,
+    open && options.length > 0,
+  )
 
   // `onInput`, not `onChange` — a real React/Preact divergence, the same class already documented
   // for `IFrame`'s own `allowFullscreen` casing and `Video`'s own `srcLang`: React deliberately
@@ -196,7 +207,11 @@ export function Combobox(props: ComboboxProps): VNode {
     }
 
     if (event.key === 'Enter') {
-      if (!open || activeIndex === null) return
+      if (!open || activeIndex === null) {
+        // An Enter with nothing highlighted submits the form: the error must already be applied.
+        resumeValidity()
+        return
+      }
       const option = options[activeIndex]
       if (!option) return
       event.preventDefault()

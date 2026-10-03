@@ -194,7 +194,11 @@ export function createMultiSelect<E>(
     const setOpen = (next: boolean) => {
       if (!isOpenControlled) setInternalOpen(next)
       onOpenChange?.(next)
-      if (!next) setActiveIndex(null)
+      if (!next) {
+        setActiveIndex(null)
+        // Closed inside this event handler, before any click that follows reaches the form's validation.
+        resumeValidity()
+      }
     }
 
     const removeValue = (value: string) => {
@@ -246,7 +250,14 @@ export function createMultiSelect<E>(
     const inputRef = hooks.useRef<HTMLInputElement | null>(null)
     // The caller's validation message goes onto the real input, so native constraint validation
     // reports it (see `MultiSelectBaseProps.validationMessage`).
-    useCustomValidity(hooks.useEffect, inputRef, validationMessage)
+    // While the listbox shows suggestions the error is held back: the browser's validation bubble
+    // would sit over them. `resumeValidity` applies it again at once when the listbox closes.
+    const resumeValidity = useCustomValidity(
+      hooks.useEffect,
+      inputRef,
+      validationMessage,
+      listboxVisible,
+    )
     const listboxRef = hooks.useRef<HTMLUListElement | null>(null)
     const containerRef = hooks.useRef<HTMLSpanElement | null>(null)
     const styleElRef = hooks.useRef<HTMLStyleElement | null>(null)
@@ -355,7 +366,10 @@ export function createMultiSelect<E>(
         if (allowCustomValue && inputValue.trim() !== '') {
           event.preventDefault()
           commitTypedText()
+          return
         }
+        // An Enter with nothing to commit submits the form: the error must already be applied.
+        resumeValidity()
         return
       }
 
