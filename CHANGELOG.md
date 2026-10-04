@@ -5,6 +5,40 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/) and this project
 adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [2.8.0] - 2026-10-03
+
+### Added
+
+- **`Select`, `DatePicker` and `RangeSlider`** (both bindings): optional `aria-invalid` and
+  `aria-describedby` props, the two `Field`'s render-prop hands over, so
+  `<Field error>{(field) => <Select {...field} />}</Field>` now marks the control invalid and points
+  it at the error message (and lets a `[aria-invalid="true"]` focus lookup reach it). Without the
+  props the markup is identical to before. Where each lands:
+  - `Select` and `DatePicker`: on the trigger `<button>`, the one focusable, named element
+    (`DatePicker`'s calendar popup takes neither). `aria-describedby` is a global ARIA attribute and
+    valid there. `aria-invalid` is a documented trade-off: WAI-ARIA 1.2 lists it for roles such as
+    `combobox`, `listbox` and `textbox`, not for `button`, and no wrapper role would be more valid
+    (`group` and a generic element do not support it either). The role-correct form, a
+    `role="combobox"` trigger with `aria-haspopup="listbox"`, would change the markup of every
+    `Select` and `DatePicker`, so it is not applied.
+  - `RangeSlider`: on every `role="slider"` handle (both handles of a range, one logical value),
+    where the slider role supports the attribute; the root and the fill carry neither. There is no
+    `validationMessage` on any of them: the `Select`/`DatePicker` triggers are `type="button"`
+    buttons, excluded from the browser's constraint validation, and the `RangeSlider` handles are
+    `div`s, not a native `<input type="range">`; show the error inline through `Field`'s `error`.
+- **`Button`** (both bindings): plain `aria-describedby` and `aria-invalid` passthrough, forwarded
+  verbatim like `aria-expanded`/`aria-pressed`, absent unless given. They are what the `Select` and
+  `DatePicker` triggers use, and also let a `role="checkbox"` button inside a `Field` carry the
+  error. `aria-invalid` on a plain `role="button"` is exposed by browsers but outside that role's
+  ARIA contract; the prop's documentation says so.
+
+### Changed
+
+- The `Select` and `DatePicker` documentation no longer states that `aria-describedby` and
+  `aria-invalid` have no passthrough, and `Button`'s closed-prop-API note is gone from the
+  architecture document. `DatePicker` still has no `aria-label`/`aria-labelledby` passthrough:
+  `label` is its accessible-name lever.
+
 ## [2.7.2] - 2026-10-03
 
 ### Added

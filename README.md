@@ -61,7 +61,10 @@ ahead of time:
   to forget, not just documented. Plain
   `aria-expanded`/`aria-controls`/`aria-current`/`aria-pressed` passthrough for any button that
   discloses, controls, represents the current selection among others, or toggles a persistent on/off
-  state without changing its own `role`, forwarded verbatim to the real `<button>`.
+  state without changing its own `role`, forwarded verbatim to the real `<button>`. Plain
+  `aria-describedby`/`aria-invalid` passthrough too, for the `Select`/`DatePicker` triggers and a
+  `role="checkbox"` button inside a `Field` (see the `Select` entry for why `aria-invalid` on a
+  plain button is a documented trade-off).
 - ✅ **`IFrame`** — a real, standalone `<iframe>` primitive (not private to any other component — a
   future `Video` embed, a map, a scheduling widget all reuse this same one). `title` is required — a
   real accessibility guarantee, never optional. `loading="lazy"` is browser-native, no
@@ -445,12 +448,15 @@ ahead of time:
   manual Enter-to-commit (nothing here types, so there's no separate not-yet-committed highlight to
   maintain). Disabled options are skipped entirely during arrow navigation. Controlled
   (`value`/`onValueChange`, `open`/`onOpenChange`) with uncontrolled `defaultValue`/`defaultOpen`
-  fallbacks, same shape as every other stateful component here. No `aria-describedby`/`aria-invalid`
-  passthrough in this first version — `Button`'s own closed prop API has no such passthrough today;
-  a disclosed, not guessed-at, scope limit, same spirit as `Combobox`'s own `noOptionsMessage`
-  omission. No `validationMessage` (nor `required`/`aria-invalid`): the trigger is a `<button>` and
-  the options a `listbox`, so there is no native text control to carry a custom validity —
-  `Combobox`, `Input`, `Textarea`, `PasswordInput`, `MultiSelect` and `FileInput` have one.
+  fallbacks, same shape as every other stateful component here. Optional `aria-invalid` and
+  `aria-describedby` match `Field`'s render-prop, so `{...field}` wires the error: both go on the
+  trigger `<button>`, the one focusable, named element (`aria-describedby` is global; `aria-invalid`
+  is a documented trade-off, since WAI-ARIA 1.2 lists `combobox`/`listbox`/`textbox` and not
+  `button`, no wrapper role would be more valid, and a `role="combobox"` trigger would change every
+  `Select`'s markup). No `validationMessage` (nor `required`): the trigger is a `type="button"`
+  `<button>` and the options a `listbox`, so there is no native text control to carry a custom
+  validity — `Combobox`, `Input`, `Textarea`, `PasswordInput`, `MultiSelect` and `FileInput` have
+  one.
 
 - ✅ **`DatePicker`** — a single-date picker: a trigger `Button` showing the formatted selected
   date, opening a positioned popup with a day grid — plus a dedicated YEAR-selection view (a paged,
@@ -480,8 +486,10 @@ ahead of time:
   requirement. Deterministic first render (seam 6): an empty, freshly-opened picker's own "today"
   starts `null`, resolved only after mount, the same `Counter`/`Showcase` idiom. Zero `@zanix/space`
   dependency (pure calendar arithmetic plus native `Intl`, never `@formatjs/intl`) — ships from the
-  root barrel, same as `Select`/`Combobox`. No `validationMessage`: the trigger is a `Button` and
-  the value lives in a popup grid, with no native text input to carry a custom validity.
+  root barrel, same as `Select`/`Combobox`. Optional `aria-invalid` and `aria-describedby` match
+  `Field`'s render-prop and go on the trigger `Button`, with the same ARIA trade-off `Select`
+  documents; the popup grid takes neither. No `validationMessage`: the trigger is a `Button` and the
+  value lives in a popup grid, with no native text input to carry a custom validity.
 
 - ✅ **`MultiSelect`** — a multi-value tag/chip input, filling the real gap `Select`/`Combobox`
   leave (both single-select only, `value: string | null`, never `values: string[]`): a text input
@@ -688,8 +696,11 @@ ahead of time:
   other stateful component here. Per-instance handle/fill positioning (a continuous value, changing
   on every drag frame) applies via a CSSOM rule inside a self-rendered `<style nonce={nonce}>`
   element — the same `getOrInsertDynamicRule` mechanism `Tooltip`/`Popover` already use for their
-  own high-frequency position updates — never an inline `style` attribute. Zero `@zanix/space`
-  dependency, ships from the root barrel.
+  own high-frequency position updates — never an inline `style` attribute. Optional `aria-invalid`
+  and `aria-describedby` match `Field`'s render-prop and go on every `role="slider"` handle (both of
+  a range, one logical value), where the slider role supports them. No `validationMessage`: the
+  handles are `div`s, not a native `<input type="range">`. Zero `@zanix/space` dependency, ships
+  from the root barrel.
 - ✅ **`ConsentModal`** — a generic accept/decline confirmation dialog, composed entirely from
   `Modal`/`Button` (plus `Alert` for the optional `error` row) — extracted from real, near-identical
   duplication across two separate consumer apps, each of which had built their own cookie-consent

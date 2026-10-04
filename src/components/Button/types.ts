@@ -91,6 +91,26 @@ export type BaseButtonProps = {
    * need a plain boolean.
    */
   'aria-pressed'?: boolean | 'mixed'
+  /**
+   * Plain native ARIA passthrough: the id(s) of the element(s) that describe the button (an error,
+   * a hint), forwarded verbatim as the literal `aria-describedby` attribute. A global ARIA
+   * attribute, valid on every role this component renders. It exists for composing components
+   * whose trigger is a `Button` (`Select`, `DatePicker`) and for a `role="checkbox"` button inside
+   * a `Field`, whose render-prop hands the value over already combined. Absent by default: nothing
+   * is rendered.
+   */
+  'aria-describedby'?: string
+  /**
+   * Plain native ARIA passthrough: marks the control as holding an invalid value, forwarded as the
+   * literal `aria-invalid` attribute (`"true"`, and `"false"` when explicitly `false`). The WAI-ARIA
+   * 1.2 role list for `aria-invalid` covers `checkbox` (and so `role="switch"`, a checkbox
+   * subclass) but not the implicit `button` role: on a plain button it is exposed by browsers
+   * but is not part of the role's contract. It is here for `role="checkbox"` buttons inside a
+   * `Field` and for the `Select`/`DatePicker` triggers, whose documentation explains that
+   * trade-off. This component decides nothing about what is valid: the caller does. Absent by
+   * default: nothing is rendered.
+   */
+  'aria-invalid'?: boolean
 }
 
 /**

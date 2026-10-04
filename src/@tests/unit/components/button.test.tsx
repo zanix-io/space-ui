@@ -1,6 +1,7 @@
 import { assertEquals, assertStringIncludes } from '@std/assert'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { Button } from 'components/Button/index.ts'
+import { Field } from 'components/Field/index.ts'
 
 Deno.test('Button: renders a real <button> with type="button" by default', () => {
   const html = renderToStaticMarkup(<Button onClick={() => {}}>Open menu</Button>)
@@ -194,4 +195,43 @@ Deno.test('Button: id reaches the real DOM verbatim, for cross-referencing from 
   const html = renderToStaticMarkup(<Button id='tab-general'>General</Button>)
 
   assertStringIncludes(html, 'id="tab-general"')
+})
+
+// --- aria-describedby / aria-invalid passthrough -----------------------------------------------
+
+Deno.test('Button: aria-describedby and aria-invalid are forwarded verbatim', () => {
+  const html = renderToStaticMarkup(
+    <Button aria-describedby='hint error' aria-invalid>Open</Button>,
+  )
+
+  assertStringIncludes(html, 'aria-describedby="hint error"')
+  assertStringIncludes(html, 'aria-invalid="true"')
+})
+
+Deno.test('Button: an explicit aria-invalid={false} renders aria-invalid="false"', () => {
+  const html = renderToStaticMarkup(<Button aria-invalid={false}>Open</Button>)
+
+  assertStringIncludes(html, 'aria-invalid="false"')
+})
+
+Deno.test('Button: without the props neither attribute is rendered', () => {
+  const html = renderToStaticMarkup(<Button>Open</Button>)
+
+  assertEquals(html.includes('aria-describedby'), false)
+  assertEquals(html.includes('aria-invalid'), false)
+})
+
+Deno.test('Button: a role="checkbox" button inside Field is marked invalid and points at the error', () => {
+  const html = renderToStaticMarkup(
+    <Field label='Terms' error='Accept the terms'>
+      {(field) => <Button {...field} role='checkbox' checked={false}>I accept</Button>}
+    </Field>,
+  )
+
+  const button = html.match(/<button[^>]*>/)?.[0] ?? ''
+  assertStringIncludes(button, 'role="checkbox"')
+  assertStringIncludes(button, 'aria-invalid="true"')
+  const describedBy = button.match(/aria-describedby="([^"]+)"/)?.[1] ?? ''
+  assertEquals(describedBy !== '', true)
+  assertStringIncludes(html, `id="${describedBy}"`)
 })

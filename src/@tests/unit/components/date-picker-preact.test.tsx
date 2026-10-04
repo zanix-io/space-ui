@@ -5,6 +5,7 @@ import { act } from 'preact/test-utils'
 import { render as renderToString } from 'preact-render-to-string'
 import { assertEquals, assertStringIncludes } from '@std/assert'
 import { DatePicker } from 'components/DatePicker/index.preact.ts'
+import { Field } from 'components/Field/index.preact.ts'
 import type { DatePickerProps } from 'components/DatePicker/index.preact.ts'
 
 // Unlike every hookless Preact component in this package, `DatePicker` uses real hooks — built
@@ -330,6 +331,114 @@ Deno.test('DatePicker (preact): id/className land on the trigger button', () => 
   const trigger = must(container.querySelector('button'))
   assertEquals(trigger.id, 'dob')
   assertEquals(trigger.className, 'date-trigger')
+
+  unmount()
+})
+
+// --- aria-invalid / aria-describedby ---------------------------------------------------------
+
+Deno.test('DatePicker (preact): aria-invalid and aria-describedby land on the trigger button only', () => {
+  const html = renderToString(
+    element({
+      placeholder: 'Pick a date',
+      'aria-invalid': true,
+      'aria-describedby': 'date-error',
+    }),
+  )
+
+  const trigger = html.match(/<button[^>]*>/)?.[0] ?? ''
+  assertStringIncludes(trigger, 'aria-invalid="true"')
+  assertStringIncludes(trigger, 'aria-describedby="date-error"')
+  assertEquals((html.match(/aria-invalid/g) ?? []).length, 1)
+  assertEquals((html.match(/aria-describedby/g) ?? []).length, 1)
+})
+
+Deno.test('DatePicker (preact): an open calendar does not carry the attributes, only the trigger does', () => {
+  const { container, unmount } = mount({
+    placeholder: 'Pick a date',
+    defaultOpen: true,
+    'aria-invalid': true,
+    'aria-describedby': 'date-error',
+  })
+
+  assertEquals(container.querySelectorAll('[aria-invalid]').length, 1)
+  assertEquals(container.querySelectorAll('[aria-describedby]').length, 1)
+  assertEquals(must(container.querySelector('[aria-invalid]')).tagName, 'BUTTON')
+  assertEquals(container.querySelector('[role="grid"]')?.hasAttribute('aria-invalid'), false)
+
+  unmount()
+})
+
+Deno.test('DatePicker (preact): without the props the markup carries neither attribute and is unchanged', () => {
+  const omitted = renderToString(element({ placeholder: 'Pick a date' }))
+  const undefinedProps = renderToString(
+    element({
+      placeholder: 'Pick a date',
+      'aria-invalid': undefined,
+      'aria-describedby': undefined,
+    }),
+  )
+
+  assertEquals(omitted.includes('aria-invalid'), false)
+  assertEquals(omitted.includes('aria-describedby'), false)
+  assertEquals(undefinedProps, omitted)
+})
+
+Deno.test('DatePicker (preact): an explicit aria-invalid false renders aria-invalid="false"', () => {
+  const html = renderToString(element({ placeholder: 'Pick a date', 'aria-invalid': false }))
+
+  assertStringIncludes(html, 'aria-invalid="false"')
+})
+
+Deno.test('DatePicker (preact): inside Field, the render-prop wiring points the trigger at the error', () => {
+  const html = renderToString(
+    h(Field, {
+      label: 'Birthday',
+      hint: 'Day you were born',
+      error: 'Pick a date',
+      children: (field) => h(DatePicker, { ...field, placeholder: 'Pick a date' }),
+    }) as VNode,
+  )
+
+  const trigger = html.match(/<button[^>]*>/)?.[0] ?? ''
+  assertStringIncludes(trigger, 'aria-invalid="true"')
+  const describedBy = (trigger.match(/aria-describedby="([^"]+)"/)?.[1] ?? '').split(' ')
+  assertEquals(describedBy.length, 2)
+  for (const id of describedBy) assertStringIncludes(html, `id="${id}"`)
+  const id = trigger.match(/ id="([^"]+)"/)?.[1] ?? ''
+  assertStringIncludes(html, `for="${id}"`)
+})
+
+Deno.test('DatePicker (preact): inside Field without an error, neither attribute is rendered', () => {
+  const html = renderToString(
+    h(Field, {
+      label: 'Birthday',
+      children: (field) => h(DatePicker, { ...field, placeholder: 'Pick a date' }),
+    }) as VNode,
+  )
+
+  assertEquals(html.includes('aria-invalid'), false)
+  assertEquals(html.includes('aria-describedby'), false)
+})
+
+Deno.test('DatePicker (preact): the props change neither the toggling nor the selection', () => {
+  const picked: (string | null)[] = []
+  const { container, unmount } = mount({
+    placeholder: 'Pick a date',
+    defaultValue: '2000-01-15',
+    onValueChange: (value) => picked.push(value),
+    'aria-invalid': true,
+    'aria-describedby': 'e',
+  })
+  const trigger = openPicker(container)
+  assertEquals(trigger.getAttribute('aria-expanded'), 'true')
+
+  act(() => {
+    getCell(container, '2000-01-20').dispatchEvent(new MouseEvent('click', { bubbles: true }))
+  })
+
+  assertEquals(picked, ['2000-01-20'])
+  assertEquals(trigger.getAttribute('aria-invalid'), 'true')
 
   unmount()
 })

@@ -32,6 +32,8 @@ export function createButton<E>(h: CreateElement<E>): (props: ButtonProps) => E 
       'aria-controls': ariaControls,
       'aria-current': ariaCurrent,
       'aria-pressed': ariaPressed,
+      'aria-describedby': ariaDescribedBy,
+      'aria-invalid': ariaInvalid,
     } = props
     // `checked`/`selected` only exist on the role-specific branches of the ButtonProps union (see
     // that type's own doc) — read via a narrowed local, never destructured directly off `props`,
@@ -59,6 +61,8 @@ export function createButton<E>(h: CreateElement<E>): (props: ButtonProps) => E 
       'aria-controls': ariaControls,
       'aria-current': ariaCurrent,
       'aria-pressed': ariaPressed,
+      'aria-describedby': ariaDescribedBy,
+      'aria-invalid': ariaInvalid,
     }, children)
   }
 }

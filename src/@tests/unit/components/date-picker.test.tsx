@@ -4,6 +4,7 @@ import { createRoot } from 'react-dom/client'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { assertEquals, assertStringIncludes } from '@std/assert'
 import { DatePicker } from 'components/DatePicker/index.ts'
+import { Field } from 'components/Field/index.ts'
 
 function mount(element: ReturnType<typeof DatePicker>) {
   const container = document.createElement('div')
@@ -529,4 +530,104 @@ Deno.test('DatePicker: id/className land on the trigger button', () => {
 Deno.test('DatePicker: SSR with defaultOpen and no value never crashes, renders a grid', () => {
   const html = renderToStaticMarkup(<DatePicker defaultOpen placeholder='Choose' />)
   assertStringIncludes(html, 'role="grid"')
+})
+
+// --- aria-invalid / aria-describedby ---------------------------------------------------------
+
+Deno.test('DatePicker: aria-invalid and aria-describedby land on the trigger button only', () => {
+  const html = renderToStaticMarkup(
+    <DatePicker placeholder='Pick a date' aria-invalid aria-describedby='date-error' />,
+  )
+
+  const trigger = html.match(/<button[^>]*>/)?.[0] ?? ''
+  assertStringIncludes(trigger, 'aria-invalid="true"')
+  assertStringIncludes(trigger, 'aria-describedby="date-error"')
+  assertEquals((html.match(/aria-invalid/g) ?? []).length, 1)
+  assertEquals((html.match(/aria-describedby/g) ?? []).length, 1)
+})
+
+Deno.test('DatePicker: an open calendar does not carry the attributes, only the trigger does', () => {
+  const { container, unmount } = mount(
+    <DatePicker
+      placeholder='Pick a date'
+      defaultOpen
+      aria-invalid
+      aria-describedby='date-error'
+    />,
+  )
+
+  assertEquals(container.querySelectorAll('[aria-invalid]').length, 1)
+  assertEquals(container.querySelectorAll('[aria-describedby]').length, 1)
+  assertEquals(must(container.querySelector('[aria-invalid]')).tagName, 'BUTTON')
+  assertEquals(container.querySelector('[role="grid"]')?.hasAttribute('aria-invalid'), false)
+
+  unmount()
+})
+
+Deno.test('DatePicker: without the props the markup carries neither attribute and is unchanged', () => {
+  const omitted = renderToStaticMarkup(<DatePicker placeholder='Pick a date' />)
+  const undefinedProps = renderToStaticMarkup(
+    <DatePicker placeholder='Pick a date' aria-invalid={undefined} aria-describedby={undefined} />,
+  )
+
+  assertEquals(omitted.includes('aria-invalid'), false)
+  assertEquals(omitted.includes('aria-describedby'), false)
+  assertEquals(undefinedProps, omitted)
+})
+
+Deno.test('DatePicker: an explicit aria-invalid={false} renders aria-invalid="false"', () => {
+  const html = renderToStaticMarkup(<DatePicker placeholder='Pick a date' aria-invalid={false} />)
+
+  assertStringIncludes(html, 'aria-invalid="false"')
+})
+
+Deno.test('DatePicker: inside Field, the render-prop wiring points the trigger at the error', () => {
+  const html = renderToStaticMarkup(
+    <Field label='Birthday' hint='Day you were born' error='Pick a date'>
+      {(field) => <DatePicker {...field} placeholder='Pick a date' />}
+    </Field>,
+  )
+
+  const trigger = html.match(/<button[^>]*>/)?.[0] ?? ''
+  assertStringIncludes(trigger, 'aria-invalid="true"')
+  const describedBy = (trigger.match(/aria-describedby="([^"]+)"/)?.[1] ?? '').split(' ')
+  assertEquals(describedBy.length, 2)
+  for (const id of describedBy) assertStringIncludes(html, `id="${id}"`)
+  const id = trigger.match(/ id="([^"]+)"/)?.[1] ?? ''
+  assertStringIncludes(html, `for="${id}"`)
+})
+
+Deno.test('DatePicker: inside Field without an error, neither attribute is rendered', () => {
+  const html = renderToStaticMarkup(
+    <Field label='Birthday'>
+      {(field) => <DatePicker {...field} placeholder='Pick a date' />}
+    </Field>,
+  )
+
+  assertEquals(html.includes('aria-invalid'), false)
+  assertEquals(html.includes('aria-describedby'), false)
+})
+
+Deno.test('DatePicker: the props change neither the toggling nor the selection', () => {
+  const picked: (string | null)[] = []
+  const { container, unmount } = mount(
+    <DatePicker
+      placeholder='Pick a date'
+      defaultValue='2000-01-15'
+      onValueChange={(value) => picked.push(value)}
+      aria-invalid
+      aria-describedby='e'
+    />,
+  )
+  const trigger = openPicker(container)
+  assertEquals(trigger.getAttribute('aria-expanded'), 'true')
+
+  act(() => {
+    getCell(container, '2000-01-20').dispatchEvent(new MouseEvent('click', { bubbles: true }))
+  })
+
+  assertEquals(picked, ['2000-01-20'])
+  assertEquals(trigger.getAttribute('aria-invalid'), 'true')
+
+  unmount()
 })

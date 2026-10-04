@@ -1,6 +1,9 @@
 import { assertEquals, assertStringIncludes } from '@std/assert'
+import { h } from 'preact'
+import type { VNode } from 'preact'
 import { render } from 'preact-render-to-string'
 import { Button } from 'components/Button/index.preact.ts'
+import { Field } from 'components/Field/index.preact.ts'
 
 // Called as a plain function, not via JSX — see `icon-preact.test.tsx`'s own doc for why.
 
@@ -165,4 +168,47 @@ Deno.test('Button (preact): id reaches the real DOM verbatim', () => {
   const html = render(Button({ id: 'tab-general', children: 'General' }))
 
   assertStringIncludes(html, 'id="tab-general"')
+})
+
+// --- aria-describedby / aria-invalid passthrough -----------------------------------------------
+
+Deno.test('Button (preact): aria-describedby and aria-invalid are forwarded verbatim', () => {
+  const html = render(
+    Button({ 'aria-describedby': 'hint error', 'aria-invalid': true, children: 'Open' }),
+  )
+
+  assertStringIncludes(html, 'aria-describedby="hint error"')
+  assertStringIncludes(html, 'aria-invalid="true"')
+})
+
+Deno.test('Button (preact): an explicit aria-invalid false renders aria-invalid="false"', () => {
+  const html = render(Button({ 'aria-invalid': false, children: 'Open' }))
+
+  assertStringIncludes(html, 'aria-invalid="false"')
+})
+
+Deno.test('Button (preact): without the props neither attribute is rendered', () => {
+  const html = render(Button({ children: 'Open' }))
+
+  assertEquals(html.includes('aria-describedby'), false)
+  assertEquals(html.includes('aria-invalid'), false)
+})
+
+Deno.test('Button (preact): a role="checkbox" button inside Field is marked invalid and points at the error', () => {
+  // `Field` uses a real hook (`useId`), so it renders through Preact's own pipeline via `h`.
+  const html = render(
+    h(Field, {
+      label: 'Terms',
+      error: 'Accept the terms',
+      children: (field) =>
+        Button({ ...field, role: 'checkbox', checked: false, children: 'I accept' }),
+    }) as VNode,
+  )
+
+  const button = html.match(/<button[^>]*>/)?.[0] ?? ''
+  assertStringIncludes(button, 'role="checkbox"')
+  assertStringIncludes(button, 'aria-invalid="true"')
+  const describedBy = button.match(/aria-describedby="([^"]+)"/)?.[1] ?? ''
+  assertEquals(describedBy !== '', true)
+  assertStringIncludes(html, `id="${describedBy}"`)
 })

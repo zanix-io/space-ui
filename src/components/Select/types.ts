@@ -49,6 +49,37 @@ export type SelectBaseProps = {
   placement?: Placement
   /** @default 8 */
   offset?: number
+  /**
+   * Marks the control as holding an invalid value, on the trigger `<button>`: the one focusable,
+   * named element of the component, which `Field`'s `<label htmlFor>` points at and which a
+   * `[aria-invalid="true"]` focus lookup reaches directly. Pass it together with
+   * `aria-describedby`, and give the visible text to `Field`'s `error`, whose render-prop already
+   * hands both over:
+   *
+   * ```tsx
+   * <Field label='City' error={error}>
+   *   {(field) => <Select {...field} options={cities} placeholder='Pick a city' />}
+   * </Field>
+   * ```
+   *
+   * WAI-ARIA 1.2 does not list `aria-invalid` for the implicit `button` role (it lists `combobox`,
+   * `listbox`, `textbox` and others), so this is a deliberate trade-off: browsers expose the
+   * attribute on any element, and no wrapper role would be more valid (`aria-invalid` is not
+   * supported on `group` or on a generic element either). The role-correct alternative, a
+   * `role="combobox"` trigger with `aria-haspopup="listbox"`, changes the markup of every `Select`
+   * and is not done here. It decides nothing about what is valid: that stays the caller's. There is
+   * no `validationMessage`: the trigger is a `type="button"` button, which the browser excludes
+   * from constraint validation, so there is no native control to call `setCustomValidity` on.
+   * Validate on the server or in the caller, and report the result here. Absent by default:
+   * nothing is rendered.
+   */
+  'aria-invalid'?: boolean
+  /**
+   * The id(s) of the element(s) that describe the control (an error, a hint), on the trigger
+   * `<button>`, where `aria-describedby` is valid. `Field`'s render-prop gives it already combined
+   * (the hint's and the error's ids, space-separated), so pass it verbatim. Absent by default.
+   */
+  'aria-describedby'?: string
   id?: string
   className?: string
   /** Threaded onto this component's own self-rendered `<style>` element(s), required only when

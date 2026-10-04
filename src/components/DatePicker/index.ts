@@ -137,8 +137,8 @@ export type DatePickerProps = DatePickerBaseProps
  * `formatMessage`/`formatRichText` only — no `formatDate`, and no way to read the raw `locale`
  * string `IntlProvider` was given back out through `useIntl()` either. Extending `Formatter`'s own
  * public contract to add either is a separate, wider change than this component's own addition
- * should force — the same "disclosed, not guessed at" scope-limit precedent `Select`'s own missing
- * `aria-describedby` passthrough and `Combobox`'s own missing `noOptionsMessage` already establish.
+ * should force — the same "disclosed, not guessed at" scope-limit precedent `Combobox`'s own
+ * missing `noOptionsMessage` already establishes.
  * Native `Intl.DateTimeFormat`/`Intl.NumberFormat` need no `@formatjs` dependency at all for this —
  * `locale` (BCP-47, default `'en'`) is a plain prop instead, so this component works standalone
  * (unlike `RichText`, it does NOT require an `<IntlProvider>` ancestor); a caller already inside one
@@ -146,15 +146,15 @@ export type DatePickerProps = DatePickerBaseProps
  * design question (should `Formatter` grow a `locale` getter/`formatDate` for a future component
  * like this one to build on) rather than worked around by expanding this component's own scope.
  *
- * ## No `aria-describedby`/`aria-invalid`/`aria-label`/`aria-labelledby` passthrough in this first
- * version — same disclosed gap `Select` already has, not reinvented here
+ * ## `aria-invalid` / `aria-describedby`, for use inside `Field`
  *
- * The trigger composes `Button` verbatim, exactly like `Select`'s own trigger, and inherits the
- * identical constraint: `Button`'s own closed prop API has no such passthrough today (only
- * `aria-expanded`/`aria-controls`/`aria-current`), and extending it is a separate, wider change
- * this component's own addition shouldn't force on its own. `label` (accessible-name override,
- * `Select.label`/`Button.label`'s own convention) is the one accessible-name lever available, same
- * as `Select`.
+ * Both are optional and land on the trigger `<button>`, the one element that names and carries the
+ * value (see {@linkcode DatePickerBaseProps} for the `Field` wiring and the ARIA trade-off, the
+ * same as `Select`'s). The calendar popup takes neither: its grid is not the control the invalid
+ * state belongs to. Without the props the markup is unchanged. There is no `validationMessage`: a
+ * `type="button"` button is outside the browser's constraint validation. There is no
+ * `aria-label`/`aria-labelledby` passthrough: `label` (accessible-name override,
+ * `Select.label`/`Button.label`'s own convention) is the one accessible-name lever available.
  *
  * ## An optional trigger icon — the same composition `ImgButton.icon`/`.caption` already
  * establishes

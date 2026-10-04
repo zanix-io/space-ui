@@ -68,6 +68,33 @@ export type DatePickerBaseProps = {
    * the popup (`Intl.DateTimeFormat` directly — see `index.ts`'s own doc for why this is a plain
    * prop rather than reading `useIntl()`'s own formatter). @default 'en' */
   locale?: string
+  /**
+   * Marks the control as holding an invalid value, on the trigger `<button>`: the one focusable,
+   * named element of the component, which `Field`'s `<label htmlFor>` points at and which a
+   * `[aria-invalid="true"]` focus lookup reaches directly. Pass it together with
+   * `aria-describedby`, and give the visible text to `Field`'s `error`, whose render-prop already
+   * hands both over:
+   *
+   * ```tsx
+   * <Field label='Birthday' error={error}>
+   *   {(field) => <DatePicker {...field} placeholder='Pick a date' />}
+   * </Field>
+   * ```
+   *
+   * The ARIA trade-off is the one `SelectBaseProps['aria-invalid']` documents: WAI-ARIA 1.2 does
+   * not list `aria-invalid` for the implicit `button` role, no wrapper role would be more valid,
+   * and the role-correct `combobox` trigger would change every `DatePicker`'s markup. It decides
+   * nothing about what is valid (a date outside `min`/`max` is still the caller's to report), and
+   * there is no `validationMessage`: a `type="button"` button is excluded from the browser's
+   * constraint validation. Absent by default: nothing is rendered.
+   */
+  'aria-invalid'?: boolean
+  /**
+   * The id(s) of the element(s) that describe the control (an error, a hint), on the trigger
+   * `<button>`, where `aria-describedby` is valid. `Field`'s render-prop gives it already combined
+   * (the hint's and the error's ids, space-separated), so pass it verbatim. Absent by default.
+   */
+  'aria-describedby'?: string
   id?: string
   className?: string
   /** Threaded onto this component's own self-rendered `<style>` element(s), required only when

@@ -5,6 +5,7 @@ import { act } from 'preact/test-utils'
 import { render as renderToString } from 'preact-render-to-string'
 import { assertEquals, assertStringIncludes } from '@std/assert'
 import { Select } from 'components/Select/index.preact.ts'
+import { Field } from 'components/Field/index.preact.ts'
 import type { SelectProps } from 'components/Select/index.preact.ts'
 import type { SelectOption } from 'components/Select/types.ts'
 
@@ -461,6 +462,125 @@ Deno.test('Select (preact): id/className land on the trigger button', () => {
   const trigger = must(container.querySelector('button'))
   assertEquals(trigger.id, 'size-select')
   assertEquals(trigger.className, 'select-trigger')
+
+  unmount()
+})
+
+// --- aria-invalid / aria-describedby ---------------------------------------------------------
+
+Deno.test('Select (preact): aria-invalid and aria-describedby land on the trigger button only', () => {
+  const html = renderToString(
+    element({
+      options: SIZES,
+      placeholder: 'Choose',
+      'aria-invalid': true,
+      'aria-describedby': 'size-error',
+    }),
+  )
+
+  const trigger = html.match(/<button[^>]*>/)?.[0] ?? ''
+  assertStringIncludes(trigger, 'aria-invalid="true"')
+  assertStringIncludes(trigger, 'aria-describedby="size-error"')
+  assertEquals((html.match(/aria-invalid/g) ?? []).length, 1)
+  assertEquals((html.match(/aria-describedby/g) ?? []).length, 1)
+})
+
+Deno.test('Select (preact): an open listbox does not carry the attributes, only the trigger does', () => {
+  const { container, unmount } = mount({
+    options: SIZES,
+    placeholder: 'Choose',
+    defaultOpen: true,
+    'aria-invalid': true,
+    'aria-describedby': 'size-error',
+  })
+
+  assertEquals(container.querySelectorAll('[aria-invalid]').length, 1)
+  assertEquals(container.querySelectorAll('[aria-describedby]').length, 1)
+  assertEquals(must(container.querySelector('[aria-invalid]')).tagName, 'BUTTON')
+  assertEquals(container.querySelector('[role="listbox"]')?.hasAttribute('aria-invalid'), false)
+
+  unmount()
+})
+
+Deno.test('Select (preact): without the props the markup carries neither attribute and is unchanged', () => {
+  const omitted = renderToString(element({ options: SIZES, placeholder: 'Choose' }))
+  const undefinedProps = renderToString(
+    element({
+      options: SIZES,
+      placeholder: 'Choose',
+      'aria-invalid': undefined,
+      'aria-describedby': undefined,
+    }),
+  )
+
+  assertEquals(omitted.includes('aria-invalid'), false)
+  assertEquals(omitted.includes('aria-describedby'), false)
+  assertEquals(undefinedProps, omitted)
+})
+
+Deno.test('Select (preact): an explicit aria-invalid false renders aria-invalid="false"', () => {
+  const html = renderToString(
+    element({ options: SIZES, placeholder: 'Choose', 'aria-invalid': false }),
+  )
+
+  assertStringIncludes(html, 'aria-invalid="false"')
+})
+
+Deno.test('Select (preact): inside Field, the render-prop wiring points the trigger at the error', () => {
+  const html = renderToString(
+    h(Field, {
+      label: 'Size',
+      hint: 'Pick one',
+      error: 'Pick a size',
+      children: (field) => h(Select, { ...field, options: SIZES, placeholder: 'Choose' }),
+    }) as VNode,
+  )
+
+  const trigger = html.match(/<button[^>]*>/)?.[0] ?? ''
+  assertStringIncludes(trigger, 'aria-invalid="true"')
+  const describedBy = (trigger.match(/aria-describedby="([^"]+)"/)?.[1] ?? '').split(' ')
+  assertEquals(describedBy.length, 2)
+  for (const id of describedBy) assertStringIncludes(html, `id="${id}"`)
+  assertStringIncludes(html, 'Pick a size')
+  const id = trigger.match(/ id="([^"]+)"/)?.[1] ?? ''
+  assertStringIncludes(html, `for="${id}"`)
+})
+
+Deno.test('Select (preact): inside Field without an error, neither attribute is rendered', () => {
+  const html = renderToString(
+    h(Field, {
+      label: 'Size',
+      children: (field) => h(Select, { ...field, options: SIZES, placeholder: 'Choose' }),
+    }) as VNode,
+  )
+
+  assertEquals(html.includes('aria-invalid'), false)
+  assertEquals(html.includes('aria-describedby'), false)
+})
+
+Deno.test('Select (preact): the props change neither the toggling nor the selection', () => {
+  const picked: (string | null)[] = []
+  const { container, unmount } = mount({
+    options: SIZES,
+    placeholder: 'Choose',
+    onValueChange: (value) => picked.push(value),
+    'aria-invalid': true,
+    'aria-describedby': 'e',
+  })
+  const trigger = must(container.querySelector('button'))
+
+  act(() => {
+    trigger.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+  })
+  assertEquals(trigger.getAttribute('aria-expanded'), 'true')
+  act(() => {
+    must(container.querySelector('[role="option"]')).dispatchEvent(
+      new MouseEvent('click', { bubbles: true }),
+    )
+  })
+
+  assertEquals(picked, ['small'])
+  assertEquals(trigger.getAttribute('aria-invalid'), 'true')
 
   unmount()
 })

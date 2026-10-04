@@ -19,6 +19,32 @@ export type RangeSliderCommonProps = {
   /** Removes every handle from the tab order (`tabIndex={-1}`) and marks each `aria-disabled`,
    * ignoring keyboard/pointer input entirely. @default false */
   disabled?: boolean
+  /**
+   * Marks the value as invalid, on every `role="slider"` handle (both of them for the two-handle
+   * range, which is one logical value): the elements the WAI-ARIA slider role supports the
+   * attribute on, and the focusable ones. Pass it together with `aria-describedby`, and give the
+   * visible text to `Field`'s `error`, whose render-prop already hands both over:
+   *
+   * ```tsx
+   * <Field label='Age range' error={error}>
+   *   {(field) => <RangeSlider {...field} minLabel='Minimum age' maxLabel='Maximum age' />}
+   * </Field>
+   * ```
+   *
+   * `Field`'s `id` lands on the root `<div>`, which is not a labelable element, so the visible
+   * `<label>` does not name the handles: `label`/`minLabel`/`maxLabel` do. It decides nothing about
+   * what is valid: that stays the caller's. There is no `validationMessage`: the handles are
+   * `role="slider"` divs, not a native `<input type="range">`, so there is no constraint validation
+   * and no control to call `setCustomValidity` on. Validate on the server or in the caller, and
+   * report the result here. Absent by default: nothing is rendered.
+   */
+  'aria-invalid'?: boolean
+  /**
+   * The id(s) of the element(s) that describe the value (an error, a hint), on every
+   * `role="slider"` handle. `Field`'s render-prop gives it already combined (the hint's and the
+   * error's ids, space-separated), so pass it verbatim. Absent by default.
+   */
+  'aria-describedby'?: string
   id?: string
   className?: string
   /** This component's own per-instance handle/fill positioning (a continuous 0–100% value with no

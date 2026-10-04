@@ -5,6 +5,7 @@ import { renderToStaticMarkup } from 'react-dom/server'
 import { assert, assertEquals, assertMatch, assertStringIncludes } from '@std/assert'
 import { must } from './dom-test-setup.ts'
 import { RangeSlider } from 'components/RangeSlider/index.ts'
+import { Field } from 'components/Field/index.ts'
 import type { RangeSliderProps } from 'components/RangeSlider/index.ts'
 
 // `RangeSlider` uses real hooks (`useState`/`useRef`/`useEffect`/`useLayoutEffect`) — mounted
@@ -566,6 +567,107 @@ Deno.test('RangeSlider: dragging after mount still updates the dynamic rule live
 
   const rule = lastDynamicRule(container, "[data-range-slider-handle='single']")
   assertEquals(rule.style.left, '20%')
+
+  unmount()
+})
+
+// --- aria-invalid / aria-describedby ---------------------------------------------------------
+
+Deno.test('RangeSlider: aria-invalid and aria-describedby land on the single role="slider" handle', () => {
+  const html = renderToStaticMarkup(
+    <RangeSlider label='Radius' value={30} aria-invalid aria-describedby='radius-error' />,
+  )
+
+  const handle = html.match(/<div[^>]*role="slider"[^>]*>/)?.[0] ?? ''
+  assertStringIncludes(handle, 'aria-invalid="true"')
+  assertStringIncludes(handle, 'aria-describedby="radius-error"')
+  assertEquals((html.match(/aria-invalid/g) ?? []).length, 1)
+  assertEquals((html.match(/aria-describedby/g) ?? []).length, 1)
+})
+
+Deno.test('RangeSlider: both handles of a range carry the attributes, the root and fill do not', () => {
+  const { container, unmount } = mount({
+    minLabel: 'Min age',
+    maxLabel: 'Max age',
+    defaultValue: [20, 40],
+    'aria-invalid': true,
+    'aria-describedby': 'age-error',
+  })
+
+  const marked = Array.from(container.querySelectorAll('[aria-invalid]'))
+  assertEquals(marked.length, 2)
+  assertEquals(marked.every((el) => el.getAttribute('role') === 'slider'), true)
+  assertEquals(
+    marked.every((el) => el.getAttribute('aria-describedby') === 'age-error'),
+    true,
+  )
+  assertEquals(container.querySelectorAll('[aria-describedby]').length, 2)
+
+  unmount()
+})
+
+Deno.test('RangeSlider: without the props the markup carries neither attribute and is unchanged', () => {
+  const omitted = renderToStaticMarkup(<RangeSlider label='Radius' value={30} />)
+  const undefinedProps = renderToStaticMarkup(
+    <RangeSlider
+      label='Radius'
+      value={30}
+      aria-invalid={undefined}
+      aria-describedby={undefined}
+    />,
+  )
+
+  assertEquals(omitted.includes('aria-invalid'), false)
+  assertEquals(omitted.includes('aria-describedby'), false)
+  assertEquals(undefinedProps, omitted)
+})
+
+Deno.test('RangeSlider: an explicit aria-invalid={false} renders aria-invalid="false"', () => {
+  const html = renderToStaticMarkup(<RangeSlider label='Radius' value={30} aria-invalid={false} />)
+
+  assertStringIncludes(html, 'aria-invalid="false"')
+})
+
+Deno.test('RangeSlider: inside Field, the render-prop wiring points the handle at the error', () => {
+  const html = renderToStaticMarkup(
+    <Field label='Radius' hint='In km' error='Too far'>
+      {(field) => <RangeSlider {...field} label='Radius' value={30} />}
+    </Field>,
+  )
+
+  const handle = html.match(/<div[^>]*role="slider"[^>]*>/)?.[0] ?? ''
+  assertStringIncludes(handle, 'aria-invalid="true"')
+  const describedBy = (handle.match(/aria-describedby="([^"]+)"/)?.[1] ?? '').split(' ')
+  assertEquals(describedBy.length, 2)
+  for (const id of describedBy) assertStringIncludes(html, `id="${id}"`)
+  assertStringIncludes(html, 'Too far')
+})
+
+Deno.test('RangeSlider: inside Field without an error, neither attribute is rendered', () => {
+  const html = renderToStaticMarkup(
+    <Field label='Radius'>{(field) => <RangeSlider {...field} label='Radius' value={30} />}</Field>,
+  )
+
+  assertEquals(html.includes('aria-invalid'), false)
+  assertEquals(html.includes('aria-describedby'), false)
+})
+
+Deno.test('RangeSlider: the props change neither the value nor the keyboard behavior', () => {
+  const changes: number[] = []
+  const { container, unmount } = mount({
+    label: 'Radius',
+    defaultValue: 30,
+    onValueChange: (value) => changes.push(value),
+    'aria-invalid': true,
+    'aria-describedby': 'e',
+  })
+  const [handle] = handles(container)
+
+  keyDown(handle, 'ArrowRight')
+
+  assertEquals(changes, [31])
+  assertEquals(handle.getAttribute('aria-valuenow'), '31')
+  assertEquals(handle.getAttribute('aria-invalid'), 'true')
 
   unmount()
 })
