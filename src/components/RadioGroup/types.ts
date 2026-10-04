@@ -48,6 +48,33 @@ export type RadioGroupBaseProps = {
   /** Accessible name for the `role="radiogroup"` root — required, same "a group needs a name"
    * contract `Menu.label` already has for its own `<nav>`. */
   label: string
+  /**
+   * Marks the group as having an invalid value, on the `role="radiogroup"` root (the element that
+   * names the group and the one assistive technology reads the invalid state from, which the
+   * WAI-ARIA radiogroup role supports). Pass it together with `aria-describedby`, and give the
+   * visible text to `Field`'s `error`, whose render-prop already hands both over:
+   *
+   * ```tsx
+   * <Field label='Plan' error={error}>
+   *   {(field) => <RadioGroup {...field} label='Plan' items={plans} />}
+   * </Field>
+   * ```
+   *
+   * It does not set anything native and decides nothing about what is valid: that stays the
+   * caller's, as it does for every other component's `aria-invalid`. There is no
+   * `validationMessage` here on purpose: the items are `role="radio"` buttons, not native
+   * `<input type="radio">` controls, so the group takes no part in the browser's constraint
+   * validation (not in `required`, `checkValidity()` or a blocked submit) and there is no single
+   * native control to call `setCustomValidity` on. Validate on the server or in the caller, and
+   * report the result here. Absent by default: nothing is rendered.
+   */
+  'aria-invalid'?: boolean
+  /**
+   * The id(s) of the element(s) that describe the group (an error, a hint), on the
+   * `role="radiogroup"` root. `Field`'s render-prop gives it already combined (the hint's and the
+   * error's ids, space-separated), so pass it verbatim. Absent by default.
+   */
+  'aria-describedby'?: string
   id?: string
   className?: string
 }

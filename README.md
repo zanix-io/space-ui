@@ -286,11 +286,12 @@ ahead of time:
   yet, sits in the normal `Tab` sequence). Data-driven (`items: RadioGroupItem[]`), controlled
   (`value`/`onValueChange`) with an uncontrolled `defaultValue` fallback. No `validationMessage`:
   the items are `Button`s with `role="radio"`, not native `<input type="radio">`, so no native
-  control carries a custom validity. The same shape also correctly covers a visually segmented
-  single-select control — no separate component for that, since ARIA cares about the logical
-  relationship, not the styling. Deliberately does NOT cover a multi-select toggle group
-  (independently-pressable buttons, `aria-pressed` rather than `aria-checked`, no roving tabindex at
-  all) — a genuinely different widget, out of scope until something needs it.
+  control carries a custom validity; `aria-invalid` and `aria-describedby` go on the radiogroup root
+  and match `Field`'s render-prop, so `{...field}` wires the error. The same shape also correctly
+  covers a visually segmented single-select control — no separate component for that, since ARIA
+  cares about the logical relationship, not the styling. Deliberately does NOT cover a multi-select
+  toggle group (independently-pressable buttons, `aria-pressed` rather than `aria-checked`, no
+  roving tabindex at all) — a genuinely different widget, out of scope until something needs it.
 
 - ✅ **`Tabs`** — the WAI-ARIA Tabs pattern: `role="tablist"` wrapping `role="tab"` items, roving
   tabindex with the same "arrow keys select immediately" automatic-activation behavior `RadioGroup`

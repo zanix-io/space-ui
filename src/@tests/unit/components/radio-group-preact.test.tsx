@@ -5,6 +5,7 @@ import { act } from 'preact/test-utils'
 import { render as renderToString } from 'preact-render-to-string'
 import { assertEquals, assertStringIncludes } from '@std/assert'
 import { RadioGroup } from 'components/RadioGroup/index.preact.ts'
+import { Field } from 'components/Field/index.preact.ts'
 import type { RadioGroupItem, RadioGroupProps } from 'components/RadioGroup/index.preact.ts'
 
 // Unlike every hookless Preact component in this package, `RadioGroup` uses real hooks — built
@@ -310,3 +311,82 @@ Deno.test(
     unmount()
   },
 )
+
+// --- aria-invalid / aria-describedby ---------------------------------------------------------
+
+Deno.test('RadioGroup (preact): aria-invalid and aria-describedby land on the role="radiogroup" root', () => {
+  const html = renderToString(
+    element({ items, label: 'Size', 'aria-invalid': true, 'aria-describedby': 'size-error' }),
+  )
+
+  const root = html.match(/<div[^>]*role="radiogroup"[^>]*>/)?.[0] ?? ''
+  assertStringIncludes(root, 'aria-invalid="true"')
+  assertStringIncludes(root, 'aria-describedby="size-error"')
+  assertEquals((html.match(/aria-invalid/g) ?? []).length, 1)
+  assertEquals((html.match(/aria-describedby/g) ?? []).length, 1)
+})
+
+Deno.test('RadioGroup (preact): without the props the markup carries neither attribute', () => {
+  const html = renderToString(element({ items, label: 'Size', defaultValue: 'medium' }))
+
+  assertEquals(html.includes('aria-invalid'), false)
+  assertEquals(html.includes('aria-describedby'), false)
+})
+
+Deno.test('RadioGroup (preact): an explicit aria-invalid false renders aria-invalid="false"', () => {
+  const html = renderToString(element({ items, label: 'Size', 'aria-invalid': false }))
+
+  assertStringIncludes(html, 'aria-invalid="false"')
+})
+
+Deno.test('RadioGroup (preact): inside Field, the render-prop wiring points the group at the error', () => {
+  const html = renderToString(
+    h(Field, {
+      label: 'Size',
+      error: 'Pick a size',
+      children: (field) => h(RadioGroup, { ...field, items, label: 'Size' }),
+    }) as VNode,
+  )
+
+  const root = html.match(/<div[^>]*role="radiogroup"[^>]*>/)?.[0] ?? ''
+  assertStringIncludes(root, 'aria-invalid="true"')
+  const describedBy = root.match(/aria-describedby="([^"]+)"/)?.[1] ?? ''
+  assertEquals(describedBy !== '', true)
+  assertStringIncludes(html, `id="${describedBy}"`)
+  assertStringIncludes(html, 'Pick a size')
+  const id = root.match(/ id="([^"]+)"/)?.[1] ?? ''
+  assertStringIncludes(html, `for="${id}"`)
+})
+
+Deno.test('RadioGroup (preact): inside Field without an error, neither attribute is rendered', () => {
+  const html = renderToString(
+    h(Field, {
+      label: 'Size',
+      children: (field) => h(RadioGroup, { ...field, items, label: 'Size' }),
+    }) as VNode,
+  )
+
+  assertEquals(html.includes('aria-invalid'), false)
+  assertEquals(html.includes('aria-describedby'), false)
+})
+
+Deno.test('RadioGroup (preact): the props change neither the selection nor the roving tabindex', () => {
+  const { container, unmount } = mount({
+    items,
+    label: 'Size',
+    'aria-invalid': true,
+    'aria-describedby': 'e',
+  })
+  const [small, medium] = radios(container)
+
+  small.focus()
+  arrowKey(small, 'ArrowRight')
+
+  assertEquals(medium.getAttribute('aria-checked'), 'true')
+  assertEquals(medium.getAttribute('tabindex'), '0')
+  assertEquals(small.getAttribute('tabindex'), '-1')
+  assertEquals(document.activeElement, medium)
+  assertEquals(container.querySelector('[role="radiogroup"]')?.getAttribute('aria-invalid'), 'true')
+
+  unmount()
+})

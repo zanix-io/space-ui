@@ -4,6 +4,7 @@ import { createRoot } from 'react-dom/client'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { assertEquals, assertStringIncludes } from '@std/assert'
 import { RadioGroup } from 'components/RadioGroup/index.ts'
+import { Field } from 'components/Field/index.ts'
 import type { RadioGroupItem } from 'components/RadioGroup/index.ts'
 
 /**
@@ -311,6 +312,80 @@ Deno.test('RadioGroup: ArrowRight from the last enabled item skips a disabled on
   assertEquals(medium.getAttribute('aria-checked'), 'true')
   assertEquals(document.activeElement, medium)
   assertEquals(small.getAttribute('aria-checked'), 'false')
+
+  unmount()
+})
+
+// --- aria-invalid / aria-describedby ---------------------------------------------------------
+
+Deno.test('RadioGroup: aria-invalid and aria-describedby land on the role="radiogroup" root', () => {
+  const html = renderToStaticMarkup(
+    <RadioGroup items={items} label='Size' aria-invalid aria-describedby='size-error' />,
+  )
+
+  const root = html.match(/<div[^>]*role="radiogroup"[^>]*>/)?.[0] ?? ''
+  assertStringIncludes(root, 'aria-invalid="true"')
+  assertStringIncludes(root, 'aria-describedby="size-error"')
+  // Only the root carries them: no item is marked invalid.
+  assertEquals((html.match(/aria-invalid/g) ?? []).length, 1)
+  assertEquals((html.match(/aria-describedby/g) ?? []).length, 1)
+})
+
+Deno.test('RadioGroup: without the props the markup carries neither attribute', () => {
+  const html = renderToStaticMarkup(<RadioGroup items={items} label='Size' defaultValue='medium' />)
+
+  assertEquals(html.includes('aria-invalid'), false)
+  assertEquals(html.includes('aria-describedby'), false)
+})
+
+Deno.test('RadioGroup: an explicit aria-invalid={false} renders aria-invalid="false"', () => {
+  const html = renderToStaticMarkup(<RadioGroup items={items} label='Size' aria-invalid={false} />)
+
+  assertStringIncludes(html, 'aria-invalid="false"')
+})
+
+Deno.test('RadioGroup: inside Field, the render-prop wiring points the group at the error', () => {
+  const html = renderToStaticMarkup(
+    <Field label='Size' error='Pick a size'>
+      {(field) => <RadioGroup {...field} items={items} label='Size' />}
+    </Field>,
+  )
+
+  const root = html.match(/<div[^>]*role="radiogroup"[^>]*>/)?.[0] ?? ''
+  assertStringIncludes(root, 'aria-invalid="true"')
+  const describedBy = root.match(/aria-describedby="([^"]+)"/)?.[1] ?? ''
+  assertEquals(describedBy !== '', true)
+  // The id it points at is the one the error element renders with.
+  assertStringIncludes(html, `id="${describedBy}"`)
+  assertStringIncludes(html, 'Pick a size')
+  // The root takes the Field's id, the one its label points at.
+  const id = root.match(/ id="([^"]+)"/)?.[1] ?? ''
+  assertStringIncludes(html, `for="${id}"`)
+})
+
+Deno.test('RadioGroup: inside Field without an error, neither attribute is rendered', () => {
+  const html = renderToStaticMarkup(
+    <Field label='Size'>{(field) => <RadioGroup {...field} items={items} label='Size' />}</Field>,
+  )
+
+  assertEquals(html.includes('aria-invalid'), false)
+  assertEquals(html.includes('aria-describedby'), false)
+})
+
+Deno.test('RadioGroup: the props change neither the selection nor the roving tabindex', () => {
+  const { container, unmount } = mount(
+    <RadioGroup items={items} label='Size' aria-invalid aria-describedby='e' />,
+  )
+  const [small, medium] = radios(container)
+
+  small.focus()
+  arrowKey(small, 'ArrowRight')
+
+  assertEquals(medium.getAttribute('aria-checked'), 'true')
+  assertEquals(medium.getAttribute('tabindex'), '0')
+  assertEquals(small.getAttribute('tabindex'), '-1')
+  assertEquals(document.activeElement, medium)
+  assertEquals(container.querySelector('[role="radiogroup"]')?.getAttribute('aria-invalid'), 'true')
 
   unmount()
 })

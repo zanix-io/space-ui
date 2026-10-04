@@ -58,6 +58,8 @@ export function createRadioGroup<E, Node>(
       onValueChange,
       orientation = 'horizontal',
       label,
+      'aria-invalid': ariaInvalid,
+      'aria-describedby': ariaDescribedBy,
       id,
       className,
     } = props
@@ -118,6 +120,8 @@ export function createRadioGroup<E, Node>(
         className,
         role: 'radiogroup',
         'aria-label': label,
+        'aria-invalid': ariaInvalid,
+        'aria-describedby': ariaDescribedBy,
         'data-space-ui': 'radio-group',
         onKeyDown: handleKeyDown,
       },

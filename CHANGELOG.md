@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/) and this project
 adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [2.7.2] - 2026-10-03
+
+### Added
+
+- **`RadioGroup`** (both bindings): optional `aria-invalid` and `aria-describedby` props, rendered
+  on the `role="radiogroup"` root, the element the ARIA pattern defines both attributes for (the
+  items are `role="radio"` buttons, where `aria-invalid` is not valid). They are the two props
+  `Field`'s render-prop hands over, so `<Field error>{(field) => <RadioGroup {...field} />}</Field>`
+  now marks the group invalid and points it at the error message. Without the props the markup is
+  identical to before. There is no `validationMessage`: the items are buttons, not native radios, so
+  there is no constraint validation, `required` or `setCustomValidity` to drive; show the error
+  inline through `Field`'s `error`.
+
+  Patch rather than minor: the props are additive and optional, change no existing output or
+  behavior and add no new component or concept, in line with 2.7.1's own additions to existing
+  components.
+
 ## [2.7.1] - 2026-10-03
 
 ### Fixed
