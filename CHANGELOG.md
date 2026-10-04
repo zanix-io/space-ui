@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/) and this project
 adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [2.9.1] - 2026-10-04
+
+### Added
+
+- **`Button` accepts `role="combobox"`**, paired at the type level with `aria-expanded` and an
+  `aria-haspopup` of `listbox`, `tree`, `grid` or `dialog`.
+
+### Fixed
+
+- **The `Select` and `DatePicker` triggers are `role="combobox"` buttons** with `aria-haspopup`
+  (`listbox` and `dialog`). `aria-invalid`, which `Field` hands to them, was not valid on the
+  implicit `button` role; it is on `combobox`. The markup of the trigger gains the two attributes;
+  nothing else changes, and `Button`'s props stay compatible.
+
 ## [2.9.0] - 2026-10-04
 
 ### Added

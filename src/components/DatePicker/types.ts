@@ -81,9 +81,8 @@ export type DatePickerBaseProps = {
    * </Field>
    * ```
    *
-   * The ARIA trade-off is the one `SelectBaseProps['aria-invalid']` documents: WAI-ARIA 1.2 does
-   * not list `aria-invalid` for the implicit `button` role, no wrapper role would be more valid,
-   * and the role-correct `combobox` trigger would change every `DatePicker`'s markup. It decides
+   * The trigger is a `role="combobox"` button with `aria-haspopup="dialog"`, a role WAI-ARIA 1.2
+   * lists `aria-invalid` for, the same as `SelectBaseProps['aria-invalid']` documents. It decides
    * nothing about what is valid (a date outside `min`/`max` is still the caller's to report), and
    * there is no `validationMessage`: a `type="button"` button is excluded from the browser's
    * constraint validation. Absent by default: nothing is rendered.

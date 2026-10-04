@@ -546,6 +546,15 @@ Deno.test('DatePicker: aria-invalid and aria-describedby land on the trigger but
   assertEquals((html.match(/aria-describedby/g) ?? []).length, 1)
 })
 
+Deno.test('DatePicker: the trigger is a combobox that announces its dialog popup', () => {
+  const html = renderToStaticMarkup(<DatePicker placeholder='Pick a date' />)
+
+  const trigger = html.match(/<button[^>]*>/)?.[0] ?? ''
+  assertStringIncludes(trigger, 'role="combobox"')
+  assertStringIncludes(trigger, 'aria-haspopup="dialog"')
+  assertStringIncludes(trigger, 'aria-expanded="false"')
+})
+
 Deno.test('DatePicker: an open calendar does not carry the attributes, only the trigger does', () => {
   const { container, unmount } = mount(
     <DatePicker

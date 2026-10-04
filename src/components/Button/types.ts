@@ -8,6 +8,11 @@ export type CheckedButtonRole =
   | 'menuitemcheckbox'
   | 'menuitemradio'
 
+/** The popup a `role="combobox"` button opens: WAI-ARIA 1.2 allows these four values on a combobox,
+ * and `Select` and `DatePicker` use `listbox` and `dialog`. A combobox with no popup kind is not a
+ * complete widget, so the type requires it. */
+export type ComboboxButtonPopup = 'listbox' | 'tree' | 'grid' | 'dialog'
+
 /** The fields every `Button` variant shares, regardless of `role` — see {@linkcode ButtonProps}'s
  * own doc for the `role`-specific fields layered on top. */
 export type BaseButtonProps = {
@@ -104,11 +109,11 @@ export type BaseButtonProps = {
    * Plain native ARIA passthrough: marks the control as holding an invalid value, forwarded as the
    * literal `aria-invalid` attribute (`"true"`, and `"false"` when explicitly `false`). The WAI-ARIA
    * 1.2 role list for `aria-invalid` covers `checkbox` (and so `role="switch"`, a checkbox
-   * subclass) but not the implicit `button` role: on a plain button it is exposed by browsers
-   * but is not part of the role's contract. It is here for `role="checkbox"` buttons inside a
-   * `Field` and for the `Select`/`DatePicker` triggers, whose documentation explains that
-   * trade-off. This component decides nothing about what is valid: the caller does. Absent by
-   * default: nothing is rendered.
+   * subclass) and `combobox` but not the implicit `button` role: on a plain button it is exposed
+   * by browsers but is not part of the role's contract, so pass it only with one of those roles.
+   * It is here for `role="checkbox"` buttons inside a `Field` and for the `role="combobox"`
+   * triggers of `Select` and `DatePicker`. This component decides nothing about what is valid:
+   * the caller does. Absent by default: nothing is rendered.
    */
   'aria-invalid'?: boolean
 }
@@ -128,4 +133,9 @@ export type ButtonProps =
     | { role?: undefined | 'menuitem' }
     | { role: CheckedButtonRole; checked: boolean }
     | { role: 'tab'; selected: boolean }
+    | {
+      role: 'combobox'
+      'aria-expanded': boolean
+      'aria-haspopup': ComboboxButtonPopup
+    }
   )

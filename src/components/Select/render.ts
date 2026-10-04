@@ -280,6 +280,8 @@ export function createSelect<E>(
         id,
         className,
         label,
+        role: 'combobox',
+        'aria-haspopup': 'listbox',
         'aria-expanded': open,
         'aria-controls': listboxId,
         'aria-invalid': ariaInvalid,

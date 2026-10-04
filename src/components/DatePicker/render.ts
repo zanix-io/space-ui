@@ -379,6 +379,8 @@ export function createDatePicker<E>(
         id,
         className,
         label,
+        role: 'combobox',
+        'aria-haspopup': 'dialog',
         'aria-expanded': open,
         'aria-controls': panelId,
         'aria-invalid': ariaInvalid,

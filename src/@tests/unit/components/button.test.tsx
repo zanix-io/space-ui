@@ -197,6 +197,19 @@ Deno.test('Button: id reaches the real DOM verbatim, for cross-referencing from 
   assertStringIncludes(html, 'id="tab-general"')
 })
 
+Deno.test('Button: a combobox role renders its popup kind and expanded state', () => {
+  const html = renderToStaticMarkup(
+    <Button role='combobox' aria-haspopup='listbox' aria-expanded={false} aria-invalid>
+      Open
+    </Button>,
+  )
+
+  assertStringIncludes(html, 'role="combobox"')
+  assertStringIncludes(html, 'aria-haspopup="listbox"')
+  assertStringIncludes(html, 'aria-expanded="false"')
+  assertStringIncludes(html, 'aria-invalid="true"')
+})
+
 // --- aria-describedby / aria-invalid passthrough -----------------------------------------------
 
 Deno.test('Button: aria-describedby and aria-invalid are forwarded verbatim', () => {

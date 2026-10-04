@@ -41,6 +41,7 @@ export function createButton<E>(h: CreateElement<E>): (props: ButtonProps) => E 
     // different name.
     const checked = 'checked' in props ? props.checked : undefined
     const selected = 'selected' in props ? props.selected : undefined
+    const hasPopup = 'aria-haspopup' in props ? props['aria-haspopup'] : undefined
 
     return h('button', {
       type,
@@ -57,6 +58,7 @@ export function createButton<E>(h: CreateElement<E>): (props: ButtonProps) => E 
       'aria-label': label,
       'aria-checked': checked,
       'aria-selected': selected,
+      'aria-haspopup': hasPopup,
       'aria-expanded': ariaExpanded,
       'aria-controls': ariaControls,
       'aria-current': ariaCurrent,

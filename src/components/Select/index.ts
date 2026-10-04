@@ -97,14 +97,11 @@ export type SelectProps = SelectBaseProps
  * ## `aria-invalid` / `aria-describedby`, for use inside `Field`
  *
  * Both are optional and land on the trigger `<button>` (see {@linkcode SelectBaseProps} for the
- * `Field` wiring). `aria-describedby` is a global ARIA attribute and valid there. `aria-invalid`
- * is the one deliberate trade-off: the WAI-ARIA 1.2 role list for it does not include `button`,
- * but no wrapper element would be more valid either (`group` and a generic element do not support
- * it), the trigger is the only focusable element a `[aria-invalid="true"]` focus lookup can
- * reach, and browsers expose the attribute on any element. The role-correct form, a
- * `role="combobox"` trigger with `aria-haspopup="listbox"`, would change the markup of every
- * `Select` and is not applied. Without the props the markup is unchanged. The props are handed to
- * the composed `Button`, whose own `aria-invalid`/`aria-describedby` passthrough exists for this.
+ * `Field` wiring). The trigger carries `role="combobox"` and `aria-haspopup="listbox"` (the
+ * select-only combobox pattern: ArrowDown, ArrowUp, Home and End open the list), so `aria-invalid`
+ * is valid on it, and it is the one focusable element a `[aria-invalid="true"]` focus lookup can
+ * reach. `aria-describedby` is a global ARIA attribute. Without the props the only markup the
+ * props add is absent. The props are handed to the composed `Button`.
  * There is no `validationMessage`: a `type="button"` button is outside the browser's constraint
  * validation.
  */

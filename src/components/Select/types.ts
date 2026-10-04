@@ -62,12 +62,9 @@ export type SelectBaseProps = {
    * </Field>
    * ```
    *
-   * WAI-ARIA 1.2 does not list `aria-invalid` for the implicit `button` role (it lists `combobox`,
-   * `listbox`, `textbox` and others), so this is a deliberate trade-off: browsers expose the
-   * attribute on any element, and no wrapper role would be more valid (`aria-invalid` is not
-   * supported on `group` or on a generic element either). The role-correct alternative, a
-   * `role="combobox"` trigger with `aria-haspopup="listbox"`, changes the markup of every `Select`
-   * and is not done here. It decides nothing about what is valid: that stays the caller's. There is
+   * The trigger is a `role="combobox"` button with `aria-haspopup="listbox"`, a role WAI-ARIA 1.2
+   * lists `aria-invalid` for (the implicit `button` role does not). It decides nothing about what
+   * is valid: that stays the caller's. There is
    * no `validationMessage`: the trigger is a `type="button"` button, which the browser excludes
    * from constraint validation, so there is no native control to call `setCustomValidity` on.
    * Validate on the server or in the caller, and report the result here. Absent by default:

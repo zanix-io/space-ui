@@ -468,6 +468,15 @@ Deno.test('Select (preact): id/className land on the trigger button', () => {
 
 // --- aria-invalid / aria-describedby ---------------------------------------------------------
 
+Deno.test('Select (preact): the trigger is a combobox that announces its listbox popup', () => {
+  const html = renderToString(element({ options: SIZES, placeholder: 'Choose' }))
+
+  const trigger = html.match(/<button[^>]*>/)?.[0] ?? ''
+  assertStringIncludes(trigger, 'role="combobox"')
+  assertStringIncludes(trigger, 'aria-haspopup="listbox"')
+  assertStringIncludes(trigger, 'aria-expanded="false"')
+})
+
 Deno.test('Select (preact): aria-invalid and aria-describedby land on the trigger button only', () => {
   const html = renderToString(
     element({

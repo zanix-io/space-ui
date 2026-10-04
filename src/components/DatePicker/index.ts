@@ -149,8 +149,8 @@ export type DatePickerProps = DatePickerBaseProps
  * ## `aria-invalid` / `aria-describedby`, for use inside `Field`
  *
  * Both are optional and land on the trigger `<button>`, the one element that names and carries the
- * value (see {@linkcode DatePickerBaseProps} for the `Field` wiring and the ARIA trade-off, the
- * same as `Select`'s). The calendar popup takes neither: its grid is not the control the invalid
+ * value (see {@linkcode DatePickerBaseProps} for the `Field` wiring; the trigger is a
+ * `role="combobox"` button with `aria-haspopup="dialog"`, as `Select`'s is with `listbox`). The calendar popup takes neither: its grid is not the control the invalid
  * state belongs to. Without the props the markup is unchanged. There is no `validationMessage`: a
  * `type="button"` button is outside the browser's constraint validation. There is no
  * `aria-label`/`aria-labelledby` passthrough: `label` (accessible-name override,
