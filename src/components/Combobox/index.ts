@@ -9,6 +9,7 @@ import { createElementWithNonceHydrationFix } from 'shared/create-element-nonce-
 import { useCloseOnOutside } from 'shared/close-on-outside.ts'
 import { useCustomValidity } from 'shared/custom-validity.ts'
 import { getNextRovingIndex } from 'shared/roving-focus.ts'
+import { emitValueChange } from 'shared/value-change-event.ts'
 import {
   buildOverlayCss,
   DISPLAY_CONTENTS_WRAPPER_ATTR,
@@ -204,6 +205,7 @@ export function Combobox(props: ComboboxProps): ReactElement {
     if (option.disabled) return
     setValue(option.value)
     setInputValue(option.label)
+    emitValueChange(inputRef.current)
     setOpen(false)
   }
 

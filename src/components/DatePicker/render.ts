@@ -36,6 +36,8 @@ import {
 } from './date-utils.ts'
 import type { DatePickerBaseProps } from './types.ts'
 import { resolveActiveNonce } from 'shared/active-nonce.ts'
+import { emitValueChange } from 'shared/value-change-event.ts'
+import { valueMissingAttribute } from 'shared/value-missing.ts'
 
 /** Minimal structural shape both `React.KeyboardEvent` and Preact's own native `KeyboardEvent`
  * satisfy — this file never imports React or Preact, same reasoning `shared/escape-to-close.ts`'s
@@ -148,6 +150,7 @@ export function createDatePicker<E>(
       hourCycle = 'h24',
       defaultTime,
       locale = 'en',
+      required,
       'aria-invalid': ariaInvalid,
       'aria-describedby': ariaDescribedBy,
       id,
@@ -180,6 +183,7 @@ export function createDatePicker<E>(
     const setValue = (next: string | null) => {
       if (!isValueControlled) setInternalValue(next)
       onValueChange?.(next)
+      emitValueChange(getTriggerElement())
     }
     const setOpen = (next: boolean) => {
       if (!isOpenControlled) setInternalOpen(next)
@@ -365,7 +369,12 @@ export function createDatePicker<E>(
 
     const trigger = h(
       'span',
-      { key: 'trigger', ref: triggerWrapperRef, [DISPLAY_CONTENTS_WRAPPER_ATTR]: '' },
+      {
+        key: 'trigger',
+        ref: triggerWrapperRef,
+        [DISPLAY_CONTENTS_WRAPPER_ATTR]: '',
+        'data-value-missing': valueMissingAttribute(required, !selectedDate),
+      },
       Button({
         id,
         className,

@@ -584,3 +584,86 @@ Deno.test('Select (preact): the props change neither the toggling nor the select
 
   unmount()
 })
+
+// --- change event for a delegated form listener ----------------------------------------------
+
+/** Collects the target of every bubbling `change` event that reaches `container`. */
+function collectChanges(container: HTMLElement): EventTarget[] {
+  const targets: EventTarget[] = []
+  container.addEventListener('change', (event) => {
+    if (event.target) targets.push(event.target)
+  })
+  return targets
+}
+
+Deno.test('Select (preact): choosing an option fires one bubbling change event from the trigger', () => {
+  const { container, unmount } = mount({ ...basicProps(), 'aria-invalid': true })
+  const changes = collectChanges(container)
+  const trigger = must(container.querySelector('button'))
+  act(() => {
+    trigger.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+  })
+  assertEquals(changes.length, 0)
+  const disabled = must(
+    Array.from(container.querySelectorAll('[role="option"]')).find((o) =>
+      o.textContent === 'Medium'
+    ),
+  )
+  act(() => {
+    disabled.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+  })
+  assertEquals(changes.length, 0)
+  const large = must(
+    Array.from(container.querySelectorAll('[role="option"]')).find((o) =>
+      o.textContent === 'Large'
+    ),
+  )
+  act(() => {
+    large.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+  })
+
+  assertEquals(changes.length, 1)
+  assertEquals(changes[0], trigger)
+  assertEquals(trigger.getAttribute('aria-invalid'), 'true')
+  unmount()
+})
+
+// --- required (data-value-missing) -----------------------------------------------------------
+
+Deno.test('Select (preact): required and empty marks the trigger wrapper data-value-missing', () => {
+  const html = renderToString(element({ options: SIZES, placeholder: 'Choose', required: true }))
+  assertStringIncludes(html, 'data-value-missing="true"')
+  assertEquals((html.match(/data-value-missing/g) ?? []).length, 1)
+  assertEquals(html.includes('required'), false)
+})
+
+Deno.test('Select (preact): no data-value-missing without required, or once a value is set', () => {
+  assertEquals(
+    renderToString(element({ options: SIZES, placeholder: 'Choose' })).includes(
+      'data-value-missing',
+    ),
+    false,
+  )
+  assertEquals(
+    renderToString(element({ options: SIZES, required: true, defaultValue: SIZES[0].value }))
+      .includes('data-value-missing'),
+    false,
+  )
+})
+
+Deno.test('Select (preact): the marker is dropped after the visitor chooses an option', async () => {
+  const { container, unmount } = mount({ options: SIZES, placeholder: 'Choose', required: true })
+  assertEquals(container.querySelectorAll('[data-value-missing="true"]').length, 1)
+  await act(() => {
+    must(container.querySelector('button')).dispatchEvent(
+      new MouseEvent('click', { bubbles: true }),
+    )
+  })
+  const option = must(container.querySelector('[role="option"]'))
+  await act(() => {
+    option.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }))
+    option.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+  })
+  assertEquals(container.querySelectorAll('[data-value-missing]').length, 0)
+  unmount()
+})

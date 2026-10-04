@@ -153,7 +153,11 @@ export type { DrawerAccessibleName, DrawerBaseProps, DrawerSide } from 'componen
 
 export { Field } from 'components/Field/index.ts'
 export type { FieldProps } from 'components/Field/index.ts'
-export type { FieldBaseProps, FieldRenderProps } from 'components/Field/types.ts'
+export type {
+  FieldBaseProps,
+  FieldRenderProps,
+  FieldValidationMessages,
+} from 'components/Field/types.ts'
 
 export { Input } from 'components/Input/index.ts'
 export type { InputProps } from 'components/Input/index.ts'

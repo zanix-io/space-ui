@@ -152,3 +152,65 @@ Deno.test('Field (preact): real DOM — the rendered input is focusable, right i
 
   renderDOM(null, container)
 })
+
+// --- validationMessages ----------------------------------------------------------------------
+
+Deno.test('Field (preact): validationMessages become data-* attributes on the wrapper only', () => {
+  const html = renderToString(
+    h(Field, {
+      label: 'Email',
+      validationMessages: { required: 'Say it', typeMismatch: 'Not an email', default: 'Fix it' },
+      children: (fieldProps) => h('input', { ...fieldProps, type: 'email', required: true }),
+    }),
+  )
+  const wrapper = html.match(/<div[^>]*data-space-ui="field"[^>]*>/)?.[0] ?? ''
+  assertStringIncludes(wrapper, 'data-message-required="Say it"')
+  assertStringIncludes(wrapper, 'data-message-type-mismatch="Not an email"')
+  assertStringIncludes(wrapper, 'data-validation-message="Fix it"')
+  assertEquals((html.match(/data-message-/g) ?? []).length, 2)
+})
+
+Deno.test('Field (preact): every validationMessages key maps to its own attribute', () => {
+  const html = renderToString(
+    h(Field, {
+      label: 'N',
+      validationMessages: {
+        patternMismatch: 'a',
+        tooShort: 'b',
+        tooLong: 'c',
+        rangeUnderflow: 'd',
+        rangeOverflow: 'e',
+        stepMismatch: 'f',
+        badInput: 'g',
+      },
+      children: (fieldProps) => h('input', fieldProps),
+    }),
+  )
+  for (
+    const name of [
+      'pattern-mismatch',
+      'too-short',
+      'too-long',
+      'range-underflow',
+      'range-overflow',
+      'step-mismatch',
+      'bad-input',
+    ]
+  ) assertStringIncludes(html, `data-message-${name}="`)
+})
+
+Deno.test('Field (preact): without validationMessages the markup is unchanged', () => {
+  const build = (extra: Record<string, unknown>) =>
+    renderToString(
+      h(Field, {
+        label: 'Email',
+        id: 'f',
+        ...extra,
+        children: (fieldProps) => h('input', fieldProps),
+      }),
+    )
+  const plain = build({})
+  assertEquals(plain, build({ validationMessages: {} }))
+  assertEquals(plain.includes('data-message'), false)
+  assertEquals(plain.includes('data-validation-message'), false)
+})

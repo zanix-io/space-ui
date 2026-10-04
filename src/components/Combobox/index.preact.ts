@@ -3,6 +3,7 @@ import type { JSX, VNode } from 'preact'
 import { useEffect, useId, useLayoutEffect, useRef, useState } from 'preact/hooks'
 import { useCloseOnOutside } from 'shared/close-on-outside.preact.ts'
 import { getNextRovingIndex } from 'shared/roving-focus.ts'
+import { emitValueChange } from 'shared/value-change-event.ts'
 import {
   buildOverlayCss,
   DISPLAY_CONTENTS_WRAPPER_ATTR,
@@ -113,6 +114,7 @@ export function Combobox(props: ComboboxProps): VNode {
     if (option.disabled) return
     setValue(option.value)
     setInputValue(option.label)
+    emitValueChange(inputRef.current)
     setOpen(false)
   }
 

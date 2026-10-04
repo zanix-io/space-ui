@@ -148,3 +148,65 @@ Deno.test('Field: real DOM — the rendered input is focusable and carries the r
 
   act(() => root.unmount())
 })
+
+// --- validationMessages ----------------------------------------------------------------------
+
+Deno.test('Field: validationMessages become data-* attributes on the wrapper only', () => {
+  const html = renderToStaticMarkup(
+    <Field
+      label='Email'
+      validationMessages={{ required: 'Say it', typeMismatch: 'Not an email', default: 'Fix it' }}
+    >
+      {(fieldProps) => <input {...fieldProps} type='email' required />}
+    </Field>,
+  )
+  const wrapper = html.match(/<div[^>]*data-space-ui="field"[^>]*>/)?.[0] ?? ''
+  assertStringIncludes(wrapper, 'data-message-required="Say it"')
+  assertStringIncludes(wrapper, 'data-message-type-mismatch="Not an email"')
+  assertStringIncludes(wrapper, 'data-validation-message="Fix it"')
+  assertEquals((html.match(/data-message-/g) ?? []).length, 2)
+})
+
+Deno.test('Field: every validationMessages key maps to its own attribute', () => {
+  const html = renderToStaticMarkup(
+    <Field
+      label='N'
+      validationMessages={{
+        patternMismatch: 'a',
+        tooShort: 'b',
+        tooLong: 'c',
+        rangeUnderflow: 'd',
+        rangeOverflow: 'e',
+        stepMismatch: 'f',
+        badInput: 'g',
+      }}
+    >
+      {(fieldProps) => <input {...fieldProps} />}
+    </Field>,
+  )
+  for (
+    const name of [
+      'pattern-mismatch',
+      'too-short',
+      'too-long',
+      'range-underflow',
+      'range-overflow',
+      'step-mismatch',
+      'bad-input',
+    ]
+  ) assertStringIncludes(html, `data-message-${name}="`)
+})
+
+Deno.test('Field: without validationMessages the markup is unchanged', () => {
+  const plain = renderToStaticMarkup(
+    <Field label='Email' id='f'>{(fieldProps) => <input {...fieldProps} />}</Field>,
+  )
+  const empty = renderToStaticMarkup(
+    <Field label='Email' id='f' validationMessages={{}}>
+      {(fieldProps) => <input {...fieldProps} />}
+    </Field>,
+  )
+  assertEquals(plain, empty)
+  assertEquals(plain.includes('data-message'), false)
+  assertEquals(plain.includes('data-validation-message'), false)
+})

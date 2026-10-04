@@ -12,6 +12,8 @@ import {
 } from 'shared/overlay-position-css.ts'
 import type { SelectBaseProps, SelectOption } from './types.ts'
 import { resolveActiveNonce } from 'shared/active-nonce.ts'
+import { emitValueChange } from 'shared/value-change-event.ts'
+import { valueMissingAttribute } from 'shared/value-missing.ts'
 
 /**
  * The static, non-dynamic part of this component's own listbox positioning — same
@@ -97,6 +99,7 @@ export function createSelect<E>(
       label,
       placement = 'bottom',
       offset = 8,
+      required,
       'aria-invalid': ariaInvalid,
       'aria-describedby': ariaDescribedBy,
       id,
@@ -133,6 +136,7 @@ export function createSelect<E>(
     const selectOption = (option: SelectOption) => {
       if (option.disabled) return
       setValue(option.value)
+      emitValueChange(getTriggerElement())
     }
 
     const triggerWrapperRef = hooks.useRef<HTMLSpanElement | null>(null)
@@ -266,7 +270,12 @@ export function createSelect<E>(
 
     const trigger = h(
       'span',
-      { key: 'trigger', ref: triggerWrapperRef, [DISPLAY_CONTENTS_WRAPPER_ATTR]: '' },
+      {
+        key: 'trigger',
+        ref: triggerWrapperRef,
+        [DISPLAY_CONTENTS_WRAPPER_ATTR]: '',
+        'data-value-missing': valueMissingAttribute(required, selectedIndex === -1),
+      },
       Button({
         id,
         className,

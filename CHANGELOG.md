@@ -5,6 +5,38 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/) and this project
 adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [2.9.0] - 2026-10-04
+
+### Added
+
+- **`Field`'s `validationMessages` prop** (both bindings, type `FieldValidationMessages`): the text
+  a form-level validator shows when the control inside fails the browser's constraint validation,
+  one key per failure (`required`, `typeMismatch`, `patternMismatch`, `tooShort`, `tooLong`,
+  `rangeUnderflow`, `rangeOverflow`, `stepMismatch`, `badInput`, and `default` for any other),
+  rendered as `data-message-*`/`data-validation-message` attributes on `Field`'s root.
+  `@zanix/space`'s `ManagedForm` `validateInline` reads them for the control inside, so a native
+  `<input required>` gets its own message without a prop on `Input`. Without the prop the markup is
+  identical to before.
+- **`required` on `Select`, `DatePicker` and `RadioGroup`** (both bindings): these controls render
+  no native field, so the browser's `required` cannot apply to them. While `required` is set and
+  nothing is chosen, the trigger's wrapper `<span>` of `Select`/`DatePicker`, and the
+  `role="radiogroup"` root of `RadioGroup`, carry `data-value-missing="true"` (the DOM counterpart
+  of `validity.valueMissing`); `RadioGroup` also sets `aria-required="true"`. A form-level validator
+  (`ManagedForm` `validateInline`) reads the marker to block the submit and show the field's
+  message. The attribute is absent otherwise and blocks nothing by itself, so a form without such a
+  validator renders and behaves as before.
+- **`Select`, `DatePicker`, `MultiSelect`, `Combobox` and `RadioGroup`** (both bindings): a value
+  change the visitor makes now fires one bubbling `change` event from the control's own
+  `aria-invalid` element (the trigger `<button>` of `Select` and `DatePicker`, the `<input>` of
+  `MultiSelect` and `Combobox`, the `role="radiogroup"` root of `RadioGroup`). These controls keep
+  their value in component state and render no native field, so a `<form>`-level `input`/`change`
+  listener never saw the edit; `@zanix/space`'s `ManagedForm` `clearInvalidOnInput` relies on it to
+  clear the control's server-rendered error as soon as the visitor edits it. The event fires from a
+  user interaction only (never from an effect or a controlled-value sync), after the component's own
+  `onValueChange`/`onValuesChange` callback, and not for a disabled option. Additive: no prop and no
+  markup change. A `change` handler a consumer already attached on an ancestor of one of these
+  controls (a Preact `<form onChange>`, for instance) now also runs for it.
+
 ## [2.8.0] - 2026-10-03
 
 ### Added

@@ -787,3 +787,36 @@ Deno.test('MultiSelect (preact): unmounting with the listbox open leaves no erro
   unmount()
   assertEquals(input.validity.customError, false)
 })
+
+// --- change event for a delegated form listener ----------------------------------------------
+
+/** Collects the target of every bubbling `change` event that reaches `container`. */
+function collectChanges(container: HTMLElement): EventTarget[] {
+  const targets: EventTarget[] = []
+  container.addEventListener('change', (event) => {
+    if (event.target) targets.push(event.target)
+  })
+  return targets
+}
+
+Deno.test('MultiSelect (preact): adding a chip fires a bubbling change event from the input', () => {
+  const { container, unmount } = mount(basicProps({ 'aria-invalid': true }))
+  const changes = collectChanges(container)
+  const input = must(container.querySelector<HTMLInputElement>('input'))
+  act(() => {
+    input.dispatchEvent(new Event('focus'))
+  })
+  assertEquals(changes.length, 0)
+  const english = must(
+    Array.from(container.querySelectorAll('[role="option"]')).find((o) =>
+      o.textContent === 'English'
+    ),
+  )
+  act(() => {
+    english.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+  })
+
+  assertEquals(changes.length, 1)
+  assertEquals(changes[0], input)
+  unmount()
+})

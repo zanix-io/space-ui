@@ -1,4 +1,4 @@
-import './dom-test-setup.ts'
+import { must } from './dom-test-setup.ts'
 import { h, render as renderDOM } from 'preact'
 import type { VNode } from 'preact'
 import { act } from 'preact/test-utils'
@@ -388,5 +388,60 @@ Deno.test('RadioGroup (preact): the props change neither the selection nor the r
   assertEquals(document.activeElement, medium)
   assertEquals(container.querySelector('[role="radiogroup"]')?.getAttribute('aria-invalid'), 'true')
 
+  unmount()
+})
+
+// --- change event for a delegated form listener ----------------------------------------------
+
+/** Collects the target of every bubbling `change` event that reaches `container`. */
+function collectChanges(container: HTMLElement): EventTarget[] {
+  const targets: EventTarget[] = []
+  container.addEventListener('change', (event) => {
+    if (event.target) targets.push(event.target)
+  })
+  return targets
+}
+
+Deno.test('RadioGroup (preact): choosing an item fires one bubbling change event from the group root', () => {
+  const { container, unmount } = mount({ items, label: 'Size', 'aria-invalid': true })
+  const changes = collectChanges(container)
+  const root = must(container.querySelector('[role="radiogroup"]'))
+  const [, medium] = radios(container)
+
+  act(() => medium.click())
+
+  assertEquals(changes.length, 1)
+  assertEquals(changes[0], root)
+  unmount()
+})
+
+// --- required (aria-required / data-value-missing) -------------------------------------------
+
+Deno.test('RadioGroup (preact): required and empty sets aria-required and data-value-missing on the root', () => {
+  const html = renderToString(element({ items, label: 'Size', required: true }))
+  const root = html.match(/<div[^>]*role="radiogroup"[^>]*>/)?.[0] ?? ''
+  assertStringIncludes(root, 'aria-required="true"')
+  assertStringIncludes(root, 'data-value-missing="true"')
+})
+
+Deno.test('RadioGroup (preact): without required, or with a value, neither attribute is rendered', () => {
+  assertEquals(
+    renderToString(element({ items, label: 'Size' })).includes('data-value-missing'),
+    false,
+  )
+  const withValue = renderToString(
+    element({ items, label: 'Size', required: true, defaultValue: 'small' }),
+  )
+  assertEquals(withValue.includes('data-value-missing'), false)
+  assertStringIncludes(withValue, 'aria-required="true"')
+})
+
+Deno.test('RadioGroup (preact): the marker is dropped after the visitor chooses an item', () => {
+  const { container, unmount } = mount({ items, label: 'Size', required: true })
+  assertEquals(container.querySelectorAll('[data-value-missing="true"]').length, 1)
+  act(() => {
+    radios(container)[1].dispatchEvent(new MouseEvent('click', { bubbles: true }))
+  })
+  assertEquals(container.querySelectorAll('[data-value-missing]').length, 0)
   unmount()
 })

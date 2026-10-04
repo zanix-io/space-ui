@@ -68,6 +68,15 @@ export type RadioGroupBaseProps = {
    * native control to call `setCustomValidity` on. Validate on the server or in the caller, and
    * report the result here. Absent by default: nothing is rendered.
    */
+  /**
+   * Marks the control as required. This component renders no native field, so the browser's own
+   * `required` cannot apply to it: while `required` is set and no item is chosen, its own element carries
+   * `data-value-missing="true"` (the DOM counterpart of `validity.valueMissing`), which a
+   * form-level validator such as `@zanix/space`'s `ManagedForm` `validateInline` reads to block the
+   * submit and show the field's own message. Nothing else changes, and the attribute blocks nothing
+   * without such a validator: the server still decides. `aria-required="true"` is set on the `role="radiogroup"` root too. Absent by default.
+   */
+  required?: boolean
   'aria-invalid'?: boolean
   /**
    * The id(s) of the element(s) that describe the group (an error, a hint), on the

@@ -237,6 +237,8 @@ export type {
   FieldBaseProps,
   /** See `components/Field/types.ts`'s own `FieldRenderProps` for the full doc. */
   FieldRenderProps,
+  /** See `components/Field/types.ts`'s own `FieldValidationMessages` for the full doc. */
+  FieldValidationMessages,
 } from 'components/Field/types.ts'
 
 export { Input } from 'components/Input/index.preact.ts'

@@ -1,4 +1,4 @@
-import './dom-test-setup.ts'
+import { must } from './dom-test-setup.ts'
 import { act } from 'react'
 import { createRoot } from 'react-dom/client'
 import { renderToStaticMarkup } from 'react-dom/server'
@@ -387,5 +387,60 @@ Deno.test('RadioGroup: the props change neither the selection nor the roving tab
   assertEquals(document.activeElement, medium)
   assertEquals(container.querySelector('[role="radiogroup"]')?.getAttribute('aria-invalid'), 'true')
 
+  unmount()
+})
+
+// --- change event for a delegated form listener ----------------------------------------------
+
+/** Collects the target of every bubbling `change` event that reaches `container`. */
+function collectChanges(container: HTMLElement): EventTarget[] {
+  const targets: EventTarget[] = []
+  container.addEventListener('change', (event) => {
+    if (event.target) targets.push(event.target)
+  })
+  return targets
+}
+
+Deno.test('RadioGroup: choosing an item fires one bubbling change event from the group root', () => {
+  const { container, unmount } = mount(<RadioGroup items={items} label='Size' aria-invalid />)
+  const changes = collectChanges(container)
+  const root = must(container.querySelector('[role="radiogroup"]'))
+  const [, medium] = radios(container)
+
+  act(() => medium.click())
+
+  assertEquals(changes.length, 1)
+  assertEquals(changes[0], root)
+  unmount()
+})
+
+// --- required (aria-required / data-value-missing) -------------------------------------------
+
+Deno.test('RadioGroup: required and empty sets aria-required and data-value-missing on the root', () => {
+  const html = renderToStaticMarkup(<RadioGroup items={items} label='Size' required />)
+  const root = html.match(/<div[^>]*role="radiogroup"[^>]*>/)?.[0] ?? ''
+  assertStringIncludes(root, 'aria-required="true"')
+  assertStringIncludes(root, 'data-value-missing="true"')
+})
+
+Deno.test('RadioGroup: without required, or with a value, neither attribute is rendered', () => {
+  assertEquals(
+    renderToStaticMarkup(<RadioGroup items={items} label='Size' />).includes('data-value-missing'),
+    false,
+  )
+  const withValue = renderToStaticMarkup(
+    <RadioGroup items={items} label='Size' required defaultValue='small' />,
+  )
+  assertEquals(withValue.includes('data-value-missing'), false)
+  assertStringIncludes(withValue, 'aria-required="true"')
+})
+
+Deno.test('RadioGroup: the marker is dropped after the visitor chooses an item', () => {
+  const { container, unmount } = mount(<RadioGroup items={items} label='Size' required />)
+  assertEquals(container.querySelectorAll('[data-value-missing="true"]').length, 1)
+  act(() => {
+    radios(container)[1].dispatchEvent(new MouseEvent('click', { bubbles: true }))
+  })
+  assertEquals(container.querySelectorAll('[data-value-missing]').length, 0)
   unmount()
 })

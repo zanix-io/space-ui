@@ -1,12 +1,37 @@
 import type { CreateElement } from 'typings/renderer.ts'
 import { createAlert } from '../Alert/render.ts'
-import type { FieldBaseProps, FieldRenderProps } from './types.ts'
+import type { FieldBaseProps, FieldRenderProps, FieldValidationMessages } from './types.ts'
 
 /**
  * The subset of hooks this component's shared body needs, injected alongside `h` — same
  * `render.ts`-factory technique {@linkcode createTable}'s own `TableHooks` established (see
  * `Table/render.ts`'s own doc for the full soundness reasoning, not repeated here).
  */
+/** The `data-*` attribute each {@linkcode FieldValidationMessages} key becomes. The names are the
+ * contract `@zanix/space`'s `validateInline` reads. */
+const MESSAGE_ATTRIBUTES: Record<keyof FieldValidationMessages, string> = {
+  default: 'data-validation-message',
+  required: 'data-message-required',
+  typeMismatch: 'data-message-type-mismatch',
+  patternMismatch: 'data-message-pattern-mismatch',
+  tooShort: 'data-message-too-short',
+  tooLong: 'data-message-too-long',
+  rangeUnderflow: 'data-message-range-underflow',
+  rangeOverflow: 'data-message-range-overflow',
+  stepMismatch: 'data-message-step-mismatch',
+  badInput: 'data-message-bad-input',
+}
+
+function messageAttributes(messages: FieldValidationMessages | undefined) {
+  const attributes: Record<string, string> = {}
+  if (!messages) return attributes
+  for (const [key, attribute] of Object.entries(MESSAGE_ATTRIBUTES)) {
+    const text = messages[key as keyof FieldValidationMessages]
+    if (text) attributes[attribute] = text
+  }
+  return attributes
+}
+
 export type FieldHooks = {
   useId: () => string
 }
@@ -43,7 +68,7 @@ export function createField<E, Node>(
   ) => E
 
   return function Field(props: FieldRenderComponentProps<Node>): E {
-    const { label, error, hint, id, className, children } = props
+    const { label, error, hint, id, className, children, validationMessages } = props
     const generatedId = hooks.useId()
     const fieldId = id ?? generatedId
     const inputId = `${fieldId}-input`
@@ -55,7 +80,12 @@ export function createField<E, Node>(
 
     return h(
       'div',
-      { id: fieldId, className, 'data-space-ui': 'field' },
+      {
+        id: fieldId,
+        className,
+        'data-space-ui': 'field',
+        ...messageAttributes(validationMessages),
+      },
       [
         h('label', { key: 'label', htmlFor: inputId }, label),
         hAny(

@@ -2,6 +2,8 @@ import type { CreateElement } from 'typings/renderer.ts'
 import { createButton } from '../Button/render.ts'
 import { getNextRovingIndex } from 'shared/roving-focus.ts'
 import type { NavigationKeyEvent } from 'shared/roving-focus.ts'
+import { emitValueChange } from 'shared/value-change-event.ts'
+import { valueMissingAttribute } from 'shared/value-missing.ts'
 import type { RadioGroupBaseProps, RadioGroupItemBase } from './types.ts'
 
 /**
@@ -58,6 +60,7 @@ export function createRadioGroup<E, Node>(
       onValueChange,
       orientation = 'horizontal',
       label,
+      required,
       'aria-invalid': ariaInvalid,
       'aria-describedby': ariaDescribedBy,
       id,
@@ -71,6 +74,7 @@ export function createRadioGroup<E, Node>(
     const setValue = (next: string) => {
       if (!isControlled) setInternalValue(next)
       onValueChange?.(next)
+      emitValueChange(containerRef.current)
     }
 
     const selectedIndex = items.findIndex((item) => item.value === value)
@@ -120,9 +124,11 @@ export function createRadioGroup<E, Node>(
         className,
         role: 'radiogroup',
         'aria-label': label,
+        'aria-required': required ? true : undefined,
         'aria-invalid': ariaInvalid,
         'aria-describedby': ariaDescribedBy,
         'data-space-ui': 'radio-group',
+        'data-value-missing': valueMissingAttribute(required, selectedIndex === -1),
         onKeyDown: handleKeyDown,
       },
       items.map((item, index) =>

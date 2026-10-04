@@ -442,3 +442,62 @@ Deno.test('DatePicker (preact): the props change neither the toggling nor the se
 
   unmount()
 })
+
+// --- change event for a delegated form listener ----------------------------------------------
+
+/** Collects the target of every bubbling `change` event that reaches `container`. */
+function collectChanges(container: HTMLElement): EventTarget[] {
+  const targets: EventTarget[] = []
+  container.addEventListener('change', (event) => {
+    if (event.target) targets.push(event.target)
+  })
+  return targets
+}
+
+Deno.test('DatePicker (preact): clicking a day fires one bubbling change event from the trigger', () => {
+  const { container, unmount } = mount({ value: '2024-05-10', 'aria-invalid': true })
+  const changes = collectChanges(container)
+  const trigger = openPicker(container)
+  assertEquals(changes.length, 0)
+
+  act(() => {
+    getCell(container, '2024-05-15').dispatchEvent(new MouseEvent('click', { bubbles: true }))
+  })
+
+  assertEquals(changes.length, 1)
+  assertEquals(changes[0], trigger)
+  unmount()
+})
+
+// --- required (data-value-missing) -----------------------------------------------------------
+
+Deno.test('DatePicker (preact): required and empty marks the trigger wrapper data-value-missing', () => {
+  const html = renderToString(element({ placeholder: 'Pick a date', required: true }))
+  assertStringIncludes(html, 'data-value-missing="true"')
+  assertEquals((html.match(/data-value-missing/g) ?? []).length, 1)
+})
+
+Deno.test('DatePicker (preact): no data-value-missing without required, or with a date', () => {
+  assertEquals(
+    renderToString(element({ placeholder: 'Pick a date' })).includes('data-value-missing'),
+    false,
+  )
+  assertEquals(
+    renderToString(element({ required: true, defaultValue: '2026-03-15' })).includes(
+      'data-value-missing',
+    ),
+    false,
+  )
+})
+
+Deno.test('DatePicker (preact): the marker survives an open panel and is dropped after a date is picked', () => {
+  const { container, unmount } = mount({ placeholder: 'Pick a date', required: true })
+  openPicker(container)
+  assertEquals(container.querySelectorAll('[data-value-missing="true"]').length, 1)
+  const cell = must(container.querySelector<HTMLElement>('[data-date]'))
+  act(() => {
+    cell.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+  })
+  assertEquals(container.querySelectorAll('[data-value-missing]').length, 0)
+  unmount()
+})

@@ -88,6 +88,15 @@ export type DatePickerBaseProps = {
    * there is no `validationMessage`: a `type="button"` button is excluded from the browser's
    * constraint validation. Absent by default: nothing is rendered.
    */
+  /**
+   * Marks the control as required. This component renders no native field, so the browser's own
+   * `required` cannot apply to it: while `required` is set and no date is chosen, its own element carries
+   * `data-value-missing="true"` (the DOM counterpart of `validity.valueMissing`), which a
+   * form-level validator such as `@zanix/space`'s `ManagedForm` `validateInline` reads to block the
+   * submit and show the field's own message. Nothing else changes, and the attribute blocks nothing
+   * without such a validator: the server still decides. Absent by default.
+   */
+  required?: boolean
   'aria-invalid'?: boolean
   /**
    * The id(s) of the element(s) that describe the control (an error, a hint), on the trigger

@@ -13,6 +13,7 @@ import {
 } from 'shared/overlay-position-css.ts'
 import type { MultiSelectBaseProps, MultiSelectOption } from './types.ts'
 import { resolveActiveNonce } from 'shared/active-nonce.ts'
+import { emitValueChange } from 'shared/value-change-event.ts'
 import { useCustomValidity } from 'shared/custom-validity.ts'
 import type { UseCustomValidityEffect } from 'shared/custom-validity.ts'
 
@@ -186,6 +187,7 @@ export function createMultiSelect<E>(
     const setValues = (next: string[]) => {
       if (!isValuesControlled) setInternalValues(next)
       onValuesChange?.(next)
+      emitValueChange(inputRef.current)
     }
     const setInputValue = (next: string) => {
       if (!isInputControlled) setInternalInputValue(next)

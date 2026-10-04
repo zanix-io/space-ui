@@ -289,12 +289,15 @@ ahead of time:
   yet, sits in the normal `Tab` sequence). Data-driven (`items: RadioGroupItem[]`), controlled
   (`value`/`onValueChange`) with an uncontrolled `defaultValue` fallback. No `validationMessage`:
   the items are `Button`s with `role="radio"`, not native `<input type="radio">`, so no native
-  control carries a custom validity; `aria-invalid` and `aria-describedby` go on the radiogroup root
-  and match `Field`'s render-prop, so `{...field}` wires the error. The same shape also correctly
-  covers a visually segmented single-select control — no separate component for that, since ARIA
-  cares about the logical relationship, not the styling. Deliberately does NOT cover a multi-select
-  toggle group (independently-pressable buttons, `aria-pressed` rather than `aria-checked`, no
-  roving tabindex at all) — a genuinely different widget, out of scope until something needs it.
+  control carries a custom validity. `required` sets `aria-required` and, while nothing is chosen,
+  `data-value-missing="true"` on the root, which `@zanix/space`'s `ManagedForm` `validateInline`
+  reads (`Select` and `DatePicker` take `required` the same way, on the trigger's wrapper);
+  `aria-invalid` and `aria-describedby` go on the radiogroup root and match `Field`'s render-prop,
+  so `{...field}` wires the error. The same shape also correctly covers a visually segmented
+  single-select control — no separate component for that, since ARIA cares about the logical
+  relationship, not the styling. Deliberately does NOT cover a multi-select toggle group
+  (independently-pressable buttons, `aria-pressed` rather than `aria-checked`, no roving tabindex at
+  all) — a genuinely different widget, out of scope until something needs it.
 
 - ✅ **`Tabs`** — the WAI-ARIA Tabs pattern: `role="tablist"` wrapping `role="tab"` items, roving
   tabindex with the same "arrow keys select immediately" automatic-activation behavior `RadioGroup`
@@ -344,7 +347,14 @@ ahead of time:
   the caller's own job. The one component in this package whose `children` is a render-prop
   (`(fieldProps) => ...`) rather than plain content — `Field` has to ARIA-wire an arbitrary native
   form control it doesn't render itself, which `cloneElement` can't do safely. Composes `Alert` for
-  the error message rather than reimplementing `role="alert"`.
+  the error message rather than reimplementing `role="alert"`. `validationMessages` renders the
+  per-failure texts a client-side validator shows (`data-message-required`, ...) as attributes on
+  its root. The error element's `id` is `{field id}-error`, the id `aria-describedby` points at. The
+  composed controls that sit inside a `Field` (`Select`, `DatePicker`, `MultiSelect`, `Combobox`,
+  `RadioGroup`) fire a bubbling `change` event from their `aria-invalid` element when the visitor
+  changes the value, since they render no native field to fire one; with the native controls' own
+  `input`/`change`, one delegated listener on the `<form>` (`@zanix/space`'s `ManagedForm`
+  `clearInvalidOnInput`) sees every edit and clears that control's error.
 
 - ✅ **`Input`** — a thin, accessible wrapper around a native `<input>`
   (`text`/`email`/`password`/`number`/`tel`/`url`/`search`); `placeholder`/`disabled`/`readOnly`/
