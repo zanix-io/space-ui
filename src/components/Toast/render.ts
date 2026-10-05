@@ -84,7 +84,7 @@ export type ToastRenderApi = {
  * Each toast's own close button renders `entry.closeButtonContent` when given, otherwise
  * `shared/close-button-icon.ts`'s own default inline "X" `<svg>` — same default-vs-override
  * contract `Modal/render.ts`'s own close button uses (see that file's own comment for the full
- * reasoning); `aria-label="Close"` is unconditional either way.
+ * reasoning); its `aria-label` is the entry's `closeLabel`, else the provider's, else `'Close'`.
  *
  * Positioning (`position`/`z-index`/the per-`ToastPosition` anchor, plus the stack's own
  * `display`/`flexDirection`/`gap` — every one of them a fixed, non-dynamic constant) is a `<style
@@ -101,7 +101,9 @@ export function createToast<E, Node>(
   hooks: ToastHooks,
   Fragment: unknown,
 ): {
-  ToastProvider: (props: { position?: ToastPosition; nonce?: string; children: Node }) => E
+  ToastProvider: (
+    props: { position?: ToastPosition; nonce?: string; closeLabel?: string; children: Node },
+  ) => E
   useToast: () => ToastRenderApi
 } {
   const Button = createButton(h)
@@ -116,10 +118,11 @@ export function createToast<E, Node>(
   ) => E
 
   function ToastEntryView(
-    { entry, onClose, nonce }: {
+    { entry, onClose, nonce, closeLabel: providerCloseLabel }: {
       entry: ToastMessage & { id: string }
       onClose: () => void
       nonce?: string
+      closeLabel?: string
     },
   ): E {
     const {
@@ -132,6 +135,7 @@ export function createToast<E, Node>(
       showProgress,
       className,
       closeButtonContent,
+      closeLabel = providerCloseLabel ?? 'Close',
     } = entry
     const shouldShowProgress = showProgress ?? variant === 'loading'
 
@@ -161,7 +165,7 @@ export function createToast<E, Node>(
             { key: 'close' },
             Button({
               onClick: onClose,
-              label: 'Close',
+              label: closeLabel,
               children: closeButtonContent ?? DefaultCloseIcon(),
             }),
           ),
@@ -186,8 +190,10 @@ export function createToast<E, Node>(
 
   let nextToastId = 0
 
-  function ToastProvider(props: { position?: ToastPosition; nonce?: string; children: Node }): E {
-    const { position = 'bottom-left', nonce: nonceProp, children } = props
+  function ToastProvider(
+    props: { position?: ToastPosition; nonce?: string; closeLabel?: string; children: Node },
+  ): E {
+    const { position = 'bottom-left', nonce: nonceProp, closeLabel, children } = props
     const nonce = resolveActiveNonce(nonceProp)
     const [entries, setEntries] = hooks.useState<Array<ToastMessage & { id: string }>>([])
 
@@ -236,7 +242,7 @@ export function createToast<E, Node>(
             entries.map((entry) =>
               hAny(
                 ToastEntryView,
-                { key: entry.id, entry, onClose: () => closeToast(entry.id), nonce },
+                { key: entry.id, entry, onClose: () => closeToast(entry.id), nonce, closeLabel },
               )
             ),
           ),

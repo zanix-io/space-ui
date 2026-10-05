@@ -58,5 +58,13 @@ export type SocialNetworkLink = {
 /** Props for {@linkcode SocialNetworks}. */
 export type SocialNetworksProps = {
   links: SocialNetworkLink[]
+  /** Default `alt` (logo images) and `title` of every link; every `{name}` marker is replaced by
+   * the link's `name`. A link's own `icon.alt` / `tooltip` still wins. Pass it already translated.
+   * @default '{name} logo' */
+  logoLabel?: string
+  /** Default accessible name of every link; every `{name}` marker is replaced by the link's
+   * `name`. A link's own `label` still wins. Pass it already translated.
+   * @default 'Go to {name}' */
+  linkLabel?: string
   className?: string
 }

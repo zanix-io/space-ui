@@ -140,7 +140,7 @@ const bound = createModal<ReactElement, ReactNode>(
  * or a bundled `CatalogIcon` call: the sprite `CatalogIcon` needs is a scaffolded, consumer-chosen
  * template asset this component has no `href` for). `closeButtonContent` overrides it with any
  * renderer node — a `CatalogIcon`, a plain `<svg>`, plain text — for a consumer who already has an
- * icon system set up; the button's own accessible name (`aria-label="Close"`) never changes either
+ * icon system set up; the button's own accessible name (`aria-label`, `closeLabel`, default "Close") never changes either
  * way.
  *
  * ## Focus management

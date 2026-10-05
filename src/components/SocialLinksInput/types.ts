@@ -49,6 +49,18 @@ export type SocialLinksInputBaseProps = {
   /** Accessible name for the "+" button.
    * @default 'Add another social link' */
   addButtonLabel?: string
+  /** Accessible name of each row's URL field; every `{n}` marker is replaced by the row's 1-based
+   * position. Pass it already translated.
+   * @default 'Social link {n}' */
+  linkLabel?: string
+  /** Accessible name of each row's remove button; every `{url}` marker is replaced by the row's
+   * URL. Pass it already translated.
+   * @default 'Remove {url}' */
+  removeLabel?: string
+  /** Accessible name of the remove button of a row whose URL is still empty. Pass it already
+   * translated.
+   * @default 'Remove this link' */
+  removeEmptyLabel?: string
   id?: string
   className?: string
 }

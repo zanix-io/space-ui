@@ -77,6 +77,19 @@ export type MenuBaseProps = {
   onOpenChange?: (open: boolean) => void
   /** Accessible name for the root `<nav>`. */
   label: string
+  /** Accessible name of the toggle button while the menu is collapsed (`toggle` only). Pass it
+   * already translated; same prop name as `NavDrawer.openLabel`.
+   * @default 'Open menu' */
+  openLabel?: string
+  /** Accessible name of the toggle button while the menu is expanded (`toggle` only). Same prop
+   * name as `NavDrawer.closeLabel`.
+   * @default 'Close menu' */
+  closeLabel?: string
+  /** Accessible name of the separate disclosure button an item with both `url` and `submenu`
+   * gets; every `{name}` marker is replaced by the item's `accessibleLabel ?? label`. Pass it
+   * already translated.
+   * @default '{name} submenu' */
+  submenuLabel?: string
   id?: string
   className?: string
 }

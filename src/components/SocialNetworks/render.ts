@@ -1,5 +1,6 @@
 import type { CreateElement } from 'typings/renderer.ts'
 import { createIcon } from '../Icon/render.ts'
+import { fillMarkers } from 'shared/fill-markers.ts'
 import type { SocialNetworkLogo, SocialNetworksProps } from './types.ts'
 
 function isLogo(icon: SocialNetworksProps['links'][number]['icon']): icon is SocialNetworkLogo {
@@ -32,7 +33,10 @@ export function createSocialNetworks<E>(
 ): (props: SocialNetworksProps) => E | null {
   const Icon = createIcon(h)
 
-  return function SocialNetworks({ links, className }: SocialNetworksProps): E | null {
+  return function SocialNetworks(
+    { links, className, logoLabel = '{name} logo', linkLabel = 'Go to {name}' }:
+      SocialNetworksProps,
+  ): E | null {
     // Nothing to render, and nothing meaningful to wrap in an empty (landmark-less, but still
     // present) list either — mirrors the legacy component's own "no active state" behavior.
     if (links.length === 0) return null
@@ -44,7 +48,7 @@ export function createSocialNetworks<E>(
         const mark = isLogo(link.icon)
           ? h('img', {
             src: link.icon.img,
-            alt: link.icon.alt ?? `${link.name} logo`,
+            alt: link.icon.alt ?? fillMarkers(logoLabel, { name: link.name }),
             loading: link.icon.loading,
             crossOrigin: link.icon.crossOrigin,
           })
@@ -59,8 +63,8 @@ export function createSocialNetworks<E>(
               href: link.url,
               target: '_blank',
               rel: link.rel ?? 'noopener noreferrer',
-              title: link.tooltip ?? `${link.name} logo`,
-              'aria-label': link.label ?? `Go to ${link.name}`,
+              title: link.tooltip ?? fillMarkers(logoLabel, { name: link.name }),
+              'aria-label': link.label ?? fillMarkers(linkLabel, { name: link.name }),
             },
             mark,
           ),

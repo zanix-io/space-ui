@@ -28,11 +28,21 @@ export type CountdownBaseProps = {
   format?: (remainingMs: number) => string
   /** Builds the text announced to assistive technology via a visually-hidden `aria-live="polite"`
    * region — called only at meaningful boundaries (see `render.ts`'s own doc for exactly when),
-   * never once per second, which would spam a screen reader. Defaults to plain English (`"N minutes
-   * remaining"`, `"Less than a minute remaining"`, `"Time's up"`); override for a localized
-   * consumer, same "no i18n mechanism of its own" contract `MultiSelect.getSelectionDescription`
-   * already establishes. */
+   * never once per second, which would spam a screen reader. When given, it wins over the three
+   * `announcement*` strings below. A function cannot cross a Comet's JSON props boundary — inside
+   * a Comet, use the string props instead. */
   getAnnouncement?: (remainingMs: number) => string
+  /** Announced when the countdown reaches zero. Plain string, so it crosses a Comet's props
+   * boundary; pass it already translated.
+   * @default "Time's up" */
+  announcementDone?: string
+  /** Announced while less than a minute remains; pass it already translated.
+   * @default 'Less than a minute remaining' */
+  announcementLessThanMinute?: string
+  /** Announced at each whole-minute boundary from two minutes up; every `{minutes}` marker is
+   * replaced by the number of minutes remaining. Pass it already translated.
+   * @default '{minutes} minutes remaining' */
+  announcementMinutes?: string
   /** @default 'numeric' */
   variant?: CountdownVariant
   /** Ring diameter in pixels — `'ring'` variant only, ignored otherwise. A real, functional sizing

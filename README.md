@@ -11,12 +11,13 @@
 1. [Description](#description)
 2. [Current status](#current-status)
 3. [Design principle](#design-principle)
-4. [Styling](#styling)
-5. [Installation](#installation)
-6. [Basic Usage](#basic-usage)
-7. [Documentation](#documentation)
-8. [Changelog](#changelog)
-9. [License](#license)
+4. [Text and translation](#text-and-translation)
+5. [Styling](#styling)
+6. [Installation](#installation)
+7. [Basic Usage](#basic-usage)
+8. [Documentation](#documentation)
+9. [Changelog](#changelog)
+10. [License](#license)
 
 ## Description
 
@@ -647,7 +648,9 @@ ahead of time:
   visually-hidden `aria-live="polite"` region announces only at whole-minute boundaries (plus once
   at zero), never once per second. `variant="numeric"` (default) or `variant="ring"` (an additional
   SVG progress ring, `stroke-dashoffset`-based, disabling its own transition — never the value
-  update itself — under `prefers-reduced-motion`).
+  update itself — under `prefers-reduced-motion`). The announcement texts are the string props
+  `announcementDone`, `announcementLessThanMinute` and `announcementMinutes` (`{minutes}` marker),
+  English by default; `getAnnouncement` still wins over them.
 - ✅ **`Avatar`** — a circular (or square, via `shape`) image avatar with an automatic initials
   fallback (derived from a required `name`) whenever `src` is omitted or the image fails to load —
   including a failure that already happened before hydration, caught via an
@@ -784,6 +787,40 @@ shared call signature — never JSX, never a runtime "which renderer am I" check
 renderer exactly once. A component with real interactive state won't fit that pattern and will ship
 as a genuine second implementation instead, mirroring how `@zanix/space` itself splits its own
 React/Preact render paths.
+
+## Text and translation
+
+space-ui does not translate. Every visible or accessible text a component renders itself (a close
+button's `aria-label`, a carousel's "Next slide", a date picker's "Previous month") is an optional
+string prop, and the English text is the documented default when the prop is not passed. The
+consumer translates with its own catalog (for example `useIntl().formatMessage`) and passes the
+already-resolved string: the same value reaches the server render and the client, so there is no
+hydration mismatch, any language works, and no dictionary ships with the package. A text with a
+dynamic value takes a marker (`{n}`, `{name}`, `{year}`, `{url}`, `{minutes}`, `{total}`, `{from}`,
+`{to}`) that the component fills in; keep the marker in the translated string. Texts a caller
+already passes (`label`, `placeholder`, `title`, …) are untouched.
+
+| Component          | Text props (English default)                                                                                                                                                                                                                                                                                                                                                  |
+| ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Toast`            | `ToastProvider.closeLabel`, per toast `closeLabel` (`Close`)                                                                                                                                                                                                                                                                                                                  |
+| `Modal`            | `closeLabel` (`Close`)                                                                                                                                                                                                                                                                                                                                                        |
+| `Drawer`           | `closeLabel` (`Close`)                                                                                                                                                                                                                                                                                                                                                        |
+| `ConsentModal`     | `acceptLabel` (`Accept`), `declineLabel` (`Decline`), `closeLabel` (`Close`), `declinedAcknowledgement.continueLabel` (`Continue`)                                                                                                                                                                                                                                            |
+| `Menu`             | `openLabel` (`Open menu`), `closeLabel` (`Close menu`), `submenuLabel` (`{name} submenu`)                                                                                                                                                                                                                                                                                     |
+| `Slider`           | `label` (`Carousel`), `roleDescription` (`carousel`), `previousLabel` (`Previous slide`), `nextLabel` (`Next slide`), `pauseLabel` (`Pause slideshow`), `playLabel` (`Play slideshow`), `dotLabel` (`Go to slide {n}`), `statusLabel` (`Slide {n} of {total}`)                                                                                                                |
+| `DatePicker`       | `previousMonthLabel`, `nextMonthLabel`, `previousYearLabel`, `nextYearLabel`, `previousYearsLabel`, `nextYearsLabel`, `timeLabel` (`Time`), `hourLabel` (`Hour`), `minuteLabel` (`Minute`), `doneLabel` (`Done`), `monthGridLabel` (`Select a month in {year}`), `yearGridLabel` (`Select a year, {from} to {to}`); month and weekday names follow the existing `locale` prop |
+| `SocialLinksInput` | `addButtonLabel` (`Add another social link`), `linkLabel` (`Social link {n}`), `removeLabel` (`Remove {url}`), `removeEmptyLabel` (`Remove this link`)                                                                                                                                                                                                                        |
+| `SocialNetworks`   | `logoLabel` (`{name} logo`, default `alt` and `title`), `linkLabel` (`Go to {name}`)                                                                                                                                                                                                                                                                                          |
+| `Countdown`        | `announcementDone` (`Time's up`), `announcementLessThanMinute` (`Less than a minute remaining`), `announcementMinutes` (`{minutes} minutes remaining`); `getAnnouncement` wins                                                                                                                                                                                                |
+| `Pagination`       | `label`, `previousLabel`, `nextLabel`                                                                                                                                                                                                                                                                                                                                         |
+| `NavDrawer`        | `openLabel`, `closeLabel`, `closeButtonLabel`                                                                                                                                                                                                                                                                                                                                 |
+| `PasswordInput`    | `getToggleLabel`                                                                                                                                                                                                                                                                                                                                                              |
+
+`Turnstile` has no text prop: the `'Turnstile'` string in its source is only the provider name used
+in the developer-facing script-load error message, never rendered or announced.
+
+Components not listed here may still carry an English default; check a component's props type for
+its `*Label` props.
 
 ## Styling
 

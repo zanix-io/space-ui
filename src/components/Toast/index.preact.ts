@@ -40,7 +40,12 @@ const bound = createToast<VNode, ComponentChildren>(
  * file's own doc for why that's sound) — never `preact/compat`.
  */
 export const ToastProvider: (
-  props: { position?: ToastPosition; nonce?: string; children: ComponentChildren },
+  props: {
+    position?: ToastPosition
+    nonce?: string
+    closeLabel?: string
+    children: ComponentChildren
+  },
 ) => VNode = bound.ToastProvider
 
 /**

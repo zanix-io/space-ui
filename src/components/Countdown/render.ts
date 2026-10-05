@@ -1,6 +1,7 @@
 import type { CreateElement } from 'typings/renderer.ts'
 import { liveRegionProps, VISUALLY_HIDDEN_CSS } from 'shared/live-region.ts'
 import type { CountdownBaseProps } from './types.ts'
+import { fillMarkers } from 'shared/fill-markers.ts'
 import { resolveActiveNonce } from 'shared/active-nonce.ts'
 
 /** The subset of hooks this component's shared body needs, injected alongside `h` — same
@@ -39,10 +40,17 @@ function defaultFormat(remainingMs: number): string {
   return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`
 }
 
-function defaultAnnouncement(remainingMs: number): string {
-  if (remainingMs <= 0) return "Time's up"
+function resolveAnnouncement(
+  remainingMs: number,
+  texts: Pick<
+    CountdownBaseProps,
+    'announcementDone' | 'announcementLessThanMinute' | 'announcementMinutes'
+  >,
+): string {
+  if (remainingMs <= 0) return texts.announcementDone ?? "Time's up"
   const minutes = Math.ceil(remainingMs / 60000)
-  return minutes <= 1 ? 'Less than a minute remaining' : `${minutes} minutes remaining`
+  if (minutes <= 1) return texts.announcementLessThanMinute ?? 'Less than a minute remaining'
+  return fillMarkers(texts.announcementMinutes ?? '{minutes} minutes remaining', { minutes })
 }
 
 /**
@@ -168,7 +176,10 @@ export function createCountdown<E>(
       target,
       onComplete,
       format = defaultFormat,
-      getAnnouncement = defaultAnnouncement,
+      getAnnouncement,
+      announcementDone,
+      announcementLessThanMinute,
+      announcementMinutes,
       variant = 'numeric',
       size = 96,
       strokeWidth = 6,
@@ -214,7 +225,13 @@ export function createCountdown<E>(
         const currentMinute = Math.ceil(remaining / 60000)
         if (remaining <= 0 || currentMinute !== announcedMinuteRef.current) {
           announcedMinuteRef.current = currentMinute
-          setAnnouncement(getAnnouncement(remaining))
+          setAnnouncement(
+            getAnnouncement ? getAnnouncement(remaining) : resolveAnnouncement(remaining, {
+              announcementDone,
+              announcementLessThanMinute,
+              announcementMinutes,
+            }),
+          )
         }
 
         if (remaining <= 0) {

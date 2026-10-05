@@ -3,6 +3,7 @@ import { createButton } from '../Button/render.ts'
 import { createInput } from '../Input/render.ts'
 import type { InputHooks } from '../Input/render.ts'
 import { createDefaultCloseIcon } from 'shared/close-button-icon.ts'
+import { fillMarkers } from 'shared/fill-markers.ts'
 import { detectSocialNetwork } from './detect-social-network.ts'
 import { generateEntryId } from './generate-entry-id.ts'
 import type { SocialLinkEntry, SocialLinksInputBaseProps } from './types.ts'
@@ -108,6 +109,9 @@ export function createSocialLinksInput<E>(
       placeholder,
       name,
       addButtonLabel = 'Add another social link',
+      linkLabel = 'Social link {n}',
+      removeLabel = 'Remove {url}',
+      removeEmptyLabel = 'Remove this link',
       id,
       className,
       renderIcon,
@@ -164,11 +168,11 @@ export function createSocialLinksInput<E>(
             onValueChange: (url: string) => handleUrlChange(entry.id, url),
             placeholder,
             name: name ? `${name}_${index}` : undefined,
-            'aria-label': `Social link ${index + 1}`,
+            'aria-label': fillMarkers(linkLabel, { n: index + 1 }),
           }),
           Button({
             onClick: () => handleRemove(entry.id),
-            label: `Remove ${entry.url || 'this link'}`,
+            label: entry.url ? fillMarkers(removeLabel, { url: entry.url }) : removeEmptyLabel,
             children: CloseIcon(),
           }),
         )

@@ -18,10 +18,15 @@ export type ModalBaseProps = {
    * inline `<svg>`, not a Unicode character or a bundled `CatalogIcon` call). Typed `unknown`, the
    * same escape hatch `Button.children` itself already uses for arbitrary caller content, since this
    * value is threaded straight through as that same `Button`'s own `children`. The close button's
-   * accessible name (`aria-label="Close"`) never changes based on this prop — only what's visible
+   * accessible name (`aria-label`, see `closeLabel`) never changes based on this prop — only what's visible
    * does. Omit for the default "X".
    */
   closeButtonContent?: unknown
+  /** Accessible name of the close button (its `aria-label`) — the text a screen reader announces.
+   * Pass it already translated when the app is not in English; same prop name as
+   * `Drawer.closeLabel`.
+   * @default 'Close' */
+  closeLabel?: string
   /** A dimmed backdrop behind the dialog. `true` (default) absorbs an outside click and does
    * nothing on its own, unless `closeOnOverlayClick` opts back in; `false` renders no backdrop and
    * always closes on an outside click instead — see `index.ts`'s own doc for the full contract.

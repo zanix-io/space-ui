@@ -78,7 +78,7 @@ export type ModalRenderStackApi<Node> = {
  * The close button's own visible content is `closeButtonContent` when given, otherwise
  * `shared/close-button-icon.ts`'s own default inline "X" `<svg>` (see that module's own doc for why
  * — not a Unicode character, not a bundled `CatalogIcon` call). Either way it becomes that same
- * `Button`'s own `children`; `aria-label="Close"` is unconditional, independent of which content
+ * `Button`'s own `children`; `aria-label` is `closeLabel` (default `'Close'`), unconditional, independent of which content
  * renders.
  *
  * `Fragment` is injected as its own parameter (not a hook) for the same reason `Menu/render.ts`
@@ -116,6 +116,7 @@ export function createModal<E, Node>(
       open,
       onClose,
       closeButtonContent,
+      closeLabel = 'Close',
       label,
       ariaLabelledBy,
       showOverlay = true,
@@ -238,10 +239,10 @@ export function createModal<E, Node>(
             // `shared/close-button-icon.ts`'s own doc for why: a real, self-contained SVG renders
             // identically everywhere, unlike a system-font Unicode glyph, without depending on the
             // icon-catalog sprite `CatalogIcon` needs an `href` for — this component has no way to
-            // know one). `aria-label="Close"` stays the accessible name regardless.
+            // know one). `aria-label` (`closeLabel`) stays the accessible name regardless.
             Button({
               onClick: onClose,
-              label: 'Close',
+              label: closeLabel,
               children: closeButtonContent ?? DefaultCloseIcon(),
             }),
           ),

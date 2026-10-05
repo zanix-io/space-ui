@@ -4,6 +4,7 @@ import { createIcon } from '../Icon/render.ts'
 import { createLink } from '../Link/render.ts'
 import { createEscapeToCloseHandler } from 'shared/escape-to-close.ts'
 import { deriveStableCometId } from 'shared/stable-comet-id.ts'
+import { fillMarkers } from 'shared/fill-markers.ts'
 import type { MenuBaseProps, MenuItemFields, MenuOpenMode } from './types.ts'
 
 /**
@@ -111,7 +112,13 @@ export function createMenu<E>(
     ...children: unknown[]
   ) => E
 
-  function MenuItemRow({ item, openMode }: { item: MenuRenderItem<E>; openMode: MenuOpenMode }): E {
+  function MenuItemRow(
+    { item, openMode, submenuLabel }: {
+      item: MenuRenderItem<E>
+      openMode: MenuOpenMode
+      submenuLabel: string
+    },
+  ): E {
     const { label, url, external, rel, title, accessibleLabel, icon, visual, submenu, current } =
       item
     const hasSubmenu = !!submenu?.length
@@ -207,7 +214,7 @@ export function createMenu<E>(
         { ref: triggerWrapperRef, key: 'toggle' },
         Button({
           onClick: openMode === 'onClick' ? () => setIsOpen((current) => !current) : undefined,
-          label: `${accessibleName ?? label} submenu`,
+          label: fillMarkers(submenuLabel, { name: accessibleName ?? label }),
           'aria-expanded': isOpen,
           'aria-controls': submenuId,
         }),
@@ -236,6 +243,7 @@ export function createMenu<E>(
             key: child.url ?? `${child.label}-${index}`,
             item: child,
             openMode,
+            submenuLabel,
           })
         ),
       )
@@ -262,6 +270,9 @@ export function createMenu<E>(
       open: controlledOpen,
       onOpenChange,
       label,
+      openLabel = 'Open menu',
+      closeLabel = 'Close menu',
+      submenuLabel = '{name} submenu',
       id,
       className,
     } = props
@@ -294,7 +305,7 @@ export function createMenu<E>(
         { ref: toggleWrapperRef, key: 'toggle' },
         Button({
           onClick: handleToggleClick,
-          label: isOpen ? 'Close menu' : 'Open menu',
+          label: isOpen ? closeLabel : openLabel,
           'aria-expanded': isOpen,
           'aria-controls': listId,
         }),
@@ -310,6 +321,7 @@ export function createMenu<E>(
             key: item.url ?? `${item.label}-${index}`,
             item,
             openMode,
+            submenuLabel,
           })
         ),
       )

@@ -1,3 +1,4 @@
+import { fillMarkers } from 'shared/fill-markers.ts'
 import type { CreateElement } from 'typings/renderer.ts'
 import { createButton } from '../Button/render.ts'
 import { createIcon } from '../Icon/render.ts'
@@ -150,6 +151,18 @@ export function createDatePicker<E>(
       hourCycle = 'h24',
       defaultTime,
       locale = 'en',
+      previousMonthLabel = 'Previous month',
+      nextMonthLabel = 'Next month',
+      previousYearLabel = 'Previous year',
+      nextYearLabel = 'Next year',
+      previousYearsLabel = 'Previous years',
+      nextYearsLabel = 'Next years',
+      timeLabel = 'Time',
+      hourLabel = 'Hour',
+      minuteLabel = 'Minute',
+      doneLabel = 'Done',
+      monthGridLabel = 'Select a month in {year}',
+      yearGridLabel = 'Select a year, {from} to {to}',
       required,
       'aria-invalid': ariaInvalid,
       'aria-describedby': ariaDescribedBy,
@@ -411,7 +424,7 @@ export function createDatePicker<E>(
         Fragment,
         { key: 'prev-month' },
         Button({
-          label: 'Previous month',
+          label: previousMonthLabel,
           onClick: () => setInternalCursor(addMonths(cursor, -1)),
           children: '‹',
         }),
@@ -436,7 +449,7 @@ export function createDatePicker<E>(
         Fragment,
         { key: 'next-month' },
         Button({
-          label: 'Next month',
+          label: nextMonthLabel,
           onClick: () => setInternalCursor(addMonths(cursor, 1)),
           children: '›',
         }),
@@ -493,6 +506,7 @@ export function createDatePicker<E>(
     )
 
     const renderSpinbutton = (
+      spinKey: string,
       spinLabel: string,
       spinValue: number,
       spinMin: number,
@@ -500,7 +514,7 @@ export function createDatePicker<E>(
       onChange: (next: number) => void,
     ) =>
       h('div', {
-        key: spinLabel,
+        key: spinKey,
         role: 'spinbutton',
         tabIndex: timeDisabled ? -1 : 0,
         'aria-label': spinLabel,
@@ -525,23 +539,26 @@ export function createDatePicker<E>(
     const timeSection = withTime
       ? h(
         'div',
-        { key: 'time', role: 'group', 'aria-label': 'Time' },
+        { key: 'time', role: 'group', 'aria-label': timeLabel },
         [
-          renderSpinbutton('Hour', selectedHour, 0, 23, (next) => commitTime(next, selectedMinute)),
+          renderSpinbutton('hour', hourLabel, selectedHour, 0, 23, (next) =>
+            commitTime(next, selectedMinute)),
           h('span', { key: 'sep' }, ':'),
           renderSpinbutton(
-            'Minute',
+            'minute',
+            minuteLabel,
             selectedMinute,
             0,
             59,
-            (next) => commitTime(selectedHour, next),
+            (next) =>
+              commitTime(selectedHour, next),
           ),
         ],
       )
       : null
 
     const doneFooter = withTime
-      ? h('div', { key: 'footer' }, Button({ onClick: closeAndRefocus, children: 'Done' }))
+      ? h('div', { key: 'footer' }, Button({ onClick: closeAndRefocus, children: doneLabel }))
       : null
 
     // --- Months view -----------------------------------------------------------------------------
@@ -551,7 +568,7 @@ export function createDatePicker<E>(
         Fragment,
         { key: 'prev-year' },
         Button({
-          label: 'Previous year',
+          label: previousYearLabel,
           onClick: () => setInternalCursor(addYears(cursor, -1)),
           children: '‹',
         }),
@@ -571,7 +588,7 @@ export function createDatePicker<E>(
         Fragment,
         { key: 'next-year' },
         Button({
-          label: 'Next year',
+          label: nextYearLabel,
           onClick: () => setInternalCursor(addYears(cursor, 1)),
           children: '›',
         }),
@@ -583,7 +600,7 @@ export function createDatePicker<E>(
       {
         key: 'grid',
         role: 'group',
-        'aria-label': `Select a month in ${cursor.year}`,
+        'aria-label': fillMarkers(monthGridLabel, { year: cursor.year }),
         'data-space-ui': 'date-picker-month-grid',
       },
       monthNames.map((name, index) => {
@@ -618,7 +635,7 @@ export function createDatePicker<E>(
         Fragment,
         { key: 'prev-page' },
         Button({
-          label: 'Previous years',
+          label: previousYearsLabel,
           onClick: () => setInternalYearPageStart(yearPageStart - 12),
           children: '‹',
         }),
@@ -628,7 +645,7 @@ export function createDatePicker<E>(
         Fragment,
         { key: 'next-page' },
         Button({
-          label: 'Next years',
+          label: nextYearsLabel,
           onClick: () => setInternalYearPageStart(yearPageStart + 12),
           children: '›',
         }),
@@ -640,7 +657,7 @@ export function createDatePicker<E>(
       {
         key: 'grid',
         role: 'group',
-        'aria-label': `Select a year, ${yearPageStart} to ${yearPageStart + 11}`,
+        'aria-label': fillMarkers(yearGridLabel, { from: yearPageStart, to: yearPageStart + 11 }),
         'data-space-ui': 'date-picker-year-grid',
       },
       Array.from({ length: 12 }, (_, index) => {

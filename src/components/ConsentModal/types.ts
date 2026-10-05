@@ -26,6 +26,10 @@ export type ConsentModalProps = {
    * `Modal.onClose` — never called by this component for an Accept/Decline decision itself, only
    * for actually dismissing it. */
   onClose: () => void
+  /** Accessible name of the composed `Modal`'s close button; see `Modal.closeLabel`. Pass it already
+   * translated.
+   * @default 'Close' */
+  closeLabel?: string
   /** Rendered as this dialog's own visible `<h2>`, and used as its accessible name via
    * `aria-labelledby` — never a separate `label`/`ariaLabelledBy` prop, since this content already
    * is the accessible name. Opaque content (`unknown`), same escape hatch `Alert.children`/

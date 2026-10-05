@@ -68,6 +68,42 @@ export type DatePickerBaseProps = {
    * the popup (`Intl.DateTimeFormat` directly — see `index.ts`'s own doc for why this is a plain
    * prop rather than reading `useIntl()`'s own formatter). @default 'en' */
   locale?: string
+  /** Accessible name of the days view's previous-month arrow. Pass it already translated.
+   * @default 'Previous month' */
+  previousMonthLabel?: string
+  /** Accessible name of the days view's next-month arrow. Pass it already translated.
+   * @default 'Next month' */
+  nextMonthLabel?: string
+  /** Accessible name of the months view's previous-year arrow. Pass it already translated.
+   * @default 'Previous year' */
+  previousYearLabel?: string
+  /** Accessible name of the months view's next-year arrow. Pass it already translated.
+   * @default 'Next year' */
+  nextYearLabel?: string
+  /** Accessible name of the years view's previous-page arrow. Pass it already translated.
+   * @default 'Previous years' */
+  previousYearsLabel?: string
+  /** Accessible name of the years view's next-page arrow. Pass it already translated.
+   * @default 'Next years' */
+  nextYearsLabel?: string
+  /** Accessible name of the hour/minute group (`withTime`). Pass it already translated.
+   * @default 'Time' */
+  timeLabel?: string
+  /** Accessible name of the hour spinbutton (`withTime`). Pass it already translated.
+   * @default 'Hour' */
+  hourLabel?: string
+  /** Accessible name of the minute spinbutton (`withTime`). Pass it already translated.
+   * @default 'Minute' */
+  minuteLabel?: string
+  /** Text of the button that closes the popup (`withTime`). Pass it already translated.
+   * @default 'Done' */
+  doneLabel?: string
+  /** Accessible name of the months grid; every `{year}` marker is replaced by the year shown. Pass it already translated.
+   * @default 'Select a month in {year}' */
+  monthGridLabel?: string
+  /** Accessible name of the years grid; `{from}` and `{to}` are the first and last year of the page shown. Pass it already translated.
+   * @default 'Select a year, {from} to {to}' */
+  yearGridLabel?: string
   /**
    * Marks the control as holding an invalid value, on the trigger `<button>`: the one focusable,
    * named element of the component, which `Field`'s `<label htmlFor>` points at and which a

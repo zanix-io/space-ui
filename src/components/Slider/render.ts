@@ -1,6 +1,7 @@
 import type { CreateElement } from 'typings/renderer.ts'
 import { createButton } from '../Button/render.ts'
 import { liveRegionProps, VISUALLY_HIDDEN_CSS } from 'shared/live-region.ts'
+import { fillMarkers } from 'shared/fill-markers.ts'
 import type { SliderBaseProps } from './types.ts'
 import { MAX_MOUNTED_SLIDES } from './types.ts'
 import { resolveActiveNonce } from 'shared/active-nonce.ts'
@@ -50,6 +51,13 @@ export function createSlider<E, Node>(
       autoPlayInterval,
       showDots = false,
       label = 'Carousel',
+      roleDescription = 'carousel',
+      previousLabel = 'Previous slide',
+      nextLabel = 'Next slide',
+      pauseLabel = 'Pause slideshow',
+      playLabel = 'Play slideshow',
+      dotLabel = 'Go to slide {n}',
+      statusLabel = 'Slide {n} of {total}',
       id,
       className,
       nonce: nonceProp,
@@ -165,20 +173,20 @@ export function createSlider<E, Node>(
           hAny(Button, {
             key: index,
             onClick: () => setCurrentIndex(index),
-            label: `Go to slide ${index + 1}`,
+            label: fillMarkers(dotLabel, { n: index + 1 }),
             'aria-current': index === clampedIndex ? true : undefined,
           })
         ),
       )
       : h('div', { key: 'arrows', 'data-space-ui': 'slider-arrows' }, [
-        hAny(Button, { key: 'prev', onClick: goPrev, label: 'Previous slide' }),
-        hAny(Button, { key: 'next', onClick: goNext, label: 'Next slide' }),
+        hAny(Button, { key: 'prev', onClick: goPrev, label: previousLabel }),
+        hAny(Button, { key: 'next', onClick: goNext, label: nextLabel }),
       ])
 
     const pausePlayButton = autoPlayInterval === undefined ? null : hAny(Button, {
       key: 'pause-play',
       onClick: () => setIsPlaying((current) => !current),
-      label: isPlaying ? 'Pause slideshow' : 'Play slideshow',
+      label: isPlaying ? pauseLabel : playLabel,
     })
 
     return h(
@@ -188,7 +196,7 @@ export function createSlider<E, Node>(
         className,
         'data-space-ui': 'slider',
         role: 'region',
-        'aria-roledescription': 'carousel',
+        'aria-roledescription': roleDescription,
         'aria-label': label,
         tabIndex: 0,
         onKeyDown: handleKeyDown,
@@ -202,7 +210,7 @@ export function createSlider<E, Node>(
         h(
           'span',
           { key: 'live', ...liveRegionProps(liveAnnouncing ? 'polite' : 'off') },
-          `Slide ${clampedIndex + 1} of ${itemsQuantity}`,
+          fillMarkers(statusLabel, { n: clampedIndex + 1, total: itemsQuantity }),
         ),
         // Backs the live region's own `VISUALLY_HIDDEN_ATTR` marker above — a self-rendered
         // `<style nonce={nonce}>` element, never an inline `style` attribute (a real, confirmed CSP

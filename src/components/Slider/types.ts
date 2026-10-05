@@ -16,6 +16,23 @@ export type SliderBaseProps = {
   showDots?: boolean
   /** Accessible name for the carousel region. @default 'Carousel' */
   label?: string
+  /** Value of the region's `aria-roledescription`. Pass it already translated.
+   * @default 'carousel' */
+  roleDescription?: string
+  /** Accessible name of the previous arrow (arrows mode). @default 'Previous slide' */
+  previousLabel?: string
+  /** Accessible name of the next arrow (arrows mode). @default 'Next slide' */
+  nextLabel?: string
+  /** Accessible name of the Pause control while autoplay runs. @default 'Pause slideshow' */
+  pauseLabel?: string
+  /** Accessible name of the Play control while autoplay is paused. @default 'Play slideshow' */
+  playLabel?: string
+  /** Accessible name of each slide-picker dot (`showDots`); every `{n}` marker is replaced by the
+   * slide's 1-based position. @default 'Go to slide {n}' */
+  dotLabel?: string
+  /** Text of the visually-hidden live region; `{n}` is the current slide (1-based) and `{total}`
+   * the slide count. @default 'Slide {n} of {total}' */
+  statusLabel?: string
   id?: string
   className?: string
   /** This component's own visually-hidden live region (`"Slide N of Total"`) needs

@@ -47,9 +47,13 @@ export type ToastMessageBase = {
    * button's visible content in place of the default inline "X" `shared/close-button-icon.ts`
    * renders (see that module's own doc for why). Typed `unknown`, the same escape hatch
    * `ButtonProps.children` already uses, since this value is threaded straight through as that
-   * same `Button`'s own `children`. Omit for the default "X"; `aria-label="Close"` is unaffected
+   * same `Button`'s own `children`. Omit for the default "X"; `closeLabel` is unaffected
    * either way. */
   closeButtonContent?: unknown
+  /** Accessible name of this toast's close button (its `aria-label`). Overrides the
+   * `ToastProvider`'s own `closeLabel` for this toast. Pass it already translated.
+   * @default the provider's `closeLabel`, else 'Close' */
+  closeLabel?: string
   className?: string
 }
 

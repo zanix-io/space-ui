@@ -121,10 +121,10 @@ const bound = createToast<ReactElement, ReactNode>(
  * The close button's own visible content is an inline "X" `<svg>` by default (see
  * `shared/close-button-icon.ts`'s own doc for why — not a Unicode character, not a bundled
  * `CatalogIcon` call), overridable per-toast via `ToastMessage.closeButtonContent`; the button's
- * own accessible name (`aria-label="Close"`) is unaffected either way.
+ * own accessible name (`closeLabel`, default "Close") is unaffected either way.
  */
 export const ToastProvider: (
-  props: { position?: ToastPosition; nonce?: string; children: ReactNode },
+  props: { position?: ToastPosition; nonce?: string; closeLabel?: string; children: ReactNode },
 ) => ReactElement = bound.ToastProvider
 
 /**

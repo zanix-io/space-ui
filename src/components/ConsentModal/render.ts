@@ -97,6 +97,7 @@ export function createConsentModal<E>(
       nonce,
       className,
       closeOnEscape,
+      closeLabel,
     } = props
 
     // Derived purely from already-identical-both-sides props (never render order/a counter/
@@ -138,6 +139,7 @@ export function createConsentModal<E>(
       open,
       onClose,
       ariaLabelledBy: headingId,
+      closeLabel,
       closeOnEscape,
       className,
       nonce,

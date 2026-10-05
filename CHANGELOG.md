@@ -5,6 +5,33 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/) and this project
 adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [2.9.4] - 2026-10-05
+
+### Added
+
+- **Text props: space-ui does not translate, the consumer passes the strings.** Every visible or
+  accessible English text the audited components rendered is now an optional string prop with the
+  same English text as its default, so a caller translates with its own catalog and the server
+  render and the client get the same value. A dynamic value is a marker the component fills in
+  (`{n}`, `{name}`, `{year}`, `{url}`, `{minutes}`, `{total}`, `{from}`, `{to}`). See the "Text and
+  translation" section of the README for the full component to props table.
+- `Countdown`: `announcementDone`, `announcementLessThanMinute` and `announcementMinutes`
+  (`{minutes}`) set the live-region texts, which are plain strings and so cross a Comet's props
+  boundary; `getAnnouncement` still wins over them.
+- `Toast`: `ToastProvider.closeLabel`, and `closeLabel` on a single toast message.
+- `Modal`: `closeLabel`; `ConsentModal` forwards its own `closeLabel` to it.
+- `Menu`: `openLabel`, `closeLabel` and `submenuLabel` (`{name}`).
+- `Slider`: `roleDescription`, `previousLabel`, `nextLabel`, `pauseLabel`, `playLabel`, `dotLabel`
+  (`{n}`) and `statusLabel` (`{n}`, `{total}`), next to the existing `label`.
+- `DatePicker`: `previousMonthLabel`, `nextMonthLabel`, `previousYearLabel`, `nextYearLabel`,
+  `previousYearsLabel`, `nextYearsLabel`, `timeLabel`, `hourLabel`, `minuteLabel`, `doneLabel`,
+  `monthGridLabel` (`{year}`) and `yearGridLabel` (`{from}`, `{to}`).
+- `SocialLinksInput`: `linkLabel` (`{n}`), `removeLabel` (`{url}`) and `removeEmptyLabel`, next to
+  the existing `addButtonLabel`.
+- `SocialNetworks`: `logoLabel` (default `alt` and `title`) and `linkLabel`, both with `{name}`.
+
+Suggested version: minor.
+
 ## [2.9.3] - 2026-10-04
 
 ### Added
