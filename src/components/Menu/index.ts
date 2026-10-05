@@ -91,6 +91,13 @@ export type MenuProps = MenuBaseProps & { items: MenuItem[] }
  *   ever rendered — an item with `url` is a plain `Link`; without `url`, plain static content, same
  *   as the no-submenu/no-url case above.
  *
+ * ## Marking the current item
+ *
+ * `current: true` on an item puts `aria-current="page"` on its link (a submenu's items included),
+ * the attribute assistive technology announces as the current section and a stylesheet can target
+ * with `[aria-current='page']`. The caller decides which item that is — `Menu` never reads the
+ * URL. Items without `current` render exactly as before.
+ *
  * ## Accessible name, when a visual is present
  *
  * `accessibleLabel`, when given, is the interactive element's own `aria-label` override (`Link.label`/

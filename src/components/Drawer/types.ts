@@ -15,8 +15,14 @@ export type DrawerBaseProps = {
    * visible content in place of the default inline "X" `shared/close-button-icon.ts` renders (see
    * that module's own doc for why). Typed `unknown`, the same escape hatch `Button.children`
    * already uses, since this value is threaded straight through as that same `Button`'s own
-   * `children`. Omit for the default "X"; `aria-label="Close"` is unaffected either way. */
+   * `children`. Omit for the default "X"; the close button's accessible name is
+   * {@linkcode closeLabel} either way. */
   closeButtonContent?: unknown
+  /** Accessible name of the close button (its `aria-label`) — the text a screen reader announces,
+   * and the one to translate: the default is English. Independent of {@linkcode closeButtonContent},
+   * which only changes what the button shows.
+   * @default 'Close' */
+  closeLabel?: string
   /** Which edge the panel is anchored to, and slides in from — no default, an explicit, deliberate
    * choice every time: unlike `Modal`'s own `position` (where `'center'` is the unambiguous normal
    * case), there's no single edge that's obviously "the" default for a drawer. */

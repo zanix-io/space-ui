@@ -247,7 +247,7 @@ ahead of time:
   a Unicode character (inconsistent glyph rendering across platforms) and not a bundled
   `CatalogIcon` call (its sprite is a consumer-scaffolded template asset this component has no
   `href` for) — overridable per-instance via `closeButtonContent`, for a consumer with an icon
-  system of their own; `aria-label="Close"` stays the accessible name either way.
+  system of their own; the accessible name stays `Modal`'s fixed `aria-label="Close"` either way.
 - ✅ **`Showcase`** — `children` grouped into pages of `itemsPerSlide`, each page one `Slider`
   slide; nothing else — every one of `Slider`'s own capabilities (loop, autoplay, dots vs. arrows,
   keyboard, accessible structure) is available here unchanged through a `slider` passthrough prop.
@@ -338,7 +338,8 @@ ahead of time:
   instead of centered). Composes the exact same focus-trap/`Escape`/backdrop primitives `Modal`
   does, and genuinely shares `Modal`'s own overlay-stacking coordination — a `Drawer` and a `Modal`
   open at once correctly defer to whichever is truly topmost, regardless of kind. Same close-button
-  default/override contract as `Modal`'s own (`closeButtonContent`).
+  default/override contract as `Modal`'s own (`closeButtonContent`); the close button's accessible
+  name is `closeLabel` (default `'Close'`), the prop to translate.
 
 - ✅ **`Field`** — a labeled form-field wrapper: a `<label>`, the caller's own input, an optional
   hint, and an error message, correctly cross-referenced via `aria-describedby`/`aria-invalid`.

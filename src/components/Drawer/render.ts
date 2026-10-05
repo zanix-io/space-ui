@@ -44,8 +44,8 @@ export type DrawerRenderProps<Node> = DrawerBaseProps & DrawerAccessibleName & {
  *
  * The close button's own visible content is `closeButtonContent` when given, otherwise
  * `shared/close-button-icon.ts`'s own default inline "X" `<svg>` — same contract, same reasoning
- * `Modal/render.ts`'s own doc already covers (not repeated here); `aria-label="Close"` is
- * unconditional either way.
+ * `Modal/render.ts`'s own doc already covers (not repeated here); its accessible name is
+ * `closeLabel` (default `'Close'`) either way.
  *
  * Positioning is a `<style nonce={nonce}>` element this component renders itself, built once from
  * `DRAWER_POSITION_CSS` (`Drawer/types.ts`) — same mechanism/reasoning as `Modal/render.ts`'s own
@@ -73,6 +73,7 @@ export function createDrawer<E, Node>(
       open,
       onClose,
       closeButtonContent,
+      closeLabel = 'Close',
       side,
       label,
       ariaLabelledBy,
@@ -178,7 +179,7 @@ export function createDrawer<E, Node>(
             // that file's own comment here for the full reasoning) — not repeated per component.
             Button({
               onClick: onClose,
-              label: 'Close',
+              label: closeLabel,
               children: closeButtonContent ?? DefaultCloseIcon(),
             }),
           ),

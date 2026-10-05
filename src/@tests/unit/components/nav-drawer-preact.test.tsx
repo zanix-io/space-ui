@@ -120,3 +120,81 @@ Deno.test(
     unmount()
   },
 )
+
+Deno.test('NavDrawer (preact): the toggle says "Open menu" by default and takes a translated label and a class of its own', () => {
+  const byDefault = renderToString(element({ items, label: 'Main navigation' }))
+  assertStringIncludes(byDefault, 'aria-label="Open menu"')
+
+  const translated = renderToString(
+    element({
+      items,
+      label: 'Navegación',
+      openLabel: 'Abrir menú',
+      closeLabel: 'Cerrar menú',
+      toggleClassName: 'app-nav-toggle',
+    }),
+  )
+  assertStringIncludes(translated, 'aria-label="Abrir menú"')
+  assertStringIncludes(translated, 'class="app-nav-toggle"')
+  assertEquals(translated.includes('Open menu'), false)
+})
+
+Deno.test('NavDrawer (preact): once open, the toggle says the translated close label', () => {
+  const { container, unmount } = mount({
+    items,
+    label: 'Navegación',
+    openLabel: 'Abrir menú',
+    closeLabel: 'Cerrar menú',
+    defaultOpen: true,
+  })
+  const toggle = must(container.querySelector('[aria-controls]'))
+
+  assertEquals(toggle.getAttribute('aria-label'), 'Cerrar menú')
+  unmount()
+})
+
+Deno.test('NavDrawer (preact): the panel close button is "Close" by default and closeButtonLabel renames it, apart from the toggle', () => {
+  const byDefault = mount({ items, label: 'Main navigation', defaultOpen: true })
+  assertEquals(byDefault.container.querySelector('button[aria-label="Close"]') !== null, true)
+  byDefault.unmount()
+
+  const { container, unmount } = mount({
+    items,
+    label: 'Navegación',
+    closeLabel: 'Cerrar menú',
+    closeButtonLabel: 'Cerrar',
+    defaultOpen: true,
+  })
+  assertEquals(container.querySelector('button[aria-label="Close"]'), null)
+  assertEquals(
+    container.querySelector('[data-space-ui="drawer"] button[aria-label="Cerrar"]') !== null,
+    true,
+  )
+  assertEquals(
+    container.querySelector('[aria-controls]')?.getAttribute('aria-label'),
+    'Cerrar menú',
+  )
+  unmount()
+})
+
+Deno.test('NavDrawer (preact): current puts aria-current="page" on that item’s link only, submenu items included', () => {
+  const { container, unmount } = mount({
+    items: [
+      { label: 'Home', url: '/' },
+      {
+        label: 'Docs',
+        url: '/docs',
+        submenu: [{ label: 'Guides', url: '/docs/guides', current: true }],
+      },
+    ],
+    label: 'Main navigation',
+    openMode: 'onRender',
+    defaultOpen: true,
+  })
+
+  const marked = container.querySelectorAll('[aria-current]')
+  assertEquals(marked.length, 1)
+  assertEquals(marked[0].getAttribute('aria-current'), 'page')
+  assertEquals(marked[0].getAttribute('href'), '/docs/guides')
+  unmount()
+})

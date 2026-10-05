@@ -89,6 +89,10 @@ export function createNavDrawer<E>(
       nonce,
       id,
       className,
+      openLabel = 'Open menu',
+      closeLabel = 'Close menu',
+      closeButtonLabel,
+      toggleClassName,
     } = props
 
     const [open, setOpen] = hooks.useState(defaultOpen)
@@ -107,7 +111,8 @@ export function createNavDrawer<E>(
 
     const toggleButton = Button({
       onClick: () => setOpen((current) => !current),
-      label: open ? 'Close menu' : 'Open menu',
+      label: open ? closeLabel : openLabel,
+      className: toggleClassName,
       'aria-expanded': open,
       'aria-controls': panelId,
     })
@@ -121,6 +126,7 @@ export function createNavDrawer<E>(
       onClose: () => setOpen(false),
       side,
       label,
+      closeLabel: closeButtonLabel,
       closeOnEscape,
       nonce,
       id: panelId,

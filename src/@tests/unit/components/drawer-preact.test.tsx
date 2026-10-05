@@ -493,3 +493,44 @@ Deno.test('Drawer + Modal (preact): only the topmost (either kind) responds to E
 
   act(() => renderDOM(null, container))
 })
+
+Deno.test('Drawer (preact): the close button is named "Close" by default, and closeLabel renames it', () => {
+  const byDefault = renderToString(
+    element({ open: true, onClose: () => {}, side: 'left', label: 'Cart', children: 'Empty' }),
+  )
+  assertStringIncludes(byDefault, 'aria-label="Close"')
+
+  const translated = renderToString(
+    element({
+      open: true,
+      onClose: () => {},
+      side: 'left',
+      label: 'Carrito',
+      closeLabel: 'Cerrar',
+      children: 'Vacío',
+    }),
+  )
+  assertStringIncludes(translated, 'aria-label="Cerrar"')
+  assertEquals(translated.includes('aria-label="Close"'), false)
+})
+
+Deno.test('Drawer (preact): closeLabel names the real close button, and it still closes', () => {
+  let closed = 0
+  const { container, unmount } = mount({
+    open: true,
+    onClose: () => closed++,
+    side: 'left',
+    label: 'Carrito',
+    closeLabel: 'Cerrar',
+    children: 'Vacío',
+  })
+
+  const closeButton = must(
+    container.querySelector<HTMLButtonElement>('button[aria-label="Cerrar"]'),
+  )
+  assertEquals(container.querySelector('button[aria-label="Close"]'), null)
+  act(() => closeButton.click())
+  assertEquals(closed, 1)
+
+  unmount()
+})

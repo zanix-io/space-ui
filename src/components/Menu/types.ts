@@ -21,6 +21,13 @@ export type MenuItemFields = {
   /** Accessible-name override for the item's own visible `label` — same "supplements or replaces"
    * contract as `Link.label`. Omit when `label` already reads well standalone. */
   accessibleLabel?: string
+  /** `true` marks this item as the one the user is on — its link carries `aria-current="page"`, so
+   * assistive technology announces the current section, and a stylesheet can target
+   * `[aria-current='page']`. Only a link can be current: it has no effect on an item without `url`
+   * (a disclosure-only control). A parent item is not marked by a current child — set `current`
+   * on each item that applies. The caller decides what "current" means (this component never reads
+   * the URL or the router); omitted or `false`, the link carries no `aria-current` at all. */
+  current?: boolean
   /** Exact `IconProps` `Icon` itself takes — wins over `visual` when both are given, same
    * precedence `ImgButton` already establishes between its own `icon`/`visual`. */
   icon?: IconProps

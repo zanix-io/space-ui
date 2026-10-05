@@ -48,7 +48,8 @@ export type DrawerProps = DrawerBaseProps & DrawerAccessibleName & { children: R
  *
  * Same contract as `Modal`'s own — see `Modal/index.ts`'s own doc for the full reasoning, not
  * repeated here. `closeButtonContent` overrides the default inline "X" `<svg>` with any renderer
- * node; the button's own accessible name (`aria-label="Close"`) is unaffected either way.
+ * node; the button's own accessible name is unaffected either way. That name is `closeLabel`
+ * (`aria-label`, default `'Close'`) — pass the translated text when the app is not in English.
  *
  * ## Otherwise identical to `Modal`'s own contract
  *

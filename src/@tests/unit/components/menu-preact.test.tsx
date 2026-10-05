@@ -429,3 +429,46 @@ Deno.test('Menu (preact): onRender — always expanded, no disclosure trigger re
   assertStringIncludes(html, 'data-space-ui="menu-submenu"')
   assertStringIncludes(html, 'Consulting')
 })
+
+Deno.test('Menu (preact): current puts aria-current="page" on that link, and items without it carry none', () => {
+  const html = renderToString(
+    element({
+      items: [{ label: 'Home', url: '/', current: true }, { label: 'About', url: '/about' }],
+      label: 'Main',
+    }),
+  )
+
+  assertStringIncludes(html, 'aria-current="page"')
+  assertEquals(html.split('aria-current').length - 1, 1)
+})
+
+Deno.test('Menu (preact): current=false and a url-less current item emit no aria-current', () => {
+  const html = renderToString(
+    element({
+      items: [
+        { label: 'Home', url: '/', current: false },
+        { label: 'Gear', current: true, submenu: [{ label: 'A', url: '/a' }] },
+      ],
+      label: 'Main',
+    }),
+  )
+
+  assertEquals(html.includes('aria-current'), false)
+})
+
+Deno.test('Menu (preact): current works on the link of an item with a submenu, and inside the submenu', () => {
+  const html = renderToString(
+    element({
+      items: [{
+        label: 'Services',
+        url: '/services',
+        current: true,
+        submenu: [{ label: 'Support', url: '/services/support', current: true }],
+      }],
+      openMode: 'onRender',
+      label: 'Main',
+    }),
+  )
+
+  assertEquals(html.split('aria-current="page"').length - 1, 2)
+})

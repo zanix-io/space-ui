@@ -112,7 +112,8 @@ export function createMenu<E>(
   ) => E
 
   function MenuItemRow({ item, openMode }: { item: MenuRenderItem<E>; openMode: MenuOpenMode }): E {
-    const { label, url, external, rel, title, accessibleLabel, icon, visual, submenu } = item
+    const { label, url, external, rel, title, accessibleLabel, icon, visual, submenu, current } =
+      item
     const hasSubmenu = !!submenu?.length
     const hasUrl = url !== undefined
     const accessibleName = accessibleLabel
@@ -172,16 +173,34 @@ export function createMenu<E>(
     // the visual is already a caller-supplied element (see `MenuRenderItem.visual`'s own doc).
     const content = decorativeVisual ? [decorativeVisual, h('span', {}, label)] : label
 
+    const ariaCurrent = current ? 'page' : undefined
+
     let primary: E
     let disclosureToggle: E | null = null
 
     if (!hasSubmenu || openMode === 'onRender') {
       primary = hasUrl
-        ? Link({ href: url, external, rel, title, label: accessibleName, children: content })
+        ? Link({
+          href: url,
+          external,
+          rel,
+          title,
+          label: accessibleName,
+          'aria-current': ariaCurrent,
+          children: content,
+        })
         : h('span', {}, content)
     } else if (hasUrl) {
       // Two controls: a real navigable Link, plus a separate, bare disclosure Button.
-      primary = Link({ href: url, external, rel, title, label: accessibleName, children: content })
+      primary = Link({
+        href: url,
+        external,
+        rel,
+        title,
+        label: accessibleName,
+        'aria-current': ariaCurrent,
+        children: content,
+      })
 
       disclosureToggle = h(
         'span',

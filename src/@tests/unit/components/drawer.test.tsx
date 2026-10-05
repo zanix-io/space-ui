@@ -493,3 +493,38 @@ Deno.test('Drawer + Modal: only the topmost (either kind) responds to Escape', (
 
   act(() => root.unmount())
 })
+
+Deno.test('Drawer: the close button is named "Close" by default, and closeLabel renames it', () => {
+  const byDefault = renderToStaticMarkup(
+    <Drawer open onClose={() => {}} side='left' label='Cart'>
+      <p>Empty</p>
+    </Drawer>,
+  )
+  assertStringIncludes(byDefault, 'aria-label="Close"')
+
+  const translated = renderToStaticMarkup(
+    <Drawer open onClose={() => {}} side='left' label='Carrito' closeLabel='Cerrar'>
+      <p>Vacío</p>
+    </Drawer>,
+  )
+  assertStringIncludes(translated, 'aria-label="Cerrar"')
+  assertEquals(translated.includes('aria-label="Close"'), false)
+})
+
+Deno.test('Drawer: closeLabel names the real close button, and it still closes', () => {
+  let closed = 0
+  const { container, unmount } = mount(
+    <Drawer open onClose={() => closed++} side='left' label='Carrito' closeLabel='Cerrar'>
+      <p>Vacío</p>
+    </Drawer>,
+  )
+
+  const closeButton = must(
+    container.querySelector<HTMLButtonElement>('button[aria-label="Cerrar"]'),
+  )
+  assertEquals(container.querySelector('button[aria-label="Close"]'), null)
+  act(() => closeButton.click())
+  assertEquals(closed, 1)
+
+  unmount()
+})

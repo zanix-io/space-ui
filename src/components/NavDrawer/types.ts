@@ -3,7 +3,7 @@ import type { DrawerSide } from 'components/Drawer/types.ts'
 
 /**
  * One `NavDrawer` nav entry — {@linkcode MenuItemFields} (see that type's own doc for `label`/
- * `url`/`external`/`rel`/`title`/`accessibleLabel`/`icon`) plus a recursive `submenu`, deliberately
+ * `url`/`external`/`rel`/`title`/`accessibleLabel`/`current`/`icon`) plus a recursive `submenu`, deliberately
  * WITHOUT `Menu.MenuItem`'s own `visual` render-prop. `NavDrawer` is a Comet
  * (`@zanix/space/comet`'s `defineComet`), and a Comet's own props cross the server/client boundary
  * as plain JSON — a render-prop function isn't JSON-serializable, so it can never reach this
@@ -59,8 +59,25 @@ export type NavDrawerProps = {
   /** DOM `id` for the sliding panel. Auto-generated (`useId`) when omitted — only worth giving
    * explicitly to target it from a test/CSS selector/`aria-describedby` elsewhere. */
   id?: string
-  /** Applied to the sliding panel (`Drawer`'s own `className`) — the toggle button and the inner
-   * `Menu` take no styling hook of their own here; style them via `data-space-ui="button"`/
-   * `"menu"` selectors instead, same as composing `Button`/`Menu` directly would require. */
+  /** Applied to the sliding panel (`Drawer`'s own `className`) — the inner `Menu` takes no styling
+   * hook of their own here; style it via the `data-space-ui="menu"` selector instead, same as
+   * composing `Menu` directly would require. The toggle button takes {@linkcode toggleClassName}. */
   className?: string
+  /** Accessible name of the toggle while the panel is closed — the text a screen reader announces
+   * and the one to translate; the default is English.
+   * @default 'Open menu' */
+  openLabel?: string
+  /** Accessible name of the toggle (hamburger) button while the panel is open. Not the panel's own
+   * close button — that one is named by {@linkcode closeButtonLabel}.
+   * @default 'Close menu' */
+  closeLabel?: string
+  /** Accessible name of the close button inside the sliding panel (forwarded to the inner
+   * `Drawer`'s own `closeLabel`) — the text to translate for an app in another language. Not the
+   * toggle's name while open — that one is {@linkcode closeLabel}.
+   * @default 'Close' */
+  closeButtonLabel?: string
+  /** Applied to the toggle button (`Button`'s own `className`), the styling hook it has no other
+   * way to offer: a selector on its accessible name (`[aria-label$='menu']`) stops matching as soon
+   * as {@linkcode openLabel} or {@linkcode closeLabel} is translated. */
+  toggleClassName?: string
 }

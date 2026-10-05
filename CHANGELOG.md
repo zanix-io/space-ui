@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/) and this project
 adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [2.9.2] - 2026-10-04
+
+### Added
+
+- **`NavDrawer` takes `openLabel`, `closeLabel` and `toggleClassName`.** The toggle's accessible
+  name was fixed to "Open menu" and "Close menu"; the two labels are now props (those texts stay the
+  defaults), so an app in another language names the toggle itself. `toggleClassName` is the styling
+  hook of the toggle button, which a selector on its accessible name (`[aria-label$='menu']`) cannot
+  be once that name is translated.
+- **`NavDrawer` takes `closeButtonLabel`, `Drawer` takes `closeLabel`.** The panel's close button
+  was always named "Close"; `Drawer.closeLabel` (default `'Close'`) now names it, and
+  `NavDrawer.closeButtonLabel` (default `'Close'`) forwards to it. It is distinct from
+  `NavDrawer.closeLabel`, the name of the toggle button while the panel is open.
+- **`Menu` and `NavDrawer` items take `current`.** `current: true` puts `aria-current="page"` on the
+  item's link, submenu items included, so the current section is announced and styleable via
+  `[aria-current='page']`. Items without `current` render unchanged.
+
 ## [2.9.1] - 2026-10-04
 
 ### Added
