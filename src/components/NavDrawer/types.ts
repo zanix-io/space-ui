@@ -80,4 +80,12 @@ export type NavDrawerProps = {
    * way to offer: a selector on its accessible name (`[aria-label$='menu']`) stops matching as soon
    * as {@linkcode openLabel} or {@linkcode closeLabel} is translated. */
   toggleClassName?: string
+  /** Decides the current item from the browser's location each time the panel opens, ignoring the
+   * items' own `current`: the item whose `url` is the longest path that is the location's path or
+   * a parent of it is marked (`aria-current="page"`), and no other. Needed when the drawer lives
+   * in a layout that survives client-side navigation (a root layout is never re-rendered by
+   * Orbit), where a `current` computed on the server stays that of the page the document was first
+   * loaded on. Without a location (server render) the items' own `current` is used.
+   * @default false */
+  currentFromLocation?: boolean
 }

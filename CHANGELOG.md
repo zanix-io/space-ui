@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/) and this project
 adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [2.9.3] - 2026-10-04
+
+### Added
+
+- **`NavDrawer` takes `currentFromLocation`.** With it, the panel marks the current item from the
+  browser's location each time it opens (the item whose `url` is the longest path that is the
+  location's path or a parent of it gets `aria-current="page"`), ignoring the items' own `current`.
+  A drawer in a root layout is not re-rendered by client-side navigation, so a `current` computed on
+  the server stayed that of the page the document was first loaded on. Off by default; the server
+  render and the closed drawer are unchanged.
+
 ## [2.9.2] - 2026-10-04
 
 ### Added

@@ -313,3 +313,80 @@ Deno.test('NavDrawer: current puts aria-current="page" on that item’s link onl
   assertEquals(marked[0].getAttribute('href'), '/docs/guides')
   unmount()
 })
+
+Deno.test('NavDrawer: currentFromLocation marks the item for the location when the panel opens, not the one the server marked', () => {
+  const original = Object.getOwnPropertyDescriptor(globalThis, 'location')
+  Object.defineProperty(globalThis, 'location', {
+    value: { pathname: '/es/b/7' },
+    configurable: true,
+  })
+  try {
+    const { container, unmount } = mount(
+      <NavDrawer
+        items={[
+          { label: 'A', url: '/es/a', current: true },
+          { label: 'B', url: '/es/b' },
+          { label: 'Home', url: '/es' },
+        ]}
+        label='Main navigation'
+        currentFromLocation
+      />,
+    )
+    act(() => must(container.querySelector<HTMLButtonElement>('button')).click())
+
+    const marked = container.querySelectorAll('[aria-current]')
+    assertEquals(marked.length, 1)
+    assertEquals(marked[0].getAttribute('href'), '/es/b')
+    unmount()
+  } finally {
+    if (original) Object.defineProperty(globalThis, 'location', original)
+    else delete (globalThis as { location?: unknown }).location
+  }
+})
+
+Deno.test('NavDrawer: without currentFromLocation the items’ own current is kept even if the location differs', () => {
+  const original = Object.getOwnPropertyDescriptor(globalThis, 'location')
+  Object.defineProperty(globalThis, 'location', {
+    value: { pathname: '/es/b' },
+    configurable: true,
+  })
+  try {
+    const { container, unmount } = mount(
+      <NavDrawer
+        items={[{ label: 'A', url: '/es/a', current: true }, { label: 'B', url: '/es/b' }]}
+        label='Main navigation'
+        defaultOpen
+      />,
+    )
+    const marked = container.querySelectorAll('[aria-current]')
+    assertEquals(marked.length, 1)
+    assertEquals(marked[0].getAttribute('href'), '/es/a')
+    unmount()
+  } finally {
+    if (original) Object.defineProperty(globalThis, 'location', original)
+    else delete (globalThis as { location?: unknown }).location
+  }
+})
+
+Deno.test('NavDrawer: currentFromLocation marks nothing when no item matches, and root only matches itself', () => {
+  const original = Object.getOwnPropertyDescriptor(globalThis, 'location')
+  Object.defineProperty(globalThis, 'location', {
+    value: { pathname: '/es/other' },
+    configurable: true,
+  })
+  try {
+    const { container, unmount } = mount(
+      <NavDrawer
+        items={[{ label: 'Root', url: '/' }, { label: 'A', url: '/es/a', current: true }]}
+        label='Main navigation'
+        currentFromLocation
+        defaultOpen
+      />,
+    )
+    assertEquals(container.querySelectorAll('[aria-current]').length, 0)
+    unmount()
+  } finally {
+    if (original) Object.defineProperty(globalThis, 'location', original)
+    else delete (globalThis as { location?: unknown }).location
+  }
+})

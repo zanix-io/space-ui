@@ -40,6 +40,46 @@ function toMenuItems<Node>(items: NavDrawerItem[]): MenuRenderItem<Node>[] {
   }))
 }
 
+/** The path of an item's `url` when it is a same-origin link, without query, hash or a trailing
+ * slash; `undefined` for an external or absent one. */
+function itemPath(url: string | undefined, external: boolean | undefined): string | undefined {
+  if (!url || external || !url.startsWith('/') || url.startsWith('//')) return undefined
+  return url.split(/[?#]/)[0].replace(/\/+$/, '')
+}
+
+/** Every item, submenu items included, depth first. */
+function flattenItems(items: NavDrawerItem[]): NavDrawerItem[] {
+  return items.flatMap((item) => [item, ...(item.submenu ? flattenItems(item.submenu) : [])])
+}
+
+/**
+ * Replaces each item's `current` with the one `pathname` decides: the item whose `url` is the
+ * longest path that is `pathname` or a parent of it (so `/docs/guides/x` marks `/docs/guides`
+ * rather than `/docs`) is current, and no other. A root `url` (`/`) is current only for `/` itself.
+ * Nothing is current when no item matches.
+ */
+function markCurrentByPath(items: NavDrawerItem[], pathname: string): NavDrawerItem[] {
+  const path = pathname.replace(/\/+$/, '')
+  let best: NavDrawerItem | undefined
+  let bestLength = -1
+  for (const item of flattenItems(items)) {
+    const own = itemPath(item.url, item.external)
+    if (own === undefined) continue
+    const matches = path === own || (own !== '' && path.startsWith(`${own}/`))
+    if (matches && own.length > bestLength) {
+      best = item
+      bestLength = own.length
+    }
+  }
+  const mark = (list: NavDrawerItem[]): NavDrawerItem[] =>
+    list.map((item) => ({
+      ...item,
+      current: item === best,
+      submenu: item.submenu ? mark(item.submenu) : undefined,
+    }))
+  return mark(items)
+}
+
 /**
  * The real implementation of `NavDrawer`, shared identically between the React and Preact
  * bindings — same `render.ts`-factory technique {@linkcode createMenu}/`createTable` already use,
@@ -93,6 +133,7 @@ export function createNavDrawer<E>(
       closeLabel = 'Close menu',
       closeButtonLabel,
       toggleClassName,
+      currentFromLocation = false,
     } = props
 
     const [open, setOpen] = hooks.useState(defaultOpen)
@@ -117,7 +158,13 @@ export function createNavDrawer<E>(
       'aria-controls': panelId,
     })
 
-    const menu = Menu({ items: toMenuItems<E>(items), label, openMode, toggle: false })
+    // The panel only exists while open and opening re-renders, so the location read here is always
+    // fresh and never part of the server/hydration render (a closed drawer shows no items).
+    const pathname = currentFromLocation && open
+      ? (globalThis as { location?: { pathname: string } }).location?.pathname
+      : undefined
+    const shownItems = pathname === undefined ? items : markCurrentByPath(items, pathname)
+    const menu = Menu({ items: toMenuItems<E>(shownItems), label, openMode, toggle: false })
 
     const panel = h('div', { onClick: handlePanelClick }, menu)
 
