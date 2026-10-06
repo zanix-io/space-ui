@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/) and this project
 adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [2.9.5] - 2026-10-06
+
+### Added
+
+- **`NavDrawer` takes `inlineFrom`, to show its list inline from a viewport width.** `inlineFrom` is
+  a length in `px`, `em` or `rem` (`'48rem'`): from that width the same `items` render as a plain
+  `<nav>` (the `Menu` the panel holds, `openMode` applying to its submenus) and the toggle and the
+  panel are hidden; below it nothing changes. Both are in the server markup, and a `<style>` the
+  component renders with the `nonce` swaps them, so the right one shows before hydration, without a
+  flash. The rule uses a scope token derived from the panel `id`, a plain identifier, because
+  Preact's server renderer escapes the quotes of a quoted attribute selector inside `<style>`. A
+  panel that is open when the viewport grows past the width closes. With `currentFromLocation` the
+  inline list marks the current item once hydrated. Any other value than a positive length throws.
+  Without `inlineFrom` the markup is unchanged. Before this, an app that wanted the list always
+  visible rendered a `Menu` with `toggle={false}` beside the `NavDrawer` and switched them with CSS.
+
 ## [2.9.4] - 2026-10-05
 
 ### Added

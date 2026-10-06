@@ -88,4 +88,19 @@ export type NavDrawerProps = {
    * loaded on. Without a location (server render) the items' own `current` is used.
    * @default false */
   currentFromLocation?: boolean
+  /** The viewport width, as a CSS length in `px`, `em` or `rem` (`'48rem'`), from which the same
+   * {@linkcode items} render as a plain `<nav>` list instead of behind the toggle: from that width
+   * the toggle and the panel are hidden, below it nothing changes. Both are in the server markup, so
+   * the right one shows before hydration, without a flash.
+   *
+   * The switch is a `<style>` element this component renders with the request's `nonce` (see
+   * {@linkcode nonce}); under a CSP that forbids inline styles, pass the nonce or the rule is
+   * blocked and both the toggle and the list show. A panel that is open when the viewport grows
+   * past the width closes. The inline list is the `Menu` the panel holds (`openMode` applies to its
+   * submenus) inside a `data-navdrawer-inline` container; style it through `data-space-ui="menu"`.
+   *
+   * With {@linkcode currentFromLocation} the inline list marks the current item once the component
+   * has hydrated: the server render keeps the items' own `current`.
+   * @throws When the value is not a positive number followed by `px`, `em` or `rem`. */
+  inlineFrom?: string
 }

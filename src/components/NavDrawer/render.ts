@@ -4,6 +4,7 @@ import { createDrawer } from '../Drawer/render.ts'
 import type { DrawerHooks } from '../Drawer/render.ts'
 import { createMenu } from '../Menu/render.ts'
 import type { MenuHooks, MenuRenderItem } from '../Menu/render.ts'
+import { resolveActiveNonce } from 'shared/active-nonce.ts'
 import type { NavDrawerItem, NavDrawerProps } from './types.ts'
 
 /**
@@ -80,6 +81,41 @@ function markCurrentByPath(items: NavDrawerItem[], pathname: string): NavDrawerI
   return mark(items)
 }
 
+/** A positive length a media query takes, in a unit that does not depend on the element: nothing
+ * else is written into the generated `<style>`, so a value from configuration cannot break out of
+ * the rule. */
+const INLINE_FROM_PATTERN = /^(?:\d+|\d*\.\d+)(?:px|em|rem)$/
+
+function assertInlineFrom(inlineFrom: string): void {
+  if (!INLINE_FROM_PATTERN.test(inlineFrom) || Number.parseFloat(inlineFrom) <= 0) {
+    throw new Error(
+      `NavDrawer: inlineFrom must be a positive length in px, em or rem (for example '48rem'), ` +
+        `received ${JSON.stringify(inlineFrom)}.`,
+    )
+  }
+}
+
+/** A token that is a valid CSS identifier for one instance, derived from its panel id. The id itself
+ * can hold any character, and one the markup escapes (`"`, `'`, `&`) would change the selector it is
+ * written into: Preact's server renderer escapes the text of a `<style>` element, so a quoted
+ * attribute selector there arrives as `&quot;...&quot;` and never matches. The token is letters and
+ * digits only, so the selector below needs no quotes and nothing for either renderer to escape. */
+function inlineScope(panelId: string): string {
+  let hash = 5381
+  for (let index = 0; index < panelId.length; index++) {
+    hash = ((hash * 33) ^ panelId.charCodeAt(index)) >>> 0
+  }
+  return `nd${hash.toString(36)}`
+}
+
+/** The two rules that swap the toggle for the inline list from `inlineFrom` up, scoped to one
+ * instance by its {@linkcode inlineScope}. `not all and (min-width: ...)` is the complement of the
+ * width query, so the length is written once and the two can never leave a gap or overlap. */
+function inlineRules(scope: string, inlineFrom: string): string {
+  return `@media (min-width:${inlineFrom}){[data-navdrawer-toggle=${scope}]{display:none}}` +
+    `@media not all and (min-width:${inlineFrom}){[data-navdrawer-inline=${scope}]{display:none}}`
+}
+
 /**
  * The real implementation of `NavDrawer`, shared identically between the React and Preact
  * bindings — same `render.ts`-factory technique {@linkcode createMenu}/`createTable` already use,
@@ -134,9 +170,12 @@ export function createNavDrawer<E>(
       closeButtonLabel,
       toggleClassName,
       currentFromLocation = false,
+      inlineFrom,
     } = props
 
+    if (inlineFrom !== undefined) assertInlineFrom(inlineFrom)
     const [open, setOpen] = hooks.useState(defaultOpen)
+    const [hydrated, setHydrated] = hooks.useState(false)
     // Called unconditionally, every render, regardless of whether `id` ends up used — a real hook,
     // so it must follow the same fixed call-order every other hook here does; `id ?? ...` only
     // decides which VALUE wins, never whether this call happens. See `NavDrawerHooks`' own doc for
@@ -150,6 +189,19 @@ export function createNavDrawer<E>(
       if (target?.closest?.('a[href]')) setOpen(false)
     }
 
+    hooks.useEffect(() => setHydrated(true), [])
+    hooks.useEffect(() => {
+      const media = (globalThis as { matchMedia?: (query: string) => MediaQueryList }).matchMedia
+      if (inlineFrom === undefined || !media) return
+      const query = media(`(min-width:${inlineFrom})`)
+      const closeWhenInline = () => {
+        if (query.matches) setOpen(false)
+      }
+      closeWhenInline()
+      query.addEventListener('change', closeWhenInline)
+      return () => query.removeEventListener('change', closeWhenInline)
+    }, [inlineFrom])
+
     const toggleButton = Button({
       onClick: () => setOpen((current) => !current),
       label: open ? closeLabel : openLabel,
@@ -160,7 +212,7 @@ export function createNavDrawer<E>(
 
     // The panel only exists while open and opening re-renders, so the location read here is always
     // fresh and never part of the server/hydration render (a closed drawer shows no items).
-    const pathname = currentFromLocation && open
+    const pathname = currentFromLocation && (open || (inlineFrom !== undefined && hydrated))
       ? (globalThis as { location?: { pathname: string } }).location?.pathname
       : undefined
     const shownItems = pathname === undefined ? items : markCurrentByPath(items, pathname)
@@ -184,8 +236,22 @@ export function createNavDrawer<E>(
     // Keyed, same reasoning `Menu/render.ts`'s own doc gives for its own unconditional `Fragment`
     // wrapping — neither `Button`'s nor `Drawer`'s own return type accepts a `key` prop through
     // their already-closed types, so each sibling is wrapped individually here instead.
+    if (inlineFrom === undefined) {
+      return hAny(Fragment, null, [
+        hAny(Fragment, { key: 'toggle' }, toggleButton),
+        hAny(Fragment, { key: 'panel' }, drawer),
+      ])
+    }
+
+    const scope = inlineScope(panelId)
     return hAny(Fragment, null, [
-      hAny(Fragment, { key: 'toggle' }, toggleButton),
+      h(
+        'style',
+        { key: 'inline-style', nonce: resolveActiveNonce(nonce) },
+        inlineRules(scope, inlineFrom),
+      ),
+      h('div', { key: 'inline', 'data-navdrawer-inline': scope }, menu),
+      h('span', { key: 'toggle', 'data-navdrawer-toggle': scope }, toggleButton),
       hAny(Fragment, { key: 'panel' }, drawer),
     ])
   }

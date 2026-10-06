@@ -269,3 +269,165 @@ Deno.test('NavDrawer (preact): currentFromLocation marks nothing when no item ma
     else delete (globalThis as { location?: unknown }).location
   }
 })
+
+// --- inlineFrom ----------------------------------------------------------------------------
+
+Deno.test('NavDrawer (preact): without inlineFrom the markup carries no inline list, wrapper or rule', () => {
+  const html = renderToString(element({ items, label: 'Main navigation' }))
+
+  assertEquals(html.includes('data-navdrawer-'), false)
+  assertEquals(html.includes('<style'), false)
+  assertEquals(html.includes('href="/docs"'), false)
+})
+
+Deno.test('NavDrawer (preact): inlineFrom puts the list in the server markup next to the closed toggle, and a nonce’d rule swaps them at that width', () => {
+  const html = renderToString(
+    element({ items, label: 'Main navigation', inlineFrom: '48rem', nonce: 'abc123', id: 'nav' }),
+  )
+
+  assertStringIncludes(html, 'data-navdrawer-inline=')
+  assertStringIncludes(html, 'href="/"')
+  assertStringIncludes(html, 'href="/docs"')
+  assertStringIncludes(html, 'data-navdrawer-toggle=')
+  assertStringIncludes(html, 'aria-expanded="false"')
+  assertEquals(html.includes('role="dialog"'), false)
+  assertStringIncludes(html, 'nonce="abc123"')
+  // The scope is a bare token, never the panel id: a quoted selector would be escaped inside the
+  // <style> by Preact's server renderer and stop matching.
+  const scope = html.match(/data-navdrawer-toggle="([^"]+)"/)?.[1]
+  assertEquals(/^nd[a-z0-9]+$/.test(scope ?? ''), true)
+  assertStringIncludes(
+    html,
+    `@media (min-width:48rem){[data-navdrawer-toggle=${scope}]{display:none}}`,
+  )
+  assertStringIncludes(
+    html,
+    `@media not all and (min-width:48rem){[data-navdrawer-inline=${scope}]{display:none}}`,
+  )
+})
+
+Deno.test('NavDrawer (preact): each inlineFrom instance gets its own scope, shared by its toggle, its list and its rule', () => {
+  const scopesOf = (id: string, inlineFrom: string) => {
+    const { container, unmount } = mount({
+      items,
+      label: 'Main navigation',
+      inlineFrom,
+      id,
+    })
+    const toggle = must(container.querySelector('[data-navdrawer-toggle]'))
+    const inline = must(container.querySelector('[data-navdrawer-inline]'))
+    const scope = toggle.getAttribute('data-navdrawer-toggle')
+    assertEquals(inline.getAttribute('data-navdrawer-inline'), scope)
+    assertEquals(
+      must(container.querySelector<HTMLButtonElement>('[data-navdrawer-toggle] button'))
+        .getAttribute('aria-controls'),
+      id,
+    )
+    const rule = must(container.querySelector('style')).textContent ?? ''
+    assertStringIncludes(rule, `[data-navdrawer-toggle=${scope}]`)
+    assertStringIncludes(rule, `[data-navdrawer-inline=${scope}]`)
+    unmount()
+    return scope
+  }
+
+  const first = scopesOf('primary-nav', '48rem')
+  assertEquals(first === scopesOf('footer-nav', '48rem'), false)
+  assertEquals(/^nd[a-z0-9]+$/.test(scopesOf('a:b"c\'d&e', '64em') ?? ''), true)
+})
+
+Deno.test('NavDrawer (preact): inlineFrom only takes a positive length in px, em or rem — anything else cannot reach the generated style', () => {
+  for (
+    const bad of [
+      '48',
+      'calc(1px)',
+      '-1rem',
+      '0rem',
+      '0',
+      '48vw',
+      '48rem}body{color:red',
+      '',
+      ' 48rem',
+    ]
+  ) {
+    let message = ''
+    try {
+      renderToString(element({ items, label: 'Main navigation', inlineFrom: bad }))
+    } catch (error) {
+      message = (error as Error).message
+    }
+    assertStringIncludes(message, 'inlineFrom must be a positive length', JSON.stringify(bad))
+  }
+  for (const good of ['48rem', '768px', '60em', '40.5rem', '.5em']) {
+    renderToString(element({ items, label: 'Main navigation', inlineFrom: good }))
+  }
+})
+
+Deno.test('NavDrawer (preact): an open panel closes when the viewport grows past inlineFrom', () => {
+  const listeners = new Set<() => void>()
+  const query = {
+    matches: false,
+    addEventListener: (_: string, listener: () => void) => listeners.add(listener),
+    removeEventListener: (_: string, listener: () => void) => listeners.delete(listener),
+  }
+  const requested: string[] = []
+  const original = Object.getOwnPropertyDescriptor(globalThis, 'matchMedia')
+  Object.defineProperty(globalThis, 'matchMedia', {
+    value: (q: string) => (requested.push(q), query),
+    configurable: true,
+  })
+  try {
+    const { container, unmount } = mount({ items, label: 'Main navigation', inlineFrom: '48rem' })
+    assertEquals(requested[0], '(min-width:48rem)')
+    act(() =>
+      must(container.querySelector<HTMLButtonElement>('[data-navdrawer-toggle] button')).click()
+    )
+    assertEquals(container.querySelector('[data-space-ui="drawer"]') !== null, true)
+
+    query.matches = true
+    act(() => listeners.forEach((listener) => listener()))
+    assertEquals(container.querySelector('[data-space-ui="drawer"]'), null)
+
+    unmount()
+    assertEquals(listeners.size, 0)
+  } finally {
+    if (original) Object.defineProperty(globalThis, 'matchMedia', original)
+    else delete (globalThis as { matchMedia?: unknown }).matchMedia
+  }
+})
+
+Deno.test('NavDrawer (preact): with inlineFrom and currentFromLocation the inline list marks the current item after hydration', () => {
+  const original = Object.getOwnPropertyDescriptor(globalThis, 'location')
+  Object.defineProperty(globalThis, 'location', {
+    value: { pathname: '/es/b/7' },
+    configurable: true,
+  })
+  try {
+    const nav = [
+      { label: 'A', url: '/es/a', current: true },
+      { label: 'B', url: '/es/b' },
+    ]
+    const html = renderToString(
+      element({
+        items: nav,
+        label: 'Main navigation',
+        inlineFrom: '48rem',
+        currentFromLocation: true,
+      }),
+    )
+    assertEquals(html.match(/aria-current/g)?.length, 1)
+
+    const { container, unmount } = mount({
+      items: nav,
+      label: 'Main navigation',
+      inlineFrom: '48rem',
+      currentFromLocation: true,
+    })
+    const marked = container.querySelectorAll('[aria-current]')
+    assertEquals(marked.length, 1)
+    assertEquals(marked[0].getAttribute('href'), '/es/b')
+    unmount()
+  } finally {
+    if (original) Object.defineProperty(globalThis, 'location', original)
+    else delete (globalThis as { location?: unknown }).location
+  }
+})

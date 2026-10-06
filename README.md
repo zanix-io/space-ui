@@ -607,6 +607,12 @@ ahead of time:
   decorative-visual path available here. Always uncontrolled — no `open`/`onOpenChange` escape
   hatch, for the same JSON-boundary reason — and closes itself automatically the instant a real
   navigation link inside it is clicked, plain DOM click delegation, never a router/URL read.
+  `inlineFrom` (`'48rem'`, a length in `px`/`em`/`rem`) shows the same `items` as a plain `<nav>`
+  from that viewport width instead of behind the toggle: both are in the server markup and a
+  `<style>` rendered with the `nonce` swaps them, so there is no flash and it works before
+  hydration. It is the one case where `NavDrawer` adds hooks of its own: `data-navdrawer-inline` on
+  the list's container and `data-navdrawer-toggle` on the toggle's wrapper, each holding the
+  instance's scope token.
 
 - ✅ **`SocialLinksInput`** — the editable counterpart to the display-only `SocialNetworks` above: a
   form control for adding, editing, and removing a user's own social links one at a time. Each row
